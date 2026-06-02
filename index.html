@@ -523,7 +523,12 @@ let trans,dividas,retPerfil,contas,transferencias,categorias,projecao;
 // ===== SUPABASE =====
 const SUPABASE_URL = 'https://pdjggmwhhtmrkmyxzrgi.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_rgy-870HOl51lj44AX9-7w_vzwEk1U5';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb = null;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.error('Supabase init error:', e);
+}
 let _user = null;
 
 // ===== LOAD DATA =====
@@ -705,187 +710,6 @@ async function fazerLogout(){
   _user=null;
   window.location.reload();
 }
-
-  const accounts=getAccounts();
-  const el=document.getElementById("login-content");
-  if(!el)return;
-
-  if(_loginState==="list"){
-    if(accounts.length===0){
-      // Nenhuma conta — vai direto para criar
-      _loginState="criar";renderLogin();return;
-    }
-    // Lista de contas existentes
-    const listHtml=accounts.map(a=>`
-      <div class="account-item" onclick="selecionarConta('${a.id}')">
-        <div class="account-avatar">${getInitial(a.nome)}</div>
-        <div><div class="account-name">${a.nome}</div><div class="account-sub">Toque para entrar</div></div>
-      </div>`).join("");
-    el.innerHTML=`
-      <div class="login-title" style="margin-bottom:14px">Selecione sua conta</div>
-      <div class="account-list">${listHtml}</div>
-      <div class="login-divider"><span>ou</span></div>
-      <button class="login-btn" style="background:rgba(255,255,255,.1);margin-top:0" onclick="irParaCriar()">+ Criar nova conta</button>
-      <div class="login-link" onclick="irParaExportar()" style="margin-top:14px">Exportar / Importar dados</div>`;
-
-  } else if(_loginState==="pin"){
-    const a=_selectedAccount;
-    el.innerHTML=`
-      <div class="login-back" onclick="voltarLista()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        Voltar
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        <div class="account-avatar" style="width:48px;height:48px;font-size:20px">${getInitial(a.nome)}</div>
-        <div><div class="login-title" style="margin:0;text-align:left">Olá, ${a.nome}!</div><div style="color:var(--steel);font-size:12px">Digite seu PIN para entrar</div></div>
-      </div>
-      <div class="pin-dots">
-        <div class="pin-dot" id="dot-0"></div><div class="pin-dot" id="dot-1"></div>
-        <div class="pin-dot" id="dot-2"></div><div class="pin-dot" id="dot-3"></div>
-      </div>
-      <div class="login-field">
-        <label>PIN (4 dígitos)</label>
-        <input id="l-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" oninput="updateDots()" onkeydown="if(event.key==='Enter')confirmarPin()"/>
-      </div>
-      <button class="login-btn" onclick="confirmarPin()">Entrar</button>
-      <div class="login-error" id="login-error"></div>
-      <div class="login-reset" onclick="resetPin()">Esqueci meu PIN</div>
-      <div class="login-link" onclick="irParaExcluirConta()" style="color:#f09595;margin-top:8px">Excluir esta conta</div>`;
-    setTimeout(()=>{const p=document.getElementById("l-pin");if(p)p.focus();},100);
-
-  } else if(_loginState==="criar"){
-    const accounts=getAccounts();
-    el.innerHTML=`
-      ${accounts.length>0?`<div class="login-back" onclick="voltarLista()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Voltar</div>`:""}
-      <div class="login-title">Criar nova conta</div>
-      <div class="login-field" style="margin-top:16px">
-        <label>Seu nome</label>
-        <input id="l-nome" type="text" placeholder="Como quer ser chamado?" onkeydown="if(event.key==='Enter')document.getElementById('l-pin-criar').focus()"/>
-      </div>
-      <div class="login-field">
-        <label>Criar PIN (4 dígitos)</label>
-        <input id="l-pin-criar" type="password" inputmode="numeric" maxlength="4" placeholder="••••" onkeydown="if(event.key==='Enter')criarConta()"/>
-      </div>
-      <button class="login-btn" onclick="criarConta()">Criar conta</button>
-      <div class="login-error" id="login-error"></div>
-      ${accounts.length===0?`
-        <div class="login-divider"><span>ou</span></div>
-        <button class="login-btn" style="background:rgba(255,255,255,.1)" onclick="irParaJaTemConta()">Já tenho uma conta</button>
-        <div class="login-link" onclick="irParaExportar()">Importar dados de outro dispositivo</div>
-      `:""}`;
-    setTimeout(()=>{const n=document.getElementById("l-nome");if(n)n.focus();},100);
-
-  } else if(_loginState==="jaTemConta"){
-    const accounts=getAccounts();
-    const listHtml=accounts.length>0
-      ?`<div class="account-list" style="margin-bottom:0">${accounts.map(a=>`
-          <div class="account-item" onclick="selecionarConta('${a.id}')">
-            <div class="account-avatar">${getInitial(a.nome)}</div>
-            <div><div class="account-name">${a.nome}</div><div class="account-sub">Toque para entrar com PIN</div></div>
-          </div>`).join("")}
-        </div>`
-      :`<div style="background:rgba(255,255,255,.06);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--steel);text-align:center;margin-bottom:0">
-          Nenhuma conta encontrada neste navegador.
-        </div>`;
-    el.innerHTML=`
-      <div class="login-back" onclick="irParaCriar()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Voltar
-      </div>
-      <div class="login-title" style="margin-bottom:14px">Já tenho uma conta</div>
-      ${listHtml}
-      <div class="login-divider"><span>ou venho de outro dispositivo</span></div>
-      <button class="login-btn" style="background:rgba(255,255,255,.1);margin-top:0" onclick="irParaExportar()">📥 Importar dados de outro dispositivo</button>`;
-
-  } else if(_loginState==="exportar"){
-    el.innerHTML=`
-      <div class="login-back" onclick="voltarLista()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Voltar</div>
-      <div class="login-title">Exportar / Importar</div>
-      <p style="color:var(--steel);font-size:13px;margin:12px 0 20px;line-height:1.6">
-        Use <strong style="color:#fff">Exportar</strong> para salvar todos os seus dados em um arquivo.<br>
-        Use <strong style="color:#fff">Importar</strong> para carregar dados em um novo dispositivo ou navegador.
-      </p>
-      <button class="login-btn" onclick="exportarTodosDados()" style="margin-bottom:10px">⬆ Exportar meus dados</button>
-      <div class="login-field" style="margin-top:8px">
-        <label>Importar arquivo (.json)</label>
-        <input type="file" id="imp-file" accept=".json" style="color:var(--steel);background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)" onchange="importarDados(this)"/>
-      </div>
-      <div class="login-error" id="login-error" style="margin-top:8px"></div>`;
-  }
-}
-
-function selecionarConta(id){
-  const accounts=getAccounts();
-  _selectedAccount=accounts.find(a=>a.id===id);
-  if(!_selectedAccount)return;
-  _loginState="pin";renderLogin();
-}
-
-function confirmarPin(){
-  const pin=document.getElementById("l-pin").value.trim();
-  const errEl=document.getElementById("login-error");
-  if(errEl)errEl.textContent="";
-  if(!_selectedAccount)return;
-  if(pin!==_selectedAccount.pin){
-    if(errEl)errEl.textContent="PIN incorreto. Tente novamente.";
-    document.getElementById("l-pin").value="";updateDots();return;
-  }
-  _currentAccountId=_selectedAccount.id;
-  abrirApp(_selectedAccount.nome);
-}
-
-function criarConta(){
-  const nome=(document.getElementById("l-nome").value||"").trim();
-  const pin=(document.getElementById("l-pin-criar").value||"").trim();
-  const errEl=document.getElementById("login-error");
-  if(errEl)errEl.textContent="";
-  if(!nome){if(errEl)errEl.textContent="Informe seu nome.";return}
-  if(pin.length!==4||isNaN(pin)){if(errEl)errEl.textContent="O PIN deve ter exatamente 4 dígitos.";return}
-  const accounts=getAccounts();
-  const id=genId();
-  accounts.push({id,nome,pin});
-  saveAccounts(accounts);
-  _currentAccountId=id;
-  abrirApp(nome);
-}
-
-function resetPin(){
-  if(!_selectedAccount)return;
-  if(!confirm("Isso removerá o PIN de "+_selectedAccount.nome+". Será necessário criar um novo. Continuar?"))return;
-  const accounts=getAccounts().map(a=>a.id===_selectedAccount.id?{...a,pin:"0000"}:a);
-  saveAccounts(accounts);
-  _selectedAccount={..._selectedAccount,pin:"0000"};
-  alert("PIN redefinido para 0000. Entre e altere pelo suporte se necessário.");
-}
-
-function irParaExcluirConta(){
-  if(!_selectedAccount)return;
-  if(!confirm("Excluir a conta de "+_selectedAccount.nome+"?\n\nTODOS os dados desta conta serão apagados permanentemente. Esta ação não pode ser desfeita."))return;
-  // Remove dados
-  const keys=["trans","div","ret","contas","transf","cats","proj"];
-  keys.forEach(k=>localStorage.removeItem("ant_"+k+"_"+_selectedAccount.id));
-  // Remove conta
-  const accounts=getAccounts().filter(a=>a.id!==_selectedAccount.id);
-  saveAccounts(accounts);
-  _selectedAccount=null;_loginState="list";renderLogin();
-}
-
-function voltarLista(){_selectedAccount=null;_loginState="list";renderLogin()}
-function irParaCriar(){_loginState="criar";renderLogin()}
-function irParaJaTemConta(){_loginState="jaTemConta";renderLogin()}
-function irParaExportar(){_loginState="exportar";renderLogin()}
-
-function updateDots(){
-  const val=(document.getElementById("l-pin")||{value:""}).value;
-  for(let i=0;i<4;i++){const d=document.getElementById("dot-"+i);if(d)d.classList.toggle("filled",i<val.length)}
-}
-
-// Exportar todos os dados da conta atual
-function exportarTodosDados(){
-  if(!_currentAccountId&&!_selectedAccount){alert("Selecione uma conta primeiro.");return}
-  const id=_currentAccountId||_selectedAccount.id;
-  const accounts=getAccounts();
-  const conta=accounts.find(a=>a.id===id);
-  const keys=["trans","div","ret","contas","transf","cats","proj"];
 
 // ===== HELPERS =====
 const fmt=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);
@@ -1386,18 +1210,19 @@ function processarArquivo(file){
   reader.readAsText(file,"UTF-8");
 }
 
-function confirmarImport(){
+async function confirmarImport(){
   const chks=document.querySelectorAll(".imp-chk");
   const cats=document.querySelectorAll(".imp-cat");
   let count=0;
-  chks.forEach((chk,i)=>{
-    if(!chk.checked)return;
+  for(let i=0;i<chks.length;i++){
+    if(!chks[i].checked)continue;
     const t=importPreview[i];
-    if(!t)return;
+    if(!t)continue;
     const cat=cats[i]?cats[i].value:t.categoria;
-    await sb.from("transacoes").insert({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||"Outros",data:t.data,conta_id:null}).select().single().then(({data})=>{if(data)trans.unshift({...data,contaId:null})});
+    const {data}=await sb.from("transacoes").insert({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||"Outros",data:t.data,conta_id:null}).select().single();
+    if(data)trans.unshift({...data,contaId:null});
     count++;
-  });
+  }
   importPreview=[];showImport=false;
   render();
   alert(`✓ ${count} transação(ões) importada(s) com sucesso!`);
@@ -2175,12 +2000,30 @@ function buildConquistas(){
 }
 // ===== INIT =====
 (async()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){
-    _user=session.user;
-    const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
-    await carregarApp(prof?.nome||session.user.email.split("@")[0]);
-  } else {
+  // Set logos
+  try{
+    const logoSrc="data:image/jpeg;base64,"+LOGO_B64;
+    ["li-login","li-w","li-a"].forEach(id=>{const el=document.getElementById(id);if(el)el.src=logoSrc;});
+    const fav=document.getElementById("favicon");if(fav)fav.href=logoSrc;
+  }catch(e){}
+
+  if(!sb){
+    console.error("Supabase não carregou. Verifique sua conexão.");
+    renderLogin();
+    return;
+  }
+
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      _user=session.user;
+      const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
+      await carregarApp(prof?.nome||session.user.email.split("@")[0]);
+    } else {
+      renderLogin();
+    }
+  }catch(e){
+    console.error("Erro ao inicializar:", e);
     renderLogin();
   }
 })();
