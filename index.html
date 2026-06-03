@@ -497,7 +497,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 
 <!-- MODAL NOVA CONTA -->
 <div id="modal-conta" class="modal-bg" style="display:none">
-  <div class="modal"><h2>Nova conta</h2>
+  <div class="modal"><h2 id="modal-conta-title">Nova conta</h2>
     <div class="modal-f">
       <div><label class="ret-label">Nome do banco / carteira</label><input id="c-banco" placeholder="Ex: Nubank, Itaú, Carteira..."/></div>
       <div><label class="ret-label">Apelido (opcional)</label><input id="c-apelido" placeholder="Ex: Conta principal, Reserva..."/></div>
@@ -505,7 +505,47 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <div><label class="ret-label">Saldo inicial (R$)</label><input id="c-saldo" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
       <div><label class="ret-label">Cor identificadora</label><div class="cor-swatches" id="cor-swatches"></div></div>
     </div>
-    <div class="modal-actions"><button class="btn-outline" onclick="closeModal('modal-conta')">Cancelar</button><button class="btn-primary" onclick="addConta()">Adicionar conta</button></div>
+    <div class="modal-actions"><button class="btn-outline" onclick="fecharModalConta()">Cancelar</button><button class="btn-primary" id="btn-salvar-conta" onclick="salvarConta()">Adicionar conta</button></div>
+  </div>
+</div>
+
+<!-- Modal editar lançamento -->
+<div id="modal-edit-trans" class="modal-bg" style="display:none">
+  <div class="modal"><h2>Editar lançamento</h2>
+    <div class="modal-f">
+      <div><label class="ret-label">Tipo</label>
+        <select id="et-tipo" onchange="etAtualizarCats()">
+          <option value="receita">↑ Receita</option>
+          <option value="despesa">↓ Despesa</option>
+        </select>
+      </div>
+      <div><label class="ret-label">Descrição</label><input id="et-desc" placeholder="Descrição"/></div>
+      <div class="grid2">
+        <div><label class="ret-label">Valor</label><input id="et-valor" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
+        <div><label class="ret-label">Data</label><input id="et-data" type="date"/></div>
+      </div>
+      <div><label class="ret-label">Categoria</label><select id="et-cat"></select></div>
+      <div id="et-conta-wrap"><label class="ret-label">Conta (opcional)</label><select id="et-conta"></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-edit-trans')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarEdicaoTrans()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar item projeção -->
+<div id="modal-edit-proj" class="modal-bg" style="display:none">
+  <div class="modal"><h2 id="modal-edit-proj-title">Editar item</h2>
+    <div class="modal-f">
+      <div><label class="ret-label">Descrição (opcional)</label><input id="ep-desc" placeholder="Descrição"/></div>
+      <div><label class="ret-label">Categoria</label><select id="ep-cat"></select></div>
+      <div><label class="ret-label">Valor</label><input id="ep-valor" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeModal('modal-edit-proj')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarEdicaoProjItem()">Salvar alterações</button>
+    </div>
   </div>
 </div>
 
@@ -783,6 +823,7 @@ const getSaldoTotal=()=>contas.reduce((s,c)=>s+getSaldoConta(c.id),0);
 const getTransMes=()=>trans.filter(t=>{const[y,m]=t.data.split("-").map(Number);return y===mes.y&&m===mes.m});
 const getTransfMes=()=>transferencias.filter(t=>{const[y,m]=t.data.split("-").map(Number);return y===mes.y&&m===mes.m});
 function iconTrash(){return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`}
+function iconEdit(){return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`}
 function iconChev(d){return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M${d==="l"?"15 18l-6-6 6-6":"9 18l6-6-6-6"}"/></svg>`}
 function mesPicker(){return`<div class="mes-picker"><button onclick="navMes(-1)">${iconChev("l")}</button><span>${mesNome(mes.y,mes.m)}</span><button onclick="navMes(1)">${iconChev("r")}</button></div>`}
 function contaOpts(label="Selecione a conta"){if(contas.length===0)return`<option value="">Nenhuma conta cadastrada</option>`;return`<option value="">${label}</option>`+contas.map(c=>`<option value="${c.id}">${c.apelido||c.banco}${c.tipo?" ("+c.tipo+")":""}</option>`).join("")}
@@ -791,6 +832,7 @@ function contaOpts(label="Selecione a conta"){if(contas.length===0)return`<optio
 let currentTab="dashboard",cadTab="contas",tipoLanc="despesa",grafTipo="despesa";
 let importPreview=[];let showImport=false;
 let chartInst=null,pagarDividaId=null,selectedCor=CORES[0];
+let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
@@ -840,7 +882,7 @@ function renderLancamentos(){
     :`<input id="f-desc" placeholder="Descrição"/><div class="grid2"><input id="f-valor" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/><input id="f-data" type="date" value="${todayStr()}"/></div><select id="f-cat"><option value="">Selecione a categoria</option>${cats.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join("")}</select>${contas.length>0?`<select id="f-conta">${contaOpts("Conta (opcional)")}</select>`:""}<button class="btn-primary" id="btn-add" onclick="addLanc()">+ Adicionar lançamento</button>`;
   const allItems=[...tm.map(t=>({...t,_k:"trans"})),...tf.map(t=>({...t,_k:"transf"}))].sort((a,b)=>b.data.localeCompare(a.data));
   const listHtml=allItems.length===0?`<p class="empty">Nenhum lançamento neste mês.</p>`
-    :`<div class="list">${allItems.map(item=>{if(item._k==="transf")return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao||"Transferência"}</div><div class="li-sub">${getNomeConta(item.fromId)} → ${getNomeConta(item.toId)} · ${fmtData(item.data)}</div></div><div class="li-right"><span style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(item.valor)}</span><button class="icon-btn" onclick="remTransf('${item.id}')">${iconTrash()}</button></div></div>`;return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao}</div><div class="li-sub">${item.categoria}${item.contaId?" · "+getNomeConta(item.contaId):""} · ${fmtData(item.data)}</div></div><div class="li-right"><span style="font-size:14px;font-weight:500;color:${item.tipo==="receita"?"var(--success)":"var(--danger)"}">${item.tipo==="receita"?"+":"-"}${fmt(item.valor)}</span><button class="icon-btn" onclick="remTrans('${item.id}')">${iconTrash()}</button></div></div>`;}).join("")}</div>`;
+    :`<div class="list">${allItems.map(item=>{if(item._k==="transf")return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao||"Transferência"}</div><div class="li-sub">${getNomeConta(item.fromId)} → ${getNomeConta(item.toId)} · ${fmtData(item.data)}</div></div><div class="li-right"><span style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(item.valor)}</span><button class="icon-btn" onclick="remTransf('${item.id}')">${iconTrash()}</button></div></div>`;return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao}</div><div class="li-sub">${item.categoria}${item.contaId?" · "+getNomeConta(item.contaId):""} · ${fmtData(item.data)}</div></div><div class="li-right"><span style="font-size:14px;font-weight:500;color:${item.tipo==="receita"?"var(--success)":"var(--danger)"}">${item.tipo==="receita"?"+":"-"}${fmt(item.valor)}</span><button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditTrans('${item.id}')">${iconEdit()}</button><button class="icon-btn" onclick="remTrans('${item.id}')">${iconTrash()}</button></div></div>`;}).join("")}</div>`;
 
   // Import section
   const allCats=[...getCatsR(),...getCatsD()];
@@ -1063,8 +1105,8 @@ function renderCadastros(){
   const cR=getCatsR(),cD=getCatsD();
   let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
   if(cadTab==="contas"){
-    const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
-    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="openModal('modal-conta');initSwatches()">+ Nova conta</button></div>${cl}`;
+    const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditConta('${c.id}')">${iconEdit()}</button><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="abrirNovaContaModal()">+ Nova conta</button></div>${cl}`;
   } else if(cadTab==="categorias"){
     html+=`<div class="cat-section"><h3>Receitas</h3><div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div></div><div class="cat-section"><h3>Despesas</h3><div class="cat-list">${cD.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div></div>`;
   } else if(cadTab==="migracao"){
@@ -1587,8 +1629,97 @@ async function remPag(did,pid){
 
 function initSwatches(){const w=document.getElementById("cor-swatches");if(!w)return;w.innerHTML=CORES.map(c=>`<div class="cor-swatch ${c===selectedCor?"sel":""}" style="background:${c}" onclick="selCor('${c}')"></div>`).join("")}
 function selCor(c){selectedCor=c;initSwatches()}
-async function addConta(){const banco=document.getElementById("c-banco").value.trim(),ap=document.getElementById("c-apelido").value.trim(),tipo=document.getElementById("c-tipo").value,si=parseMoeda("c-saldo")||0;if(!banco)return;const {data}=await sb.from("contas").insert({user_id:_user.id,banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).select().single();if(data)contas.push({...data,saldoInicial:data.saldo_inicial});closeModal("modal-conta");render()}
-async function remConta(id){const eu=trans.some(t=>t.contaId===id)||transferencias.some(t=>t.fromId===id||t.toId===id);if(eu&&!confirm("Esta conta tem movimentações. Remover mesmo assim?"))return;await sb.from("contas").delete().eq("id",id).eq("user_id",_user.id);contas=contas.filter(c=>c.id!==id);render()}
+
+// ===== CONTA — abrir modal nova/editar =====
+function abrirNovaContaModal(){
+  editingContaId=null;
+  document.getElementById("modal-conta-title").textContent="Nova conta";
+  document.getElementById("btn-salvar-conta").textContent="Adicionar conta";
+  ["c-banco","c-apelido"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("c-tipo").value="";
+  document.getElementById("c-saldo").value="";
+  selectedCor=CORES[0];initSwatches();openModal("modal-conta");
+}
+function abrirEditConta(id){
+  const c=contas.find(x=>x.id===id);if(!c)return;
+  editingContaId=id;
+  document.getElementById("modal-conta-title").textContent="Editar conta";
+  document.getElementById("btn-salvar-conta").textContent="Salvar alterações";
+  document.getElementById("c-banco").value=c.banco||"";
+  document.getElementById("c-apelido").value=c.apelido||"";
+  document.getElementById("c-tipo").value=c.tipo||"";
+  setMoeda("c-saldo",c.saldo_inicial||c.saldoInicial||0);
+  selectedCor=c.cor||CORES[0];initSwatches();openModal("modal-conta");
+}
+function fecharModalConta(){editingContaId=null;closeModal("modal-conta");}
+async function salvarConta(){
+  const banco=document.getElementById("c-banco").value.trim(),ap=document.getElementById("c-apelido").value.trim(),tipo=document.getElementById("c-tipo").value,si=parseMoeda("c-saldo")||0;
+  if(!banco)return;
+  if(editingContaId){
+    const {data}=await sb.from("contas").update({banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).eq("id",editingContaId).select().single();
+    if(data){contas=contas.map(c=>c.id===editingContaId?{...data,saldoInicial:data.saldo_inicial}:c);}
+    editingContaId=null;
+  } else {
+    const {data}=await sb.from("contas").insert({user_id:_user.id,banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).select().single();
+    if(data)contas.push({...data,saldoInicial:data.saldo_inicial});
+  }
+  closeModal("modal-conta");render();
+}
+async function remConta(id){const eu=trans.some(t=>t.contaId===id)||transferencias.some(t=>t.fromId===id||t.toId===id);if(eu&&!confirm("Esta conta tem movimentações. Remover mesmo assim?"))return;await sb.from("contas").delete().eq("id",id);contas=contas.filter(c=>c.id!==id);render()}
+
+// ===== LANÇAMENTO — editar =====
+function abrirEditTrans(id){
+  const t=trans.find(x=>x.id===id);if(!t)return;
+  editingTransId=id;
+  document.getElementById("et-tipo").value=t.tipo;
+  document.getElementById("et-desc").value=t.descricao||"";
+  setMoeda("et-valor",t.valor);
+  document.getElementById("et-data").value=t.data||"";
+  const cats=t.tipo==="receita"?getCatsR():getCatsD();
+  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${cats.map(c=>`<option value="${c.nome}"${c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("")}`;
+  const contaSel=document.getElementById("et-conta");
+  contaSel.innerHTML=`<option value="">Nenhuma</option>${contas.map(c=>`<option value="${c.id}"${c.id===t.contaId?" selected":""}>${c.apelido||c.banco}</option>`).join("")}`;
+  document.getElementById("et-conta-wrap").style.display=contas.length>0?"block":"none";
+  openModal("modal-edit-trans");
+}
+function etAtualizarCats(){
+  if(!editingTransId)return;
+  const t=trans.find(x=>x.id===editingTransId);
+  const tipo=document.getElementById("et-tipo").value;
+  const cats=tipo==="receita"?getCatsR():getCatsD();
+  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${cats.map(c=>`<option value="${c.nome}"${t&&c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("")}`;
+}
+async function salvarEdicaoTrans(){
+  if(!editingTransId)return;
+  const tipo=document.getElementById("et-tipo").value,desc=document.getElementById("et-desc").value.trim(),val=parseMoeda("et-valor"),dt=document.getElementById("et-data").value,cat=document.getElementById("et-cat").value;
+  const ci=document.getElementById("et-conta")?.value||null;
+  if(!desc||!val||!cat)return;
+  const {data}=await sb.from("transacoes").update({tipo,descricao:desc,valor:val,categoria:cat,data:dt,conta_id:ci||null}).eq("id",editingTransId).select().single();
+  if(data){trans=trans.map(t=>t.id===editingTransId?{...data,contaId:data.conta_id}:t);}
+  editingTransId=null;closeModal("modal-edit-trans");render();
+}
+
+// ===== PROJEÇÃO — editar item =====
+let editingProjTipo=null,editingProjId=null;
+function abrirEditProjItem(tipo,id){
+  const lista=projecao[tipo]||[];
+  const item=lista.find(x=>String(x.id)===String(id));if(!item)return;
+  editingProjTipo=tipo;editingProjId=id;
+  document.getElementById("modal-edit-proj-title").textContent=tipo==="receitas"?"Editar receita prevista":"Editar despesa prevista";
+  document.getElementById("ep-desc").value=item.descricao||"";
+  setMoeda("ep-valor",item.valor);
+  const cats=tipo==="receitas"?getCatsR():getCatsD();
+  document.getElementById("ep-cat").innerHTML=`<option value="">Categoria</option>${cats.map(c=>`<option value="${c.nome}"${c.nome===item.categoria?" selected":""}>${c.nome}</option>`).join("")}`;
+  openModal("modal-edit-proj");
+}
+async function salvarEdicaoProjItem(){
+  if(!editingProjTipo||editingProjId===null)return;
+  const desc=document.getElementById("ep-desc").value.trim(),cat=document.getElementById("ep-cat").value,val=parseMoeda("ep-valor");
+  if(!val||!cat)return;
+  projecao[editingProjTipo]=projecao[editingProjTipo].map(x=>String(x.id)===String(editingProjId)?{...x,descricao:desc,categoria:cat,valor:val}:x);
+  await salvarProjecao();
+  editingProjTipo=null;editingProjId=null;closeModal("modal-edit-proj");renderProjecao();
+}
 
 async function addCat(tipo){
   const inp=document.getElementById(tipo==="receita"?"ncr":"ncd");
@@ -1667,7 +1798,7 @@ function renderProjecao(){
         listaR+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
           +'<div><div style="font-size:13px;font-weight:500">'+(r.descricao||r.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+r.categoria+'</div></div>'
           +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:var(--success)">+'+fmt(r.valor)+'</span>'
-          +'<button class="icon-btn" onclick="remProjItem(\'receitas\','+r.id+')">'+iconTrash()+'</button></div></div>';}
+          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'receitas\','+r.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'receitas\','+r.id+')">'+iconTrash()+'</button></div></div>';}
       listaR+='</div>';}
 
     var listaD='<p class="empty" style="padding:8px 0">Nenhuma despesa adicionada.</p>';
@@ -1676,7 +1807,7 @@ function renderProjecao(){
         listaD+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
           +'<div><div style="font-size:13px;font-weight:500">'+(d.descricao||d.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+d.categoria+'</div></div>'
           +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:var(--danger)">-'+fmt(d.valor)+'</span>'
-          +'<button class="icon-btn" onclick="remProjItem(\'despesas\','+d.id+')">'+iconTrash()+'</button></div></div>';}
+          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'despesas\','+d.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'despesas\','+d.id+')">'+iconTrash()+'</button></div></div>';}
       listaD+='</div>';}
 
     var cR=getCatsR(),cD=getCatsD();
