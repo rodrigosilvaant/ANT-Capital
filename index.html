@@ -2657,7 +2657,7 @@ async function gerarDiagnostico(){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-haiku-4-5-20251001',
         max_tokens:1500,
         system:`Você é um consultor financeiro pessoal especializado analisando dados de clientes brasileiros.
 Analise os dados e responda APENAS com um JSON válido (sem markdown, sem texto extra) com esta estrutura exata:
@@ -2682,7 +2682,11 @@ Inclua de 3 a 5 itens no diagnóstico e de 3 a 5 itens no plano de ação. Seja 
     const txt=data.content?.[0]?.text||'';
     let resultado;
     try{resultado=JSON.parse(txt.replace(/```json?|```/g,'').trim());}
-    catch{throw new Error('Resposta inválida da IA');}
+    catch(e){
+      // Show actual API error for debugging
+      const apiErr=data.error?.message||data.error||txt.slice(0,200);
+      throw new Error('Erro da API: '+apiErr);
+    }
     _diagResult=resultado;
     exibirDiagnostico(resultado,ctx);
   }catch(e){
