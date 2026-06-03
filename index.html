@@ -1140,64 +1140,105 @@ async function migrarViaJSON(){
   const txt=(document.getElementById("mig-json")||{}).value||"";
   if(!txt.trim()){alert("Cole o conteúdo JSON antes de importar.");return;}
   let dados;
-  try{dados=JSON.parse(txt);}catch(e){alert("JSON inválido. Verifique o conteúdo.");return;}
-  // Suporta formato exportado: {conta:{nome}, dados:{trans,div,contas,cats,transf,ret,proj}}
+  try{dados=JSON.parse(txt);}catch(e){alert("JSON inválido: "+e.message);return;}
+
   const d=dados.dados||dados;
-  const nome=(dados.conta?.nome)||"Importação JSON";
   const uid=_user.id;
   let ok=0,erros=0;
-  const setStatus=m=>{const el=document.getElementById("mig-status");if(el){el.textContent=m;el.style.color="var(--text2)";}};
-  setStatus("Importando...");
-  try{
-    // Contas
-    const contaIdMap={};
-    for(const c of(d.contas||[])){
-      const {data}=await sb.from("contas").insert({user_id:uid,banco:c.banco,apelido:c.apelido||"",tipo:c.tipo||"",saldo_inicial:c.saldoInicial||0,cor:c.cor||"#3a6fa8"}).select().single();
-      if(data){contaIdMap[c.id]=data.id;contas.push({...data,saldoInicial:data.saldo_inicial});ok++;}else erros++;
-    }
-    // Categorias
-    for(const c of(d.cats||[])){
-      if(categorias.some(x=>x.nome.toLowerCase()===c.nome.toLowerCase()&&x.tipo===c.tipo))continue;
-      const {data}=await sb.from("categorias").insert({user_id:uid,nome:c.nome,tipo:c.tipo}).select().single();
-      if(data){categorias.push(data);ok++;}
-    }
-    // Transações
-    for(const t of(d.trans||[])){
-      const {data}=await sb.from("transacoes").insert({user_id:uid,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:t.categoria||"",data:t.data,conta_id:contaIdMap[t.contaId]||null}).select().single();
-      if(data){trans.push({...data,contaId:data.conta_id});ok++;}else erros++;
-    }
-    trans.sort((a,b)=>b.data.localeCompare(a.data));
-    // Transferências
-    for(const t of(d.transf||[])){
-      const {data}=await sb.from("transferencias").insert({user_id:uid,from_id:contaIdMap[t.fromId]||null,to_id:contaIdMap[t.toId]||null,valor:t.valor,data:t.data,descricao:t.descricao||""}).select().single();
-      if(data){transferencias.push({...data,fromId:data.from_id,toId:data.to_id});ok++;}
-    }
-    // Dívidas
-    for(const div of(d.div||[])){
-      const {data:dData}=await sb.from("dividas").insert({user_id:uid,credor:div.credor,tipo:div.tipo||"",valor_total:div.valorTotal||0,parcelas:div.parcelas||1,pagas:div.pagas||0,juros:div.juros||0,inicio:div.inicio||null,vencimento:div.venc||null,obs:div.obs||"",quitada:div.quitada||false}).select().single();
-      if(dData){
-        for(const p of(div.pagamentos||[])){await sb.from("pagamentos_divida").insert({user_id:uid,divida_id:dData.id,valor:p.valor,data:p.data,obs:p.obs||""});}
-        dividas.push({...dData,valorTotal:dData.valor_total,venc:dData.vencimento,pagamentos:div.pagamentos||[]});ok++;
-      }else erros++;
-    }
-    // Aposentadoria
-    const ret=d.ret||{};
-    if(ret.idadeAtual){await sb.from("aposentadoria").upsert({user_id:uid,idade_atual:ret.idadeAtual,idade_apos:ret.idadeApos,renda_mensal:ret.rendaMensal,invest_atual:ret.investAtual,taxa_anual:ret.taxaAnual||6});retPerfil=ret;ok++;}
-    // Projeção
-    const proj=d.proj||{};
-    if(proj.receitas||proj.despesas){await sb.from("projecao").upsert({user_id:uid,receitas:proj.receitas||[],despesas:proj.despesas||[]});projecao=proj;ok++;}
+  const log=[];
 
+  const setStatus=m=>{
     const el=document.getElementById("mig-status");
-    if(el){el.textContent=`✅ ${ok} itens importados${erros>0?" ("+erros+" erros)":""}!`;el.style.color="var(--success)";}
-    // Recarrega do banco para confirmar que tudo foi salvo
+    if(el){el.textContent=m;el.style.color="var(--text2)";}
+    console.log("[Migração]",m);
+  };
+
+  const btns=document.querySelectorAll(".login-btn, .btn-sm");
+  btns.forEach(b=>b.disabled=true);
+
+  try{
+    // 1. Categorias novas (que ainda não existem)
+    setStatus("Importando categorias...");
+    const catsNova=(d.cats||[]).filter(c=>!categorias.some(x=>x.nome.toLowerCase()===c.nome.toLowerCase()&&x.tipo===c.tipo));
+    if(catsNova.length>0){
+      const {data:cData,error:cErr}=await sb.from("categorias")
+        .insert(catsNova.map(c=>({user_id:uid,nome:c.nome,tipo:c.tipo})))
+        .select();
+      if(cErr){log.push("Categorias: "+cErr.message);console.error("Cats error:",cErr);}
+      else{(cData||[]).forEach(c=>categorias.push(c));ok+=cData?.length||0;}
+    }
+
+    // 2. Transações — inserção em lote
+    setStatus(`Importando ${(d.trans||[]).length} transações...`);
+    const transParaInserir=(d.trans||[]).map(t=>({
+      user_id:uid,
+      tipo:t.tipo,
+      descricao:t.descricao||"",
+      valor:Number(t.valor)||0,
+      categoria:t.categoria||"",
+      data:t.data,
+      conta_id:null
+    }));
+
+    if(transParaInserir.length>0){
+      // Inserir em lotes de 50 para evitar timeout
+      const LOTE=50;
+      for(let i=0;i<transParaInserir.length;i+=LOTE){
+        const lote=transParaInserir.slice(i,i+LOTE);
+        setStatus(`Importando transações ${i+1}–${Math.min(i+LOTE,transParaInserir.length)} de ${transParaInserir.length}...`);
+        const {data:tData,error:tErr}=await sb.from("transacoes").insert(lote).select();
+        if(tErr){
+          log.push(`Transações lote ${i/LOTE+1}: ${tErr.message}`);
+          console.error("Trans error:",tErr);
+          erros+=lote.length;
+        } else {
+          (tData||[]).forEach(t=>trans.unshift({...t,contaId:t.conta_id}));
+          ok+=tData?.length||0;
+        }
+      }
+    }
+
+    // 3. Projeção
+    const proj=d.proj||{};
+    if((proj.receitas?.length||0)+(proj.despesas?.length||0)>0){
+      setStatus("Importando projeção...");
+      const {error:pErr}=await sb.from("projecao")
+        .upsert({user_id:uid,receitas:proj.receitas||[],despesas:proj.despesas||[]});
+      if(pErr){log.push("Projeção: "+pErr.message);}
+      else{projecao=proj;ok++;}
+    }
+
+    // 4. Aposentadoria
+    const ret=d.ret||{};
+    if(ret.idadeAtual){
+      setStatus("Importando aposentadoria...");
+      const {error:rErr}=await sb.from("aposentadoria")
+        .upsert({user_id:uid,idade_atual:ret.idadeAtual,idade_apos:ret.idadeApos,renda_mensal:ret.rendaMensal,invest_atual:ret.investAtual,taxa_anual:ret.taxaAnual||6});
+      if(!rErr){retPerfil=ret;ok++;}
+    }
+
+    // Recarrega do banco para confirmar
     setStatus("Verificando dados no banco...");
     await loadData();
+    trans.sort((a,b)=>b.data.localeCompare(a.data));
     render();
-    alert(`Importação concluída!\n${ok} itens importados com sucesso.${erros>0?"\n⚠️ "+erros+" erros — alguns itens podem não ter sido salvos.":""}`);
-  }catch(e){
+
     const el=document.getElementById("mig-status");
-    if(el){el.textContent="❌ Erro: "+e.message;el.style.color="var(--danger)";}
+    const resumo=log.length>0?"\n\nErros:\n"+log.join("\n"):"";
+    if(el){
+      el.textContent=`✅ ${ok} itens importados${erros>0?" · "+erros+" erros":""}`;
+      el.style.color=erros>0?"var(--warning)":"var(--success)";
+    }
+    alert(`Importação concluída!\n✅ ${ok} itens importados${erros>0?"\n⚠️ "+erros+" erros":""}${resumo}`);
+
+  }catch(e){
+    console.error("Erro geral migração:",e);
+    setStatus("❌ Erro: "+e.message);
+    const el=document.getElementById("mig-status");
+    if(el)el.style.color="var(--danger)";
+    alert("Erro na importação: "+e.message+"\n\nAbra o console (F12) para mais detalhes.");
   }
+  btns.forEach(b=>b.disabled=false);
 }
 
 async function migrarConta(oldId, nomeOrigem){
