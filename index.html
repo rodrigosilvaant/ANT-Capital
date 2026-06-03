@@ -1190,7 +1190,7 @@ async function migrarViaJSON(){
     const el=document.getElementById("mig-status");
     if(el){el.textContent=`✅ ${ok} itens importados${erros>0?" ("+erros+" erros)":""}!`;el.style.color="var(--success)";}
     // Recarrega do banco para confirmar que tudo foi salvo
-    showStatus("Verificando dados no banco...");
+    setStatus("Verificando dados no banco...");
     await loadData();
     render();
     alert(`Importação concluída!\n${ok} itens importados com sucesso.${erros>0?"\n⚠️ "+erros+" erros — alguns itens podem não ter sido salvos.":""}`);
