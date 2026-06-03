@@ -1365,12 +1365,10 @@ async function salvarLimite(categoria){
   if(!el)return;
   const valor=parseMoedaEl(el);
   if(valor<=0){await removerLimite(categoria);return;}
-  const existente=limites.find(l=>l.categoria===categoria);
-  if(existente){
-    await sb.from('limites').update({valor}).eq('id',existente.id);
-  } else {
-    await sb.from('limites').insert({user_id:_user.id,categoria,valor});
-  }
+  await sb.from('limites').upsert(
+    {user_id:_user.id,categoria,valor},
+    {onConflict:'user_id,categoria'}
+  );
   await refetchLimites();
   renderCadastros();
 }
