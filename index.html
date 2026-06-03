@@ -1354,6 +1354,11 @@ function renderOrcamentoHTML(){
   </div>`;
 }
 
+async function refetchLimites(){
+  const {data}=await sb.from('limites').select('*');
+  limites=data||[];
+}
+
 async function salvarLimite(categoria){
   const id='lim-'+categoria.replace(/\s/g,'_');
   const el=document.getElementById(id);
@@ -1362,19 +1367,18 @@ async function salvarLimite(categoria){
   if(valor<=0){await removerLimite(categoria);return;}
   const existente=limites.find(l=>l.categoria===categoria);
   if(existente){
-    const {data}=await sb.from('limites').update({valor}).eq('id',existente.id).select().single();
-    if(data)limites=limites.map(l=>l.categoria===categoria?data:l);
+    await sb.from('limites').update({valor}).eq('id',existente.id);
   } else {
-    const {data}=await sb.from('limites').insert({user_id:_user.id,categoria,valor}).select().single();
-    if(data)limites.push(data);
+    await sb.from('limites').insert({user_id:_user.id,categoria,valor});
   }
+  await refetchLimites();
   renderCadastros();
 }
 
 async function removerLimite(categoria){
   const existente=limites.find(l=>l.categoria===categoria);
   if(existente){await sb.from('limites').delete().eq('id',existente.id);}
-  limites=limites.filter(l=>l.categoria!==categoria);
+  await refetchLimites();
   renderCadastros();
 }
 
@@ -2324,6 +2328,11 @@ function abrirNovaMeta(){
   document.body.insertAdjacentHTML('beforeend',html);
 }
 
+async function refetchMetas(){
+  const {data}=await sb.from('metas').select('*').order('created_at',{ascending:true});
+  metas=data||[];
+}
+
 async function salvarNovaMeta(){
   const nome=document.getElementById('mt-nome').value.trim();
   const emoji=document.getElementById('mt-emoji').value.trim()||'🎯';
@@ -2331,8 +2340,8 @@ async function salvarNovaMeta(){
   const atual=parseMoeda('mt-atual')||0;
   const prazo=document.getElementById('mt-prazo').value||null;
   if(!nome||!alvo)return;
-  const {data}=await sb.from('metas').insert({user_id:_user.id,nome,emoji,valor_alvo:alvo,valor_atual:atual,prazo}).select().single();
-  if(data)metas.push(data);
+  await sb.from('metas').insert({user_id:_user.id,nome,emoji,valor_alvo:alvo,valor_atual:atual,prazo});
+  await refetchMetas();
   document.getElementById('modal-meta')?.remove();
   renderMetas();
 }
@@ -2369,8 +2378,8 @@ async function salvarEditMeta(){
   const alvo=parseMoeda('mt-alvo');
   const prazo=document.getElementById('mt-prazo').value||null;
   if(!nome||!alvo||!editingMetaId)return;
-  const {data}=await sb.from('metas').update({nome,emoji,valor_alvo:alvo,prazo}).eq('id',editingMetaId).select().single();
-  if(data)metas=metas.map(m=>m.id===editingMetaId?data:m);
+  await sb.from('metas').update({nome,emoji,valor_alvo:alvo,prazo}).eq('id',editingMetaId);
+  await refetchMetas();
   editingMetaId=null;
   document.getElementById('modal-meta')?.remove();
   renderMetas();
@@ -2398,8 +2407,8 @@ async function registrarAporte(id){
   const m=metas.find(x=>x.id===id);if(!m)return;
   const novoAtual=Math.min(m.valor_atual+aporte,m.valor_alvo);
   const concluida=novoAtual>=m.valor_alvo;
-  const {data}=await sb.from('metas').update({valor_atual:novoAtual,concluida}).eq('id',id).select().single();
-  if(data)metas=metas.map(x=>x.id===id?data:x);
+  await sb.from('metas').update({valor_atual:novoAtual,concluida}).eq('id',id);
+  await refetchMetas();
   document.getElementById('modal-aporte')?.remove();
   if(concluida)setTimeout(()=>alert(`🎉 Parabéns! Meta "${m.nome}" concluída!`),300);
   renderMetas();
@@ -2408,7 +2417,7 @@ async function registrarAporte(id){
 async function remMeta(id){
   if(!confirm('Remover esta meta?'))return;
   await sb.from('metas').delete().eq('id',id);
-  metas=metas.filter(m=>m.id!==id);
+  await refetchMetas();
   renderMetas();
 }
 
