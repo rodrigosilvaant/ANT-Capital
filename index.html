@@ -537,11 +537,15 @@ async function loadData(){
   const uid = _user.id;
   console.log('[LoadData] uid:', uid);
 
+  // Debug: testar sem filtro explícito
+  const dbgRes = await sb.from('transacoes').select('id').limit(3);
+  console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
+
   const [tRes, dRes, cRes, trRes, catRes, retRes, projRes] = await Promise.all([
-    sb.from('transacoes').select('*').eq('user_id', uid).order('created_at', {ascending:false}),
-    sb.from('dividas').select('*, pagamentos_divida(*)').eq('user_id', uid).order('created_at', {ascending:false}),
+    sb.from('transacoes').select('*').order('created_at', {ascending:false}),
+    sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
     sb.from('contas').select('*').eq('user_id', uid),
-    sb.from('transferencias').select('*').eq('user_id', uid).order('created_at', {ascending:false}),
+    sb.from('transferencias').select('*').order('created_at', {ascending:false}),
     sb.from('categorias').select('*').eq('user_id', uid),
     sb.from('aposentadoria').select('*').eq('user_id', uid).maybeSingle(),
     sb.from('projecao').select('*').eq('user_id', uid).maybeSingle(),
