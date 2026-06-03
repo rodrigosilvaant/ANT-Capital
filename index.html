@@ -642,11 +642,20 @@ async function fazerLogin(){
   const email=(document.getElementById("l-email").value||"").trim();
   const senha=(document.getElementById("l-senha").value||"").trim();
   if(!email||!senha){setLoginError("Preencha e-mail e senha.");return;}
-  document.getElementById("l-email").disabled=true;
-  document.getElementById("l-senha").disabled=true;
+  const btns=document.querySelectorAll(".login-btn");btns.forEach(b=>b.disabled=true);
   document.querySelector(".login-btn").textContent="Entrando...";
   const {data,error}=await sb.auth.signInWithPassword({email,password:senha});
-  if(error){setLoginError("E-mail ou senha incorretos.");document.getElementById("l-email").disabled=false;document.getElementById("l-senha").disabled=false;document.querySelector(".login-btn").textContent="Entrar";return;}
+  btns.forEach(b=>b.disabled=false);
+  document.querySelector(".login-btn").textContent="Entrar";
+  if(error){
+    if(error.message.includes("Email not confirmed"))
+      setLoginError("E-mail não confirmado. Verifique sua caixa de entrada ou peça ao administrador para desativar a confirmação de e-mail no Supabase.");
+    else if(error.message.includes("Invalid login credentials"))
+      setLoginError("E-mail ou senha incorretos.");
+    else
+      setLoginError("Erro: "+error.message);
+    return;
+  }
   _user=data.user;
   const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
   await carregarApp(prof?.nome||email.split("@")[0]);
@@ -661,16 +670,23 @@ async function fazerCadastro(){
   if(senha.length<6){setLoginError("A senha deve ter pelo menos 6 caracteres.");return;}
   const btns=document.querySelectorAll(".login-btn");btns.forEach(b=>b.disabled=true);
   const {data,error}=await sb.auth.signUp({email,password:senha,options:{data:{nome}}});
-  if(error){setLoginError(error.message==="User already registered"?"Este e-mail já está cadastrado.":error.message);btns.forEach(b=>b.disabled=false);return;}
-  if(data.user){
+  btns.forEach(b=>b.disabled=false);
+  if(error){
+    if(error.message.includes("already registered"))
+      setLoginError("Este e-mail já está cadastrado. Tente fazer login.");
+    else
+      setLoginError("Erro ao criar conta: "+error.message);
+    return;
+  }
+  if(data.user && data.session){
+    // Cadastro com login automático (confirmação desativada)
     _user=data.user;
-    // upsert profile (trigger cria, mas garantimos)
     await sb.from("profiles").upsert({id:_user.id,nome});
     await carregarApp(nome);
-  } else {
-    setLoginError("Conta criada! Verifique seu e-mail para confirmar, depois entre.");
+  } else if(data.user && !data.session){
+    // Confirmação de e-mail ainda ativa
+    setLoginError("⚠️ Conta criada! Mas o Supabase está pedindo confirmação de e-mail. Desative 'Confirm email' em Authentication → Settings no Supabase, depois tente novamente.");
     btns.forEach(b=>b.disabled=false);
-    irParaEntrar();
   }
 }
 
