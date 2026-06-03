@@ -401,6 +401,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .stat .val{font-size:14px}
   .conta-card{min-width:140px}
 }
+
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -446,6 +449,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Planejamento de Aposentadoria</button>
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
+      <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
     </nav>
   </div>
   <div class="content">
@@ -458,6 +462,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     <div id="view-cadastros" style="display:none"></div>
     <div id="view-projecao" style="display:none"></div>
     <div id="view-relatorios" style="display:none"></div>
+    <div id="view-diagnostico" style="display:none"></div>
   </div>
 </div>
 
@@ -842,7 +847,7 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
+function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -861,6 +866,7 @@ function render(){
   else if(currentTab==="cadastros")renderCadastros();
   else if(currentTab==="projecao")renderProjecao();
   else if(currentTab==="relatorios")renderRelatorios();
+  else if(currentTab==="diagnostico")renderDiagnostico();
 }
 
 // ===== ALERTAS AUTOMÁTICOS =====
@@ -2523,8 +2529,274 @@ function htmlSuperfluo(tm){
   </div>`;
 }
 
-// ===== RELATÓRIOS =====
-function renderRelatorios(){
+// ===== DIAGNÓSTICO IA =====
+let _diagResult=null;
+
+function montarContextoFinanceiro(){
+  const hoje=new Date();
+  const mesAtual={y:hoje.getFullYear(),m:hoje.getMonth()+1};
+  const nomeMes=hoje.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  // Mês atual
+  const tmAtual=trans.filter(t=>{const[ty,tm]=t.data.split('-').map(Number);return ty===mesAtual.y&&tm===mesAtual.m;});
+  const entradas=tmAtual.filter(t=>t.tipo==='receita').reduce((s,t)=>s+t.valor,0);
+  const saidas=tmAtual.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+t.valor,0);
+  const saldo=entradas-saidas;
+
+  // Gastos por categoria mês atual
+  const gastoCat={};
+  tmAtual.filter(t=>t.tipo==='despesa').forEach(t=>{gastoCat[t.categoria]=(gastoCat[t.categoria]||0)+t.valor;});
+  const gastosOrdenados=Object.entries(gastoCat).sort((a,b)=>b[1]-a[1]);
+
+  // Últimos 3 meses
+  const hist=[];
+  for(let i=1;i<=3;i++){
+    let y=mesAtual.y,m=mesAtual.m-i;
+    if(m<=0){m+=12;y--;}
+    const tm=trans.filter(t=>{const[ty,tm2]=t.data.split('-').map(Number);return ty===y&&tm2===m;});
+    const e=tm.filter(t=>t.tipo==='receita').reduce((s,t)=>s+t.valor,0);
+    const s=tm.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+t.valor,0);
+    const nomeM=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long'});
+    hist.push({mes:nomeM,entradas:e,saidas:s,saldo:e-s,qtdLanc:tm.length});
+  }
+
+  // Classificação supérfluo
+  const catMap={};categorias.forEach(c=>{catMap[c.nome]=c;});
+  let totalSuperfluo=0;
+  tmAtual.filter(t=>t.tipo==='despesa').forEach(t=>{
+    const cat=catMap[t.categoria];
+    if(cat&&cat.essencial_superfluo==='superfluo')totalSuperfluo+=t.valor;
+  });
+
+  // Orçamento vs realizado
+  const pvr=limites.map(l=>({
+    categoria:l.categoria,
+    orcado:l.valor,
+    gasto:gastoCat[l.categoria]||0,
+    pct:l.valor>0?((gastoCat[l.categoria]||0)/l.valor*100).toFixed(0)+'%':'sem dados'
+  }));
+
+  // Dívidas
+  const dividasAbertas=dividas.filter(d=>!d.quitada).map(d=>({
+    credor:d.credor,tipo:d.tipo,
+    total:d.valorTotal,
+    parcelas:`${d.pagas}/${d.parcelas}`
+  }));
+
+  // Metas
+  const metasAtivas=metas.filter(m=>!m.concluida).map(m=>({
+    nome:m.nome,alvo:m.valor_alvo,
+    atual:m.valor_atual,
+    pct:m.valor_alvo>0?Math.round(m.valor_atual/m.valor_alvo*100)+'%':'0%',
+    prazo:m.prazo||'sem prazo'
+  }));
+
+  // Streak
+  const {streak}=calcularStreak();
+
+  return{
+    nomeMes,entradas,saidas,saldo,
+    gastosOrdenados,totalSuperfluo,
+    hist,pvr,dividasAbertas,metasAtivas,streak,
+    qtdTrans:tmAtual.length
+  };
+}
+
+function montarPrompt(ctx){
+  const gastosStr=ctx.gastosOrdenados.slice(0,8).map(([cat,val])=>`  - ${cat}: R$ ${val.toFixed(2)}`).join('\n');
+  const histStr=ctx.hist.map(h=>`  - ${h.mes}: receitas R$${h.entradas.toFixed(0)}, gastos R$${h.saidas.toFixed(0)}, saldo R$${h.saldo.toFixed(0)} (${h.qtdLanc} lançamentos)`).join('\n');
+  const pvrStr=ctx.pvr.length>0?ctx.pvr.map(p=>`  - ${p.categoria}: R$${p.gasto.toFixed(0)} de R$${p.orcado.toFixed(0)} orçados (${p.pct})`).join('\n'):'  Nenhum orçamento definido';
+  const divStr=ctx.dividasAbertas.length>0?ctx.dividasAbertas.map(d=>`  - ${d.credor} (${d.tipo}): R$${d.total?.toFixed(0)||0}, parcelas ${d.parcelas}`).join('\n'):'  Sem dívidas ativas';
+  const metaStr=ctx.metasAtivas.length>0?ctx.metasAtivas.map(m=>`  - ${m.nome}: R$${m.atual.toFixed(0)} de R$${m.alvo.toFixed(0)} (${m.pct}) - prazo: ${m.prazo}`).join('\n'):'  Sem metas definidas';
+  const pctSup=ctx.saidas>0?(ctx.totalSuperfluo/ctx.saidas*100).toFixed(0):'0';
+
+  return`Analise os dados financeiros deste cliente e gere um diagnóstico completo.
+
+=== MÊS ATUAL (${ctx.nomeMes}) ===
+Receitas: R$ ${ctx.entradas.toFixed(2)}
+Despesas: R$ ${ctx.saidas.toFixed(2)}
+Saldo: R$ ${ctx.saldo.toFixed(2)}
+Lançamentos registrados: ${ctx.qtdTrans}
+Gastos supérfluos: R$ ${ctx.totalSuperfluo.toFixed(2)} (${pctSup}% das despesas)
+Sequência de dias lançando: ${ctx.streak} dias
+
+=== GASTOS POR CATEGORIA ===
+${gastosStr||'  Sem gastos registrados'}
+
+=== ORÇAMENTO vs REALIZADO ===
+${pvrStr}
+
+=== HISTÓRICO (últimos 3 meses) ===
+${histStr||'  Sem histórico'}
+
+=== DÍVIDAS ===
+${divStr}
+
+=== METAS FINANCEIRAS ===
+${metaStr}`;
+}
+
+async function gerarDiagnostico(){
+  const el=document.getElementById('diag-content');
+  el.innerHTML=`<div style="text-align:center;padding:3rem 1rem">
+    <div style="font-size:40px;margin-bottom:16px;animation:pulse 1.5s infinite">🤖</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Analisando seus dados financeiros...</div>
+    <div style="font-size:13px;color:var(--text2)">O Claude está gerando seu diagnóstico personalizado</div>
+    <div style="margin-top:20px;display:flex;gap:6px;justify-content:center">
+      <div style="width:8px;height:8px;background:var(--blue2);border-radius:50%;animation:bounce 1.2s infinite 0s"></div>
+      <div style="width:8px;height:8px;background:var(--blue2);border-radius:50%;animation:bounce 1.2s infinite .2s"></div>
+      <div style="width:8px;height:8px;background:var(--blue2);border-radius:50%;animation:bounce 1.2s infinite .4s"></div>
+    </div>
+  </div>`;
+
+  const ctx=montarContextoFinanceiro();
+  const prompt=montarPrompt(ctx);
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1500,
+        system:`Você é um consultor financeiro pessoal especializado analisando dados de clientes brasileiros.
+Analise os dados e responda APENAS com um JSON válido (sem markdown, sem texto extra) com esta estrutura exata:
+{
+  "score": número inteiro 0-100 representando saúde financeira geral,
+  "status": "critico"|"atencao"|"bom"|"excelente",
+  "resumo": "frase curta e direta sobre a situação (máx 120 chars)",
+  "diagnostico": [
+    {"tipo": "positivo"|"alerta"|"critico", "titulo": "título curto", "descricao": "explicação em 1-2 frases"}
+  ],
+  "plano_acao": [
+    {"prioridade": "alta"|"media"|"baixa", "acao": "ação específica e concreta", "impacto": "resultado esperado", "prazo": "imediato"|"30 dias"|"90 dias"|"6 meses"}
+  ],
+  "mensagem": "mensagem motivacional personalizada e empática (máx 120 chars)"
+}
+Inclua de 3 a 5 itens no diagnóstico e de 3 a 5 itens no plano de ação. Seja direto, específico e use valores reais dos dados.`,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    const data=await resp.json();
+    const txt=data.content?.[0]?.text||'';
+    let resultado;
+    try{resultado=JSON.parse(txt.replace(/```json?|```/g,'').trim());}
+    catch{throw new Error('Resposta inválida da IA');}
+    _diagResult=resultado;
+    exibirDiagnostico(resultado,ctx);
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--danger)">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="font-weight:500;margin-bottom:8px">Erro ao gerar diagnóstico</div>
+      <div style="font-size:13px;color:var(--text2)">${e.message}</div>
+      <button class="btn-sm" style="margin-top:1rem" onclick="gerarDiagnostico()">Tentar novamente</button>
+    </div>`;
+  }
+}
+
+function exibirDiagnostico(r,ctx){
+  const scoreColor=r.score>=80?'var(--success)':r.score>=60?'var(--blue2)':r.score>=40?'var(--warning)':'var(--danger)';
+  const statusLabel={'critico':'⚠️ Situação crítica','atencao':'⚡ Requer atenção','bom':'👍 Situação boa','excelente':'🌟 Excelente!'}[r.status]||'📊 Análise';
+  const tipoCor={positivo:'var(--success)',alerta:'var(--warning)',critico:'var(--danger)'};
+  const tipoBg={positivo:'rgba(29,158,117,.1)',alerta:'rgba(239,159,39,.1)',critico:'rgba(226,75,74,.1)'};
+  const tipoIcon={positivo:'✅',alerta:'⚡',critico:'🚨'};
+  const prioridadeCor={alta:'var(--danger)',media:'var(--warning)',baixa:'var(--success)'};
+  const prazoIcon={'imediato':'🔴','30 dias':'🟡','90 dias':'🟢','6 meses':'🔵'};
+
+  const circleCirc=2*Math.PI*54;
+  const offset=circleCirc*(1-r.score/100);
+
+  const diagItems=(r.diagnostico||[]).map(d=>`
+    <div style="background:${tipoBg[d.tipo]};border-left:3px solid ${tipoCor[d.tipo]};border-radius:var(--radius);padding:12px 14px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;color:${tipoCor[d.tipo]};margin-bottom:4px">${tipoIcon[d.tipo]} ${d.titulo}</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5">${d.descricao}</div>
+    </div>`).join('');
+
+  const planItems=(r.plano_acao||[]).map((p,i)=>`
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:${prioridadeCor[p.prioridade]};text-transform:uppercase;background:${prioridadeCor[p.prioridade]}22;padding:2px 8px;border-radius:20px">${p.prioridade}</span>
+        <span style="font-size:11px;color:var(--text2)">${prazoIcon[p.prazo]||'📅'} ${p.prazo}</span>
+      </div>
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px">${i+1}. ${p.acao}</div>
+      <div style="font-size:12px;color:var(--text2)">💡 ${p.impacto}</div>
+    </div>`).join('');
+
+  document.getElementById('diag-content').innerHTML=`
+    <!-- Score card -->
+    <div class="card" style="margin-bottom:1.25rem;text-align:center;padding:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap">
+        <div style="position:relative;width:120px;height:120px">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle cx="60" cy="60" r="54" fill="none" stroke="${scoreColor}" stroke-width="10"
+              stroke-dasharray="${circleCirc}" stroke-dashoffset="${offset}"
+              stroke-linecap="round" transform="rotate(-90 60 60)"
+              style="transition:stroke-dashoffset 1s ease"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:28px;font-weight:800;color:${scoreColor}">${r.score}</div>
+            <div style="font-size:10px;color:var(--text2)">/ 100</div>
+          </div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px">${statusLabel}</div>
+          <div style="font-size:13px;color:var(--text2);max-width:260px;line-height:1.5">${r.resumo}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnóstico -->
+    <p class="section-title">🔍 Diagnóstico</p>
+    ${diagItems}
+
+    <!-- Plano de ação -->
+    <p class="section-title" style="margin-top:1.5rem">🎯 Plano de ação</p>
+    ${planItems}
+
+    <!-- Mensagem motivacional -->
+    <div style="background:linear-gradient(135deg,var(--blue)22,var(--blue2)22);border:1px solid var(--blue2);border-radius:var(--radius-lg);padding:16px;margin-top:1.25rem;text-align:center">
+      <div style="font-size:13px;color:var(--blue2);font-weight:500;line-height:1.6">${r.mensagem}</div>
+    </div>
+
+    <!-- Refazer -->
+    <div style="text-align:center;margin-top:1.5rem">
+      <button class="btn-sm" onclick="gerarDiagnostico()" style="color:var(--text2);background:var(--bg2);border:1px solid var(--border)">🔄 Gerar nova análise</button>
+      <p style="font-size:11px;color:var(--text2);margin-top:8px">Análise gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
+    </div>`;
+}
+
+function renderDiagnostico(){
+  const ctx=montarContextoFinanceiro();
+  const temDados=ctx.qtdTrans>0||ctx.hist.some(h=>h.qtdLanc>0);
+
+  document.getElementById('view-diagnostico').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="font-size:18px;font-weight:600;margin:0 0 4px">🤖 Diagnóstico IA</h2>
+        <p style="font-size:12px;color:var(--text2);margin:0">Análise financeira personalizada com inteligência artificial</p>
+      </div>
+      ${temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
+    </div>
+    <div id="diag-content">
+      ${!temDados
+        ?`<div style="text-align:center;padding:3rem 1rem">
+            <div style="font-size:48px;margin-bottom:12px">📊</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Dados insuficientes</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6">Registre pelo menos alguns lançamentos para gerar um diagnóstico preciso.</div>
+          </div>`
+        :`<div style="text-align:center;padding:3rem 1rem">
+            <div style="font-size:48px;margin-bottom:16px">🤖</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Pronto para analisar</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem">
+              O Claude vai analisar seus gastos, orçamento, dívidas e metas para gerar insights personalizados e um plano de ação.
+            </div>
+            <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico agora</button>
+          </div>`}
+    </div>
+  `;
+}
   const el=document.getElementById("view-relatorios");
   if(!el)return;
   el.innerHTML=`
