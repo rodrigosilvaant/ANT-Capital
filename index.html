@@ -442,6 +442,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-projecao" onclick="setTab('projecao')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Projeção</button>
       <button id="tab-graficos" onclick="setTab('graficos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>Análise</button>
       <button id="tab-dividas" onclick="setTab('dividas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Dívidas</button>
+      <button id="tab-metas" onclick="setTab('metas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Metas</button>
       <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Planejamento de Aposentadoria</button>
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
@@ -452,6 +453,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     <div id="view-lancamentos" style="display:none"></div>
     <div id="view-graficos" style="display:none"></div>
     <div id="view-dividas" style="display:none"></div>
+    <div id="view-metas" style="display:none"></div>
     <div id="view-aposentadoria" style="display:none"></div>
     <div id="view-cadastros" style="display:none"></div>
     <div id="view-projecao" style="display:none"></div>
@@ -558,7 +560,7 @@ const CATEG_R_PAD=["Salário","Freelance","Investimentos","Aluguel Recebido","B�
 const CATEG_D_PAD=["Alimentação","Moradia","Transporte","Saúde","Educação","Lazer","Roupas","Contas","Assinaturas","Outros"];
 const CORES=["#3a6fa8","#1D9E75","#E24B4A","#EF9F27","#7F77DD","#D4537E","#152336","#639922","#D85A30","#8fa8c4"];
 
-let trans,dividas,retPerfil,contas,transferencias,categorias,projecao,limites=[];
+let trans,dividas,retPerfil,contas,transferencias,categorias,projecao,limites=[],metas=[];
 
 // ===== SUPABASE =====
 const SUPABASE_URL = 'https://pdjggmwhhtmrkmyxzrgi.supabase.co';
@@ -581,7 +583,7 @@ async function loadData(){
   const dbgRes = await sb.from('transacoes').select('id').limit(3);
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
-  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, limRes] = await Promise.all([
+  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, limRes, metRes] = await Promise.all([
     sb.from('transacoes').select('*').order('created_at', {ascending:false}),
     sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
     sb.from('contas').select('*'),
@@ -590,6 +592,7 @@ async function loadData(){
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.from('projecao').select('*').maybeSingle(),
     sb.from('limites').select('*'),
+    sb.from('metas').select('*').order('created_at',{ascending:true}),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -606,7 +609,8 @@ async function loadData(){
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
   limites = limRes.data||[];
-  console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length);
+  metas = metRes.data||[];
+  console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
 
 async function criarCatsDefault(){
@@ -838,7 +842,7 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","aposentadoria","cadastros","projecao","relatorios"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
+function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -852,6 +856,7 @@ function render(){
   else if(currentTab==="lancamentos")renderLancamentos();
   else if(currentTab==="graficos")renderGraficos();
   else if(currentTab==="dividas")renderDividas();
+  else if(currentTab==="metas")renderMetas();
   else if(currentTab==="aposentadoria")renderAposentadoria();
   else if(currentTab==="cadastros")renderCadastros();
   else if(currentTab==="projecao")renderProjecao();
@@ -1025,6 +1030,7 @@ function renderDashboard(){
 
   document.getElementById("view-dashboard").innerHTML=`
     ${mesPicker()}
+    ${htmlGamificacao()}
     ${htmlAlertas(alertas)}
     <p class="section-title">Contas</p>${contasHtml}
     ${contas.length>0?`<div class="card" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center"><div><p class="section-title" style="margin:0 0 2px">Patrimônio total</p><div style="font-size:22px;font-weight:500;color:${getSaldoTotal()>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoTotal())}</div></div></div>`:""}
@@ -1034,6 +1040,7 @@ function renderDashboard(){
       <div class="card stat"><label>Saídas</label><div class="val" style="color:var(--danger)">${fmt(saidas)}</div></div>
     </div>
     ${divPend>0?`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem"><div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Dívidas em aberto</label><div style="font-size:18px;font-weight:500;color:var(--warning)">${fmt(divPend)}</div></div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>`:""}
+    ${temDespesas?htmlSuperfluo(tm):""}
     ${temDespesas?`<div class="card" style="margin-bottom:1.25rem">
       <p class="section-title" style="margin-bottom:1rem">🍩 Gastos por categoria</p>
       <div style="max-height:240px"><canvas id="dash-chart-donut"></canvas></div>
@@ -1279,7 +1286,19 @@ function renderCadastros(){
     const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditConta('${c.id}')">${iconEdit()}</button><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="abrirNovaContaModal()">+ Nova conta</button></div>${cl}`;
   } else if(cadTab==="categorias"){
-    html+=`<div class="cat-section"><h3>Receitas</h3><div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div></div><div class="cat-section"><h3>Despesas</h3><div class="cat-list">${cD.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div></div>`;
+    html+=`<div style="background:rgba(58,111,168,.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:1rem;font-size:12px;color:var(--text2);line-height:1.6">
+      💡 Classifique cada categoria para ativar o indicador de gastos supérfluos no Resumo.
+    </div>
+    <div class="cat-section">
+      <h3>Receitas</h3>
+      <div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div>
+      <div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div>
+    </div>
+    <div class="cat-section">
+      <h3>Despesas <span style="font-size:11px;color:var(--text2);font-weight:400">— clique para classificar</span></h3>
+      <div style="background:var(--bg2);border-radius:var(--radius);padding:0 12px">${renderCategoriasComClassificacao(cD,'despesa')}</div>
+      <div class="cat-add" style="margin-top:10px"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div>
+    </div>`;
   } else if(cadTab==="orcamento"){
     html+=renderOrcamentoHTML();
   } else if(cadTab==="migracao"){
@@ -2210,6 +2229,297 @@ function calcApos(){
     <div class="card stat"><label>Meta de patrimônio</label><div class="val">${fmt(tn)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">Necessário para se aposentar</div></div>
     <div class="card stat" style="margin-top:10px"><label>O que você já tem vale no futuro</label><div class="val" style="color:var(--success)">${fmt(vf)}</div><div style="font-size:11px;color:var(--text2);margin-top:4px">Seus R$ ${fmt(inv)} hoje, com juros em ${anos} anos</div></div>
     <div class="card stat" style="margin-top:10px"><label>Tempo até a aposentadoria</label><div class="val">${anos} anos</div><div style="font-size:11px;color:var(--text2);margin-top:4px">Com aporte mensal de ${fmt(ap)}</div></div>
+  </div>`;
+}
+
+// ===== METAS FINANCEIRAS =====
+function renderMetas(){
+  const concluidas=metas.filter(m=>m.concluida);
+  const ativas=metas.filter(m=>!m.concluida);
+
+  const cardMeta=m=>{
+    const pct=m.valor_alvo>0?Math.min(m.valor_atual/m.valor_alvo,1):0;
+    const pctNum=Math.round(pct*100);
+    const restante=Math.max(m.valor_alvo-m.valor_atual,0);
+    const prazoStr=m.prazo?`Prazo: ${new Date(m.prazo+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'numeric'})}`:null;
+    const diasRestantes=m.prazo?Math.ceil((new Date(m.prazo)-new Date())/(1000*60*60*24)):null;
+    const corBarra=m.concluida?"var(--success)":pct>=0.75?"var(--success)":pct>=0.4?"var(--blue2)":"var(--warning)";
+    return`<div class="card" style="margin-bottom:1rem;position:relative">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+        <div style="font-size:28px;line-height:1">${m.emoji||'🎯'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;margin-bottom:2px">${m.nome}</div>
+          <div style="font-size:12px;color:var(--text2)">
+            Meta: <strong style="color:var(--text)">${fmt(m.valor_alvo)}</strong>
+            ${prazoStr?`· ${prazoStr}`:''}
+            ${diasRestantes!==null&&!m.concluida?`· <span style="color:${diasRestantes<30?'var(--warning)':'var(--text2)'}">${diasRestantes>0?diasRestantes+' dias':diasRestantes===0?'vence hoje':'venceu'}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${m.concluida?'':`<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditMeta('${m.id}')">${iconEdit()}</button>`}
+          <button class="icon-btn" style="color:var(--danger)" onclick="remMeta('${m.id}')">${iconTrash()}</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--text2)">Poupado: <strong style="color:var(--text)">${fmt(m.valor_atual)}</strong></span>
+        <span style="font-size:13px;font-weight:700;color:${corBarra}">${pctNum}%</span>
+      </div>
+      <div style="background:var(--border);border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px">
+        <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${corBarra};border-radius:6px;transition:width .5s"></div>
+      </div>
+      ${m.concluida
+        ?`<div style="text-align:center;font-size:13px;color:var(--success);font-weight:600">🎉 Meta concluída!</div>`
+        :`<div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text2)">Faltam ${fmt(restante)}</span>
+          <button class="btn-sm" onclick="abrirAporteMeta('${m.id}')">+ Registrar aporte</button>
+        </div>`}
+    </div>`;
+  };
+
+  document.getElementById('view-metas').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div>
+        <h2 style="font-size:18px;font-weight:600;margin:0">🎯 Metas financeiras</h2>
+        <p style="font-size:12px;color:var(--text2);margin:2px 0 0">Seus objetivos de poupança</p>
+      </div>
+      <button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="abrirNovaMeta()">+ Nova meta</button>
+    </div>
+    ${ativas.length===0&&concluidas.length===0?`<div style="text-align:center;padding:3rem 1rem">
+      <div style="font-size:48px;margin-bottom:12px">🎯</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Nenhuma meta criada ainda</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:1.5rem">Defina objetivos como reserva de emergência, viagem ou carro novo.</div>
+      <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 20px" onclick="abrirNovaMeta()">Criar primeira meta</button>
+    </div>`:''}
+    ${ativas.length>0?`<p class="section-title">Em andamento</p>${ativas.map(cardMeta).join('')}`:''}
+    ${concluidas.length>0?`<p class="section-title" style="margin-top:1.5rem">✅ Concluídas</p>${concluidas.map(cardMeta).join('')}`:''}
+  `;
+}
+
+function abrirNovaMeta(){
+  const html=`<div id="modal-meta" class="modal-bg" style="display:flex">
+    <div class="modal"><h2>Nova meta</h2>
+      <div class="modal-f">
+        <div style="display:flex;gap:10px">
+          <div style="width:70px"><label class="ret-label">Emoji</label><input id="mt-emoji" value="🎯" style="text-align:center;font-size:20px"/></div>
+          <div style="flex:1"><label class="ret-label">Nome da meta</label><input id="mt-nome" placeholder="Ex: Reserva de emergência"/></div>
+        </div>
+        <div class="grid2">
+          <div><label class="ret-label">Valor alvo</label><input id="mt-alvo" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
+          <div><label class="ret-label">Prazo (opcional)</label><input id="mt-prazo" type="date"/></div>
+        </div>
+        <div><label class="ret-label">Valor já poupado</label><input id="mt-atual" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="document.getElementById('modal-meta').remove()">Cancelar</button>
+        <button class="btn-primary" onclick="salvarNovaMeta()">Criar meta</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+async function salvarNovaMeta(){
+  const nome=document.getElementById('mt-nome').value.trim();
+  const emoji=document.getElementById('mt-emoji').value.trim()||'🎯';
+  const alvo=parseMoeda('mt-alvo');
+  const atual=parseMoeda('mt-atual')||0;
+  const prazo=document.getElementById('mt-prazo').value||null;
+  if(!nome||!alvo)return;
+  const {data}=await sb.from('metas').insert({user_id:_user.id,nome,emoji,valor_alvo:alvo,valor_atual:atual,prazo}).select().single();
+  if(data)metas.push(data);
+  document.getElementById('modal-meta')?.remove();
+  renderMetas();
+}
+
+let editingMetaId=null;
+function abrirEditMeta(id){
+  const m=metas.find(x=>x.id===id);if(!m)return;
+  editingMetaId=id;
+  const html=`<div id="modal-meta" class="modal-bg" style="display:flex">
+    <div class="modal"><h2>Editar meta</h2>
+      <div class="modal-f">
+        <div style="display:flex;gap:10px">
+          <div style="width:70px"><label class="ret-label">Emoji</label><input id="mt-emoji" value="${m.emoji||'🎯'}" style="text-align:center;font-size:20px"/></div>
+          <div style="flex:1"><label class="ret-label">Nome</label><input id="mt-nome" value="${m.nome}"/></div>
+        </div>
+        <div class="grid2">
+          <div><label class="ret-label">Valor alvo</label><input id="mt-alvo" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)"/></div>
+          <div><label class="ret-label">Prazo</label><input id="mt-prazo" type="date" value="${m.prazo||''}"/></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="document.getElementById('modal-meta').remove()">Cancelar</button>
+        <button class="btn-primary" onclick="salvarEditMeta()">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+  setMoeda('mt-alvo',m.valor_alvo);
+}
+
+async function salvarEditMeta(){
+  const nome=document.getElementById('mt-nome').value.trim();
+  const emoji=document.getElementById('mt-emoji').value.trim()||'🎯';
+  const alvo=parseMoeda('mt-alvo');
+  const prazo=document.getElementById('mt-prazo').value||null;
+  if(!nome||!alvo||!editingMetaId)return;
+  const {data}=await sb.from('metas').update({nome,emoji,valor_alvo:alvo,prazo}).eq('id',editingMetaId).select().single();
+  if(data)metas=metas.map(m=>m.id===editingMetaId?data:m);
+  editingMetaId=null;
+  document.getElementById('modal-meta')?.remove();
+  renderMetas();
+}
+
+function abrirAporteMeta(id){
+  const m=metas.find(x=>x.id===id);if(!m)return;
+  const html=`<div id="modal-aporte" class="modal-bg" style="display:flex">
+    <div class="modal"><h2>${m.emoji||'🎯'} ${m.nome}</h2>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Atual: ${fmt(m.valor_atual)} · Meta: ${fmt(m.valor_alvo)}</p>
+      <div class="modal-f">
+        <div><label class="ret-label">Valor do aporte</label><input id="ap-valor" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="mascaraMoeda(this)" autofocus/></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="document.getElementById('modal-aporte').remove()">Cancelar</button>
+        <button class="btn-primary" onclick="registrarAporte('${id}')">Confirmar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+async function registrarAporte(id){
+  const aporte=parseMoeda('ap-valor');if(!aporte)return;
+  const m=metas.find(x=>x.id===id);if(!m)return;
+  const novoAtual=Math.min(m.valor_atual+aporte,m.valor_alvo);
+  const concluida=novoAtual>=m.valor_alvo;
+  const {data}=await sb.from('metas').update({valor_atual:novoAtual,concluida}).eq('id',id).select().single();
+  if(data)metas=metas.map(x=>x.id===id?data:x);
+  document.getElementById('modal-aporte')?.remove();
+  if(concluida)setTimeout(()=>alert(`🎉 Parabéns! Meta "${m.nome}" concluída!`),300);
+  renderMetas();
+}
+
+async function remMeta(id){
+  if(!confirm('Remover esta meta?'))return;
+  await sb.from('metas').delete().eq('id',id);
+  metas=metas.filter(m=>m.id!==id);
+  renderMetas();
+}
+
+// ===== CLASSIFICAÇÃO INTELIGENTE =====
+async function updateClassificacao(catId,campo,valor){
+  await sb.from('categorias').update({[campo]:valor}).eq('id',catId);
+  categorias=categorias.map(c=>c.id===catId?{...c,[campo]:valor}:c);
+  renderCadastros();
+}
+
+function renderCategoriasComClassificacao(cats,tipo){
+  if(cats.length===0)return`<p class="empty">Nenhuma categoria de ${tipo}.</p>`;
+  return cats.map(c=>{
+    const fv=c.fixo_variavel||'variavel';
+    const es=c.essencial_superfluo||'essencial';
+    const rp=c.recorrente_pontual||'recorrente';
+    const btnStyle=(ativo)=>`padding:3px 8px;font-size:11px;border-radius:20px;border:1px solid;cursor:pointer;font-weight:${ativo?'600':'400'};transition:all .2s;`;
+    return`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:14px;font-weight:500">${c.nome}</span>
+        <button onclick="remCat('${c.id}')" class="icon-btn" style="color:var(--danger);flex-shrink:0">${iconTrash()}</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <div style="display:flex;gap:4px;align-items:center">
+          <button style="${btnStyle(fv==='fixo')}background:${fv==='fixo'?'var(--blue)':'transparent'};color:${fv==='fixo'?'#fff':'var(--text2)'};border-color:${fv==='fixo'?'var(--blue)':'var(--border)'}" onclick="updateClassificacao('${c.id}','fixo_variavel','fixo')">Fixo</button>
+          <button style="${btnStyle(fv==='variavel')}background:${fv==='variavel'?'var(--blue)':'transparent'};color:${fv==='variavel'?'#fff':'var(--text2)'};border-color:${fv==='variavel'?'var(--blue)':'var(--border)'}" onclick="updateClassificacao('${c.id}','fixo_variavel','variavel')">Variável</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button style="${btnStyle(es==='essencial')}background:${es==='essencial'?'var(--success)':'transparent'};color:${es==='essencial'?'#fff':'var(--text2)'};border-color:${es==='essencial'?'var(--success)':'var(--border)'}" onclick="updateClassificacao('${c.id}','essencial_superfluo','essencial')">Essencial</button>
+          <button style="${btnStyle(es==='superfluo')}background:${es==='superfluo'?'var(--warning)':'transparent'};color:${es==='superfluo'?'#fff':'var(--text2)'};border-color:${es==='superfluo'?'var(--warning)':'var(--border)'}" onclick="updateClassificacao('${c.id}','essencial_superfluo','superfluo')">Supérfluo</button>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button style="${btnStyle(rp==='recorrente')}background:${rp==='recorrente'?'#7c5cbf':'transparent'};color:${rp==='recorrente'?'#fff':'var(--text2)'};border-color:${rp==='recorrente'?'#7c5cbf':'var(--border)'}" onclick="updateClassificacao('${c.id}','recorrente_pontual','recorrente')">Recorrente</button>
+          <button style="${btnStyle(rp==='pontual')}background:${rp==='pontual'?'#7c5cbf':'transparent'};color:${rp==='pontual'?'#fff':'var(--text2)'};border-color:${rp==='pontual'?'#7c5cbf':'var(--border)'}" onclick="updateClassificacao('${c.id}','recorrente_pontual','pontual')">Pontual</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== GAMIFICAÇÃO =====
+function calcularStreak(){
+  if(!trans||trans.length===0)return{streak:0,totalDias:0};
+  const hoje=new Date();
+  const diasComTrans=new Set(trans.map(t=>t.data));
+  let streak=0;
+  // Começa de hoje ou ontem
+  let inicio=0;
+  const hojeStr=hoje.toISOString().split('T')[0];
+  const ontemD=new Date(hoje);ontemD.setDate(hoje.getDate()-1);
+  const ontemStr=ontemD.toISOString().split('T')[0];
+  if(!diasComTrans.has(hojeStr)&&!diasComTrans.has(ontemStr))return{streak:0,totalDias:diasComTrans.size};
+  if(!diasComTrans.has(hojeStr))inicio=1;
+  for(let i=inicio;i<365;i++){
+    const d=new Date(hoje);d.setDate(hoje.getDate()-i);
+    if(diasComTrans.has(d.toISOString().split('T')[0]))streak++;
+    else break;
+  }
+  return{streak,totalDias:diasComTrans.size};
+}
+
+function htmlGamificacao(){
+  const {streak,totalDias}=calcularStreak();
+  if(totalDias===0)return'';
+  let msg='',icon='',cor='var(--blue2)';
+  if(streak===0){icon='💤';msg='Registre um lançamento hoje para começar sua sequência!';cor='var(--text2)';}
+  else if(streak===1){icon='🌱';msg='Você começou sua sequência — continue amanhã!';cor='var(--success)';}
+  else if(streak<7){icon='🔥';msg=`${streak} dias seguidos lançando — mantenha o ritmo!`;cor='var(--warning)';}
+  else if(streak<30){icon='⚡';msg=`Incrível! ${streak} dias consecutivos de controle financeiro!`;cor='#7c5cbf';}
+  else{icon='🏆';msg=`${streak} dias! Você é um exemplo de disciplina financeira!`;cor='var(--success)';}
+  return`<div style="background:var(--bg2);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px">
+    <div style="font-size:32px;line-height:1">${icon}</div>
+    <div style="flex:1">
+      <div style="font-size:13px;color:${cor};font-weight:600;margin-bottom:2px">${streak>0?`🔥 ${streak} dia${streak>1?'s':''} consecutivo${streak>1?'s':''}`:'Sem sequência ativa'}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">${msg}</div>
+    </div>
+    <div style="text-align:center;flex-shrink:0">
+      <div style="font-size:20px;font-weight:700;color:var(--text)">${totalDias}</div>
+      <div style="font-size:10px;color:var(--text2)">dias total</div>
+    </div>
+  </div>`;
+}
+
+function htmlSuperfluo(tm){
+  const despesas=tm.filter(t=>t.tipo==='despesa');
+  if(despesas.length===0)return'';
+  const catMap={};
+  categorias.forEach(c=>{catMap[c.nome]=c;});
+  let totalD=0,totalS=0;
+  despesas.forEach(t=>{
+    totalD+=t.valor;
+    const cat=catMap[t.categoria];
+    if(cat&&cat.essencial_superfluo==='superfluo')totalS+=t.valor;
+  });
+  if(totalD===0)return'';
+  const pct=totalS/totalD;
+  const cor=pct>=0.4?'var(--danger)':pct>=0.2?'var(--warning)':'var(--success)';
+  const classifs=categorias.some(c=>c.essencial_superfluo==='superfluo');
+  if(!classifs)return'';
+  return`<div class="card" style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <p class="section-title" style="margin:0 0 2px">🛍️ Gastos supérfluos</p>
+        <div style="font-size:12px;color:var(--text2)">Baseado na classificação das categorias</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:700;color:${cor}">${Math.round(pct*100)}%</div>
+        <div style="font-size:11px;color:var(--text2)">${fmt(totalS)} de ${fmt(totalD)}</div>
+      </div>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+      <div style="height:100%;width:${(Math.min(pct,1)*100).toFixed(1)}%;background:${cor};border-radius:4px;transition:width .5s"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:6px">
+      ${pct>=0.4?'⚠️ Alto índice de gastos supérfluos — revise seus hábitos':pct>=0.2?'⚡ Gastos supérfluos moderados':' Bom controle! Poucos gastos supérfluos'}
+    </div>
+    <button onclick="setTab('cadastros');setCadTab('categorias')" style="font-size:11px;color:var(--blue2);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">Editar classificação das categorias →</button>
   </div>`;
 }
 
