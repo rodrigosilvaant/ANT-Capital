@@ -544,11 +544,11 @@ async function loadData(){
   const [tRes, dRes, cRes, trRes, catRes, retRes, projRes] = await Promise.all([
     sb.from('transacoes').select('*').order('created_at', {ascending:false}),
     sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
-    sb.from('contas').select('*').eq('user_id', uid),
+    sb.from('contas').select('*'),
     sb.from('transferencias').select('*').order('created_at', {ascending:false}),
-    sb.from('categorias').select('*').eq('user_id', uid),
-    sb.from('aposentadoria').select('*').eq('user_id', uid).maybeSingle(),
-    sb.from('projecao').select('*').eq('user_id', uid).maybeSingle(),
+    sb.from('categorias').select('*'),
+    sb.from('aposentadoria').select('*').maybeSingle(),
+    sb.from('projecao').select('*').maybeSingle(),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
