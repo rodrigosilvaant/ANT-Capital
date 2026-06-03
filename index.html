@@ -558,7 +558,7 @@ const CATEG_R_PAD=["Salário","Freelance","Investimentos","Aluguel Recebido","B�
 const CATEG_D_PAD=["Alimentação","Moradia","Transporte","Saúde","Educação","Lazer","Roupas","Contas","Assinaturas","Outros"];
 const CORES=["#3a6fa8","#1D9E75","#E24B4A","#EF9F27","#7F77DD","#D4537E","#152336","#639922","#D85A30","#8fa8c4"];
 
-let trans,dividas,retPerfil,contas,transferencias,categorias,projecao;
+let trans,dividas,retPerfil,contas,transferencias,categorias,projecao,limites=[];
 
 // ===== SUPABASE =====
 const SUPABASE_URL = 'https://pdjggmwhhtmrkmyxzrgi.supabase.co';
@@ -581,7 +581,7 @@ async function loadData(){
   const dbgRes = await sb.from('transacoes').select('id').limit(3);
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
-  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes] = await Promise.all([
+  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, limRes] = await Promise.all([
     sb.from('transacoes').select('*').order('created_at', {ascending:false}),
     sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
     sb.from('contas').select('*'),
@@ -589,6 +589,7 @@ async function loadData(){
     sb.from('categorias').select('*'),
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.from('projecao').select('*').maybeSingle(),
+    sb.from('limites').select('*'),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -604,7 +605,8 @@ async function loadData(){
   else{categorias=catRes.data;}
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
-  console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length);
+  limites = limRes.data||[];
+  console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length);
 }
 
 async function criarCatsDefault(){
@@ -876,22 +878,21 @@ function gerarAlertas(tm, entradas, saidas, saldo){
     }
   }
 
-  // Planejado vs realizado — alertas por categoria
-  if(projecao.despesas&&projecao.despesas.length>0){
+  // Alertas baseados em limites de orçamento
+  if(limites&&limites.length>0){
     const gastoPorCat={};
     tm.filter(t=>t.tipo==="despesa").forEach(t=>{gastoPorCat[t.categoria]=(gastoPorCat[t.categoria]||0)+t.valor;});
-    projecao.despesas.forEach(p=>{
-      const gasto=gastoPorCat[p.categoria]||0;
-      const pct=p.valor>0?gasto/p.valor:0;
+    limites.filter(l=>l.valor>0).forEach(l=>{
+      const gasto=gastoPorCat[l.categoria]||0;
+      const pct=l.valor>0?gasto/l.valor:0;
       if(pct>=1)
-        alertas.push({tipo:"danger",icon:"🚨",msg:`${p.categoria}: orçamento estourado — ${fmt(gasto)} de ${fmt(p.valor)} planejados`});
+        alertas.push({tipo:"danger",icon:"🚨",msg:`${l.categoria}: orçamento estourado — ${fmt(gasto)} de ${fmt(l.valor)} planejados`});
       else if(pct>=0.8)
-        alertas.push({tipo:"warning",icon:"⚡",msg:`${p.categoria}: ${Math.round(pct*100)}% do orçamento usado — ${fmt(gasto)} de ${fmt(p.valor)}`});
+        alertas.push({tipo:"warning",icon:"⚡",msg:`${l.categoria}: ${Math.round(pct*100)}% do orçamento usado — ${fmt(gasto)} de ${fmt(l.valor)}`});
     });
-    // Total gastos vs projeção total
-    const totalPlan=projecao.despesas.reduce((s,p)=>s+p.valor,0);
-    if(totalPlan>0&&saidas>totalPlan&&isMesAtual)
-      alertas.push({tipo:"warning",icon:"📊",msg:`Gastos totais acima do planejado — ${fmt(saidas)} de ${fmt(totalPlan)} previstos`});
+    const totalOrc=limites.reduce((s,l)=>s+l.valor,0);
+    if(totalOrc>0&&saidas>totalOrc&&isMesAtual)
+      alertas.push({tipo:"warning",icon:"📊",msg:`Gastos totais acima do orçamento — ${fmt(saidas)} gastos de ${fmt(totalOrc)} planejados`});
   }
 
   // Sem entradas no mês atual
@@ -914,49 +915,60 @@ function htmlAlertas(alertas){
 
 // ===== PLANEJADO VS REALIZADO =====
 function htmlPlanejadoVsRealizado(tm){
-  if(!projecao.despesas||projecao.despesas.length===0)return"";
+  if(!limites||limites.length===0)return`<div class="card" style="margin-bottom:1.25rem;text-align:center;padding:1.25rem">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Nenhum orçamento definido ainda.</p>
+    <button class="btn-sm" onclick="setTab('cadastros');setCadTab('orcamento')">💰 Definir orçamento por categoria</button>
+  </div>`;
+
   const gastoPorCat={};
   tm.filter(t=>t.tipo==="despesa").forEach(t=>{gastoPorCat[t.categoria]=(gastoPorCat[t.categoria]||0)+t.valor;});
 
-  const itens=projecao.despesas.map(p=>{
-    const gasto=gastoPorCat[p.categoria]||0;
-    const pct=p.valor>0?Math.min(gasto/p.valor,1):0;
-    const pctReal=p.valor>0?gasto/p.valor:0;
+  const itens=limites.filter(l=>l.valor>0).sort((a,b)=>b.valor-a.valor).map(l=>{
+    const gasto=gastoPorCat[l.categoria]||0;
+    const pct=l.valor>0?Math.min(gasto/l.valor,1):0;
+    const pctReal=l.valor>0?gasto/l.valor:0;
     const cor=pctReal>=1?"var(--danger)":pctReal>=0.8?"var(--warning)":"var(--success)";
     const label=pctReal>=1?`🚨 ${Math.round(pctReal*100)}%`:pctReal>=0.8?`⚡ ${Math.round(pctReal*100)}%`:`${Math.round(pctReal*100)}%`;
+    const restante=l.valor-gasto;
     return`<div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="font-size:13px;font-weight:500">${p.categoria}</span>
-        <div style="font-size:12px;color:var(--text2);text-align:right">
+        <span style="font-size:13px;font-weight:500">${l.categoria}</span>
+        <div style="font-size:12px;text-align:right">
           <span style="color:${cor};font-weight:600">${fmt(gasto)}</span>
-          <span> / ${fmt(p.valor)}</span>
-          <span style="margin-left:6px;font-weight:600;color:${cor}">${label}</span>
+          <span style="color:var(--text2)"> / ${fmt(l.valor)}</span>
+          <span style="margin-left:6px;font-weight:700;color:${cor}">${label}</span>
         </div>
       </div>
-      <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
-        <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${cor};border-radius:4px;transition:width .4s"></div>
+      <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${cor};border-radius:4px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:3px;text-align:right">
+        ${pctReal<1?`Restam ${fmt(restante)}`:`Excedeu ${fmt(gasto-l.valor)}`}
       </div>
     </div>`;
   }).join("");
 
-  // Receitas planejadas
-  const totalPlanR=projecao.receitas.reduce((s,r)=>s+r.valor,0);
-  const totalPlanD=projecao.despesas.reduce((s,d)=>s+d.valor,0);
-  const saldoPlan=totalPlanR-totalPlanD;
-
+  if(!itens)return"";
+  const totalOrc=limites.reduce((s,l)=>s+l.valor,0);
+  const totalGasto=limites.reduce((s,l)=>s+(gastoPorCat[l.categoria]||0),0);
+  const pctTotal=totalOrc>0?totalGasto/totalOrc:0;
+  const corTotal=pctTotal>=1?"var(--danger)":pctTotal>=0.8?"var(--warning)":"var(--success)";
   return`<div class="card" style="margin-bottom:1.25rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <p class="section-title" style="margin:0">📋 Planejado vs Realizado</p>
-      <span style="font-size:11px;color:var(--text2)">Mês atual</span>
+      <p class="section-title" style="margin:0">📊 Planejado vs Realizado</p>
+      <button onclick="setTab('cadastros');setCadTab('orcamento')" style="font-size:11px;color:var(--blue2);background:none;border:none;cursor:pointer;padding:0">Editar orçamento</button>
     </div>
     ${itens}
-    ${totalPlanR>0?`<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">
-      <span>Saldo planejado</span>
-      <span style="font-weight:600;color:${saldoPlan>=0?"var(--success)":"var(--danger)"}">${fmt(saldoPlan)}</span>
-    </div>`:""}
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--text2)">Total orçado</span>
+      <div style="font-size:12px;text-align:right">
+        <span style="color:${corTotal};font-weight:600">${fmt(totalGasto)}</span>
+        <span style="color:var(--text2)"> / ${fmt(totalOrc)}</span>
+        <span style="margin-left:6px;font-weight:700;color:${corTotal}">${Math.round(pctTotal*100)}%</span>
+      </div>
+    </div>
   </div>`;
 }
-
 // ===== GRÁFICO DONUT CATEGORIAS =====
 let _chartDashDonut=null;
 function renderChartDashboard(tm){
@@ -1008,7 +1020,7 @@ function renderDashboard(){
       return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao}</div><div class="li-sub">${item.categoria}${item.contaId?" · "+getNomeConta(item.contaId):""} · ${fmtData(item.data)}</div></div><span style="font-size:14px;font-weight:500;color:${item.tipo==="receita"?"var(--success)":"var(--danger)"}">${item.tipo==="receita"?"+":"-"}${fmt(item.valor)}</span></div>`;
     }).join("")}</div>`;
 
-  const temPvR=projecao.despesas&&projecao.despesas.length>0;
+  const temPvR=true; // sempre mostra PvR (usa limites de orçamento)
   const temDespesas=tm.some(t=>t.tipo==="despesa");
 
   document.getElementById("view-dashboard").innerHTML=`
@@ -1262,16 +1274,89 @@ function renderAposentadoria(){
 
 function renderCadastros(){
   const cR=getCatsR(),cD=getCatsD();
-  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
+  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="orcamento"?"active":""}" onclick="setCadTab('orcamento')">💰 Orçamento</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
   if(cadTab==="contas"){
     const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditConta('${c.id}')">${iconEdit()}</button><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="abrirNovaContaModal()">+ Nova conta</button></div>${cl}`;
   } else if(cadTab==="categorias"){
     html+=`<div class="cat-section"><h3>Receitas</h3><div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div></div><div class="cat-section"><h3>Despesas</h3><div class="cat-list">${cD.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div></div>`;
+  } else if(cadTab==="orcamento"){
+    html+=renderOrcamentoHTML();
   } else if(cadTab==="migracao"){
     html+=renderMigracaoHTML();
   }
   document.getElementById("view-cadastros").innerHTML=html;
+}
+
+function renderOrcamentoHTML(){
+  const cD=getCatsD();
+  if(cD.length===0)return`<p class="empty">Cadastre categorias de despesa primeiro.</p>`;
+
+  const limMap={};
+  limites.forEach(l=>{limMap[l.categoria]=l;});
+
+  const linhas=cD.map(c=>{
+    const lim=limMap[c.nome];
+    const val=lim?lim.valor:0;
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;font-size:14px;font-weight:500">${c.nome}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input
+          type="text" inputmode="numeric"
+          id="lim-${c.nome.replace(/\s/g,'_')}"
+          value="${val>0?'R$ '+val.toFixed(2).replace('.',','):'R$ 0,00'}"
+          placeholder="R$ 0,00"
+          oninput="mascaraMoeda(this)"
+          style="width:130px;text-align:right;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:13px;color:var(--text)"
+        />
+        <button class="btn-sm" onclick="salvarLimite('${c.nome}')">Salvar</button>
+        ${val>0?`<button class="icon-btn" style="color:var(--danger)" onclick="removerLimite('${c.nome}')" title="Remover limite">${iconTrash()}</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const total=limites.reduce((s,l)=>s+l.valor,0);
+
+  return`<div>
+    <p class="section-title">💰 Orçamento mensal por categoria</p>
+    <div style="background:rgba(58,111,168,.08);border-radius:var(--radius);padding:12px 16px;margin-bottom:1.25rem;font-size:13px;color:var(--text2);line-height:1.6">
+      Defina quanto planeja gastar em cada categoria por mês. O dashboard mostrará automaticamente o quanto já foi usado conforme você registra os lançamentos.
+    </div>
+    <div style="background:var(--bg2);border-radius:var(--radius-lg);padding:0 16px">
+      ${linhas}
+    </div>
+    ${total>0?`<div style="margin-top:1rem;text-align:right;font-size:13px;color:var(--text2)">Total orçado: <strong style="color:var(--text)">${fmt(total)}/mês</strong></div>`:''}
+  </div>`;
+}
+
+async function salvarLimite(categoria){
+  const id='lim-'+categoria.replace(/\s/g,'_');
+  const el=document.getElementById(id);
+  if(!el)return;
+  const valor=parseMoedaEl(el);
+  if(valor<=0){await removerLimite(categoria);return;}
+  const existente=limites.find(l=>l.categoria===categoria);
+  if(existente){
+    const {data}=await sb.from('limites').update({valor}).eq('id',existente.id).select().single();
+    if(data)limites=limites.map(l=>l.categoria===categoria?data:l);
+  } else {
+    const {data}=await sb.from('limites').insert({user_id:_user.id,categoria,valor}).select().single();
+    if(data)limites.push(data);
+  }
+  renderCadastros();
+}
+
+async function removerLimite(categoria){
+  const existente=limites.find(l=>l.categoria===categoria);
+  if(existente){await sb.from('limites').delete().eq('id',existente.id);}
+  limites=limites.filter(l=>l.categoria!==categoria);
+  renderCadastros();
+}
+
+function parseMoedaEl(el){
+  if(!el||!el.value)return 0;
+  const v=el.value.replace(/R\$\s?/g,'').replace(/\./g,'').replace(',','.');
+  return parseFloat(v)||0;
 }
 
 function renderMigracaoHTML(){
