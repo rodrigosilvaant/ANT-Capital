@@ -2653,7 +2653,7 @@ async function gerarDiagnostico(){
   const prompt=montarPrompt(ctx);
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    const resp=await fetch('/api/diagnostico',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
