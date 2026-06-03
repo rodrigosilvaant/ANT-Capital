@@ -1047,14 +1047,142 @@ function renderAposentadoria(){
 
 function renderCadastros(){
   const cR=getCatsR(),cD=getCatsD();
-  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button></div>`;
+  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
   if(cadTab==="contas"){
-    const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||0)}</div></div><button class="icon-btn" onclick="remConta(${c.id})">${iconTrash()}</button></div>`).join("")}</div>`;
+    const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">fmtSaldo${c.id}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="openModal('modal-conta');initSwatches()">+ Nova conta</button></div>${cl}`;
-  } else {
-    html+=`<div class="cat-section"><h3>Receitas</h3><div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat(${c.id})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div></div><div class="cat-section"><h3>Despesas</h3><div class="cat-list">${cD.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat(${c.id})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div></div>`;
+  } else if(cadTab==="categorias"){
+    html+=`<div class="cat-section"><h3>Receitas</h3><div class="cat-list">${cR.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncr" placeholder="Nova categoria de receita"/><button class="btn-sm" onclick="addCat('receita')">Adicionar</button></div></div><div class="cat-section"><h3>Despesas</h3><div class="cat-list">${cD.map(c=>`<div class="cat-tag">${c.nome}<button onclick="remCat('${c.id}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>`).join("")}</div><div class="cat-add"><input id="ncd" placeholder="Nova categoria de despesa"/><button class="btn-sm" onclick="addCat('despesa')">Adicionar</button></div></div>`;
+  } else if(cadTab==="migracao"){
+    html+=renderMigracaoHTML();
   }
   document.getElementById("view-cadastros").innerHTML=html;
+}
+
+function renderMigracaoHTML(){
+  // Detecta contas antigas no localStorage
+  const accounts=JSON.parse(localStorage.getItem("ant_accounts")||"[]");
+  if(accounts.length===0){
+    return`<div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1.5rem;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">✅</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Nenhum dado antigo encontrado</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">Não foram encontrados dados do sistema anterior neste navegador.<br>Se você usava em outro dispositivo, acesse por lá para migrar.</div>
+    </div>`;
+  }
+  const rows=accounts.map(a=>{
+    const trans=JSON.parse(localStorage.getItem("ant_trans_"+a.id)||"[]").length;
+    const dividas=JSON.parse(localStorage.getItem("ant_div_"+a.id)||"[]").length;
+    const contas=JSON.parse(localStorage.getItem("ant_contas_"+a.id)||"[]").length;
+    return`<div style="background:var(--bg2);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:14px;font-weight:500">${a.nome}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">${trans} transações · ${dividas} dívidas · ${contas} contas</div>
+      </div>
+      <button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="migrarConta('${a.id}','${a.nome}')">Migrar para minha conta</button>
+    </div>`;
+  }).join("");
+  return`<div>
+    <p class="section-title">Migrar dados do sistema anterior</p>
+    <div style="background:rgba(239,159,39,.1);border:1px solid var(--warning);border-radius:var(--radius);padding:12px 16px;margin-bottom:1rem;font-size:13px;color:var(--warning);line-height:1.6">
+      ⚡ Foram encontrados dados do sistema anterior neste navegador. Clique em <strong>"Migrar para minha conta"</strong> para importar tudo para o Supabase.
+    </div>
+    ${rows}
+    <p style="font-size:12px;color:var(--text2);margin-top:1rem;line-height:1.6">Os dados originais no localStorage não serão apagados. A migração é segura e pode ser feita mais de uma vez.</p>
+  </div>`;
+}
+
+async function migrarConta(oldId, nomeOrigem){
+  if(!confirm(`Migrar os dados de "${nomeOrigem}" para sua conta atual no Supabase?\n\nAs informações existentes na sua conta NÃO serão apagadas — os dados serão adicionados.`))return;
+  const uid=_user.id;
+  let ok=0,erros=0;
+  const showStatus=(msg)=>{const el=document.getElementById("mig-status");if(el)el.textContent=msg;};
+
+  // Adiciona indicador de progresso
+  const btn=event.target;btn.disabled=true;btn.textContent="Migrando...";
+  const statusEl=document.createElement("div");
+  statusEl.id="mig-status";
+  statusEl.style.cssText="font-size:13px;color:var(--text2);margin-top:8px;padding:8px;background:var(--bg2);border-radius:var(--radius)";
+  btn.parentElement.appendChild(statusEl);
+
+  try{
+    // 1. Contas bancárias
+    showStatus("Migrando contas bancárias...");
+    const contasAnt=JSON.parse(localStorage.getItem("ant_contas_"+oldId)||"[]");
+    const contaIdMap={};
+    for(const c of contasAnt){
+      const {data}=await sb.from("contas").insert({user_id:uid,banco:c.banco,apelido:c.apelido||"",tipo:c.tipo||"",saldo_inicial:c.saldoInicial||0,cor:c.cor||"#3a6fa8"}).select().single();
+      if(data){contaIdMap[c.id]=data.id;ok++;}else erros++;
+    }
+
+    // 2. Categorias (apenas as que não existem)
+    showStatus("Migrando categorias...");
+    const catsAnt=JSON.parse(localStorage.getItem("ant_cats_"+oldId)||"[]");
+    const catsExist=categorias.map(c=>c.nome.toLowerCase()+c.tipo);
+    for(const c of catsAnt){
+      if(catsExist.includes(c.nome.toLowerCase()+c.tipo))continue;
+      const {data}=await sb.from("categorias").insert({user_id:uid,nome:c.nome,tipo:c.tipo}).select().single();
+      if(data){categorias.push(data);ok++;}
+    }
+
+    // 3. Transações
+    showStatus("Migrando transações...");
+    const transAnt=JSON.parse(localStorage.getItem("ant_trans_"+oldId)||"[]");
+    for(const t of transAnt){
+      const {data}=await sb.from("transacoes").insert({user_id:uid,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:t.categoria||"",data:t.data,conta_id:contaIdMap[t.contaId]||null}).select().single();
+      if(data){trans.push({...data,contaId:data.conta_id});ok++;}else erros++;
+    }
+    trans.sort((a,b)=>b.data.localeCompare(a.data));
+
+    // 4. Transferências
+    showStatus("Migrando transferências...");
+    const transfAnt=JSON.parse(localStorage.getItem("ant_transf_"+oldId)||"[]");
+    for(const t of transfAnt){
+      const {data}=await sb.from("transferencias").insert({user_id:uid,from_id:contaIdMap[t.fromId]||null,to_id:contaIdMap[t.toId]||null,valor:t.valor,data:t.data,descricao:t.descricao||""}).select().single();
+      if(data){transferencias.push({...data,fromId:data.from_id,toId:data.to_id});ok++;}
+    }
+
+    // 5. Dívidas + pagamentos
+    showStatus("Migrando dívidas...");
+    const dividasAnt=JSON.parse(localStorage.getItem("ant_div_"+oldId)||"[]");
+    for(const d of dividasAnt){
+      const {data:dData}=await sb.from("dividas").insert({user_id:uid,credor:d.credor,tipo:d.tipo||"",valor_total:d.valorTotal||0,parcelas:d.parcelas||1,pagas:d.pagas||0,juros:d.juros||0,inicio:d.inicio||null,vencimento:d.venc||null,obs:d.obs||"",quitada:d.quitada||false}).select().single();
+      if(dData){
+        ok++;
+        const pags=d.pagamentos||[];
+        for(const p of pags){
+          await sb.from("pagamentos_divida").insert({user_id:uid,divida_id:dData.id,valor:p.valor,data:p.data,obs:p.obs||""});
+        }
+        dividas.push({...dData,valorTotal:dData.valor_total,venc:dData.vencimento,pagamentos:d.pagamentos||[]});
+      }else erros++;
+    }
+
+    // 6. Aposentadoria
+    showStatus("Migrando planejamento de aposentadoria...");
+    const retAnt=JSON.parse(localStorage.getItem("ant_ret_"+oldId)||"{}");
+    if(retAnt.idadeAtual){
+      await sb.from("aposentadoria").upsert({user_id:uid,idade_atual:retAnt.idadeAtual,idade_apos:retAnt.idadeApos,renda_mensal:retAnt.rendaMensal,invest_atual:retAnt.investAtual,taxa_anual:retAnt.taxaAnual||6});
+      retPerfil=retAnt;ok++;
+    }
+
+    // 7. Projeção
+    showStatus("Migrando projeção...");
+    const projAnt=JSON.parse(localStorage.getItem("ant_proj_"+oldId)||"{}");
+    if(projAnt.receitas||projAnt.despesas){
+      await sb.from("projecao").upsert({user_id:uid,receitas:projAnt.receitas||[],despesas:projAnt.despesas||[]});
+      projecao=projAnt;ok++;
+    }
+
+    showStatus(`✅ Migração concluída! ${ok} itens importados${erros>0?" ("+erros+" erros)":""}.`);
+    statusEl.style.color="var(--success)";
+    btn.textContent="✓ Migrado";
+    render();
+    alert(`Migração de "${nomeOrigem}" concluída!\n${ok} itens importados para o Supabase.${erros>0?"\n⚠️ "+erros+" itens com erro.":""}`);
+  }catch(e){
+    showStatus("❌ Erro na migração: "+e.message);
+    statusEl.style.color="var(--danger)";
+    btn.disabled=false;btn.textContent="Tentar novamente";
+    console.error(e);
+  }
 }
 
 // ===== ACTIONS =====
