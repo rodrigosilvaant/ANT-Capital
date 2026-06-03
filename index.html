@@ -615,6 +615,11 @@ async function loadData(){
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
   limites = limRes.data||[];
   metas = metRes.data||[];
+
+  // Debug específico limites e metas
+  console.log('[Debug] limites — data:', limRes.data?.length, '| error:', limRes.error?.message, '| code:', limRes.error?.code);
+  console.log('[Debug] metas — data:', metRes.data?.length, '| error:', metRes.error?.message, '| code:', metRes.error?.code);
+
   console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
 
