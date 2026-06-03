@@ -1060,35 +1060,141 @@ function renderCadastros(){
 }
 
 function renderMigracaoHTML(){
-  // Detecta contas antigas no localStorage
-  const accounts=JSON.parse(localStorage.getItem("ant_accounts")||"[]");
-  if(accounts.length===0){
-    return`<div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1.5rem;text-align:center">
-      <div style="font-size:32px;margin-bottom:12px">✅</div>
-      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Nenhum dado antigo encontrado</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.6">Não foram encontrados dados do sistema anterior neste navegador.<br>Se você usava em outro dispositivo, acesse por lá para migrar.</div>
+  // Escaneia TODAS as chaves do localStorage procurando dados ANT Capital
+  const todasChaves=Object.keys(localStorage);
+  const prefixos=["ant_trans_","ant_div_","ant_contas_","ant_cats_","ant_transf_","ant_ret_","ant_proj_"];
+  const idsEncontrados=new Set();
+
+  todasChaves.forEach(k=>{
+    prefixos.forEach(p=>{
+      if(k.startsWith(p)){
+        const id=k.replace(p,"");
+        if(id)idsEncontrados.add(id);
+      }
+    });
+  });
+
+  // Também verifica ant_accounts para nomes
+  const accountsAnt=JSON.parse(localStorage.getItem("ant_accounts")||"[]");
+  const nomePorId={};
+  accountsAnt.forEach(a=>{nomePorId[a.id]=a.nome;});
+
+  if(idsEncontrados.size===0){
+    // Mostra diagnóstico completo
+    const chavesAnt=todasChaves.filter(k=>k.startsWith("ant_"));
+    return`<div>
+      <p class="section-title">⚡ Migrar dados do sistema anterior</p>
+      <div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem">
+        <div style="font-size:15px;font-weight:500;margin-bottom:8px">Nenhum dado encontrado automaticamente</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+          ${chavesAnt.length>0
+            ? `Encontradas ${chavesAnt.length} chave(s) com prefixo "ant_" mas sem dados de transações:<br><code style="font-size:11px;color:var(--steel)">${chavesAnt.join(", ")}</code>`
+            : "Nenhuma chave do sistema anterior encontrada neste navegador."}
+        </div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1.5rem">
+        <div style="font-size:14px;font-weight:500;margin-bottom:8px">📋 Importar via JSON manual</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+          Se você tiver um arquivo de exportação (.json) do sistema anterior, cole o conteúdo abaixo:
+        </div>
+        <textarea id="mig-json" placeholder="Cole aqui o conteúdo do arquivo JSON exportado..." style="width:100%;height:120px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:10px;font-size:12px;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+        <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;margin-top:8px;width:100%;padding:10px" onclick="migrarViaJSON()">Importar JSON</button>
+        <div id="mig-status" style="font-size:13px;margin-top:8px"></div>
+      </div>
     </div>`;
   }
-  const rows=accounts.map(a=>{
-    const trans=JSON.parse(localStorage.getItem("ant_trans_"+a.id)||"[]").length;
-    const dividas=JSON.parse(localStorage.getItem("ant_div_"+a.id)||"[]").length;
-    const contas=JSON.parse(localStorage.getItem("ant_contas_"+a.id)||"[]").length;
-    return`<div style="background:var(--bg2);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-size:14px;font-weight:500">${a.nome}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">${trans} transações · ${dividas} dívidas · ${contas} contas</div>
+
+  const rows=[...idsEncontrados].map(id=>{
+    const trans=JSON.parse(localStorage.getItem("ant_trans_"+id)||"[]").length;
+    const dividas=JSON.parse(localStorage.getItem("ant_div_"+id)||"[]").length;
+    const contas=JSON.parse(localStorage.getItem("ant_contas_"+id)||"[]").length;
+    const cats=JSON.parse(localStorage.getItem("ant_cats_"+id)||"[]").length;
+    const nome=nomePorId[id]||"Conta encontrada";
+    return`<div style="background:var(--bg2);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:500">${nome}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${trans} transações · ${dividas} dívidas · ${contas} contas · ${cats} categorias</div>
+        </div>
+        <button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="migrarConta('${id}','${nome}',this)">Migrar para minha conta</button>
       </div>
-      <button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="migrarConta('${a.id}','${a.nome}')">Migrar para minha conta</button>
+      <div id="mig-status-${id}" style="font-size:12px;color:var(--text2)"></div>
     </div>`;
   }).join("");
+
   return`<div>
-    <p class="section-title">Migrar dados do sistema anterior</p>
+    <p class="section-title">⚡ Migrar dados do sistema anterior</p>
     <div style="background:rgba(239,159,39,.1);border:1px solid var(--warning);border-radius:var(--radius);padding:12px 16px;margin-bottom:1rem;font-size:13px;color:var(--warning);line-height:1.6">
-      ⚡ Foram encontrados dados do sistema anterior neste navegador. Clique em <strong>"Migrar para minha conta"</strong> para importar tudo para o Supabase.
+      ⚡ Foram encontrados dados do sistema anterior. Clique em <strong>"Migrar para minha conta"</strong> para importar tudo para o Supabase.
     </div>
     ${rows}
-    <p style="font-size:12px;color:var(--text2);margin-top:1rem;line-height:1.6">Os dados originais no localStorage não serão apagados. A migração é segura e pode ser feita mais de uma vez.</p>
+    <div style="background:var(--bg2);border-radius:var(--radius-lg);padding:1.25rem;margin-top:1rem">
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px">📋 Ou importe via JSON</div>
+      <textarea id="mig-json" placeholder="Cole aqui o conteúdo do arquivo JSON exportado..." style="width:100%;height:100px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:10px;font-size:12px;font-family:monospace;resize:vertical;box-sizing:border-box"></textarea>
+      <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;margin-top:6px" onclick="migrarViaJSON()">Importar JSON</button>
+    </div>
   </div>`;
+}
+
+async function migrarViaJSON(){
+  const txt=(document.getElementById("mig-json")||{}).value||"";
+  if(!txt.trim()){alert("Cole o conteúdo JSON antes de importar.");return;}
+  let dados;
+  try{dados=JSON.parse(txt);}catch(e){alert("JSON inválido. Verifique o conteúdo.");return;}
+  // Suporta formato exportado: {conta:{nome}, dados:{trans,div,contas,cats,transf,ret,proj}}
+  const d=dados.dados||dados;
+  const nome=(dados.conta?.nome)||"Importação JSON";
+  const uid=_user.id;
+  let ok=0,erros=0;
+  const setStatus=m=>{const el=document.getElementById("mig-status");if(el){el.textContent=m;el.style.color="var(--text2)";}};
+  setStatus("Importando...");
+  try{
+    // Contas
+    const contaIdMap={};
+    for(const c of(d.contas||[])){
+      const {data}=await sb.from("contas").insert({user_id:uid,banco:c.banco,apelido:c.apelido||"",tipo:c.tipo||"",saldo_inicial:c.saldoInicial||0,cor:c.cor||"#3a6fa8"}).select().single();
+      if(data){contaIdMap[c.id]=data.id;contas.push({...data,saldoInicial:data.saldo_inicial});ok++;}else erros++;
+    }
+    // Categorias
+    for(const c of(d.cats||[])){
+      if(categorias.some(x=>x.nome.toLowerCase()===c.nome.toLowerCase()&&x.tipo===c.tipo))continue;
+      const {data}=await sb.from("categorias").insert({user_id:uid,nome:c.nome,tipo:c.tipo}).select().single();
+      if(data){categorias.push(data);ok++;}
+    }
+    // Transações
+    for(const t of(d.trans||[])){
+      const {data}=await sb.from("transacoes").insert({user_id:uid,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:t.categoria||"",data:t.data,conta_id:contaIdMap[t.contaId]||null}).select().single();
+      if(data){trans.push({...data,contaId:data.conta_id});ok++;}else erros++;
+    }
+    trans.sort((a,b)=>b.data.localeCompare(a.data));
+    // Transferências
+    for(const t of(d.transf||[])){
+      const {data}=await sb.from("transferencias").insert({user_id:uid,from_id:contaIdMap[t.fromId]||null,to_id:contaIdMap[t.toId]||null,valor:t.valor,data:t.data,descricao:t.descricao||""}).select().single();
+      if(data){transferencias.push({...data,fromId:data.from_id,toId:data.to_id});ok++;}
+    }
+    // Dívidas
+    for(const div of(d.div||[])){
+      const {data:dData}=await sb.from("dividas").insert({user_id:uid,credor:div.credor,tipo:div.tipo||"",valor_total:div.valorTotal||0,parcelas:div.parcelas||1,pagas:div.pagas||0,juros:div.juros||0,inicio:div.inicio||null,vencimento:div.venc||null,obs:div.obs||"",quitada:div.quitada||false}).select().single();
+      if(dData){
+        for(const p of(div.pagamentos||[])){await sb.from("pagamentos_divida").insert({user_id:uid,divida_id:dData.id,valor:p.valor,data:p.data,obs:p.obs||""});}
+        dividas.push({...dData,valorTotal:dData.valor_total,venc:dData.vencimento,pagamentos:div.pagamentos||[]});ok++;
+      }else erros++;
+    }
+    // Aposentadoria
+    const ret=d.ret||{};
+    if(ret.idadeAtual){await sb.from("aposentadoria").upsert({user_id:uid,idade_atual:ret.idadeAtual,idade_apos:ret.idadeApos,renda_mensal:ret.rendaMensal,invest_atual:ret.investAtual,taxa_anual:ret.taxaAnual||6});retPerfil=ret;ok++;}
+    // Projeção
+    const proj=d.proj||{};
+    if(proj.receitas||proj.despesas){await sb.from("projecao").upsert({user_id:uid,receitas:proj.receitas||[],despesas:proj.despesas||[]});projecao=proj;ok++;}
+
+    const el=document.getElementById("mig-status");
+    if(el){el.textContent=`✅ ${ok} itens importados${erros>0?" ("+erros+" erros)":""}!`;el.style.color="var(--success)";}
+    render();
+    alert(`Importação concluída!\n${ok} itens importados.${erros>0?"\n⚠️ "+erros+" erros.":""}`);
+  }catch(e){
+    const el=document.getElementById("mig-status");
+    if(el){el.textContent="❌ Erro: "+e.message;el.style.color="var(--danger)";}
+  }
 }
 
 async function migrarConta(oldId, nomeOrigem){
