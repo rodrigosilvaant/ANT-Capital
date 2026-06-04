@@ -2070,26 +2070,24 @@ function renderProjecao(){
     }
 
     // Listas
+    var execR=projecao.receitas.filter(function(r){return r.executado}).length;
     var listaR='<p class="empty" style="padding:8px 0">Nenhuma receita adicionada.</p>';
     if(projecao.receitas.length>0){listaR='<div style="margin-top:8px">';
       for(var i=0;i<projecao.receitas.length;i++){var r=projecao.receitas[i];
-        listaR+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
-          +'<div><div style="font-size:13px;font-weight:500">'+(r.descricao||r.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+r.categoria+'</div></div>'
-          +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:var(--success)">+'+fmt(r.valor)+'</span>'
-          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'receitas\','+r.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'receitas\','+r.id+')">'+iconTrash()+'</button></div></div>';}
+        var execR2=!!r.executado;
+        listaR+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);'+(execR2?'opacity:.55;':'')+'">'          +'<div style="display:flex;align-items:center;gap:8px">'          +'<button onclick="toggleExecutado(\'receitas\',' + "'" + '+r.id+' + "'" + ')" style="width:22px;height:22px;border-radius:50%;border:2px solid '+(execR2?'var(--success)':'var(--border)')+';background:'+(execR2?'var(--success)':'transparent')+';cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">'+(execR2?'✓':'')+'</button>'          +'<div><div style="font-size:13px;'+(execR2?'text-decoration:line-through;color:var(--text2)':'font-weight:500')+'">'+(r.descricao||r.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+r.categoria+'</div></div></div>'          +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:'+(execR2?'var(--text2)':'var(--success)')+'">+'+fmt(r.valor)+'</span>'          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'receitas\','+r.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'receitas\','+r.id+')">'+iconTrash()+'</button></div></div>';}
       listaR+='</div>';}
 
+    var execD=projecao.despesas.filter(function(d){return d.executado}).length;
+    var totalExec=execR+execD;var totalItens=projecao.receitas.length+projecao.despesas.length;
+    var pendD=projecao.despesas.filter(function(d){return !d.executado}).reduce(function(s,d){return s+d.valor},0);
     var listaD='<p class="empty" style="padding:8px 0">Nenhuma despesa adicionada.</p>';
     if(projecao.despesas.length>0){listaD='<div style="margin-top:8px">';
       for(var i=0;i<projecao.despesas.length;i++){var d=projecao.despesas[i];
-        listaD+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">'
-          +'<div><div style="font-size:13px;font-weight:500">'+(d.descricao||d.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+d.categoria+'</div></div>'
-          +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:var(--danger)">-'+fmt(d.valor)+'</span>'
-          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'despesas\','+d.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'despesas\','+d.id+')">'+iconTrash()+'</button></div></div>';}
+        var execD2=!!d.executado;
+        listaD+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);'+(execD2?'opacity:.55;':'')+'">'          +'<div style="display:flex;align-items:center;gap:8px">'          +'<button onclick="toggleExecutado(\'despesas\',' + "'" + '+d.id+' + "'" + ')" style="width:22px;height:22px;border-radius:50%;border:2px solid '+(execD2?'var(--success)':'var(--border)')+';background:'+(execD2?'var(--success)':'transparent')+';cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">'+(execD2?'✓':'')+'</button>'          +'<div><div style="font-size:13px;'+(execD2?'text-decoration:line-through;color:var(--text2)':'font-weight:500')+'">'+(d.descricao||d.categoria)+'</div><div style="font-size:11px;color:var(--text2)">'+d.categoria+'</div></div></div>'          +'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:500;color:'+(execD2?'var(--text2)':'var(--danger)')+'">-'+fmt(d.valor)+'</span>'          +'<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditProjItem(\'despesas\','+d.id+')">'+iconEdit()+'</button>'+'<button class="icon-btn" onclick="remProjItem(\'despesas\','+d.id+')">'+iconTrash()+'</button></div></div>';}
       listaD+='</div>';}
 
-    var cR=getCatsR(),cD=getCatsD();
-    var opR='<option value="">Categoria</option>';for(var i=0;i<cR.length;i++)opR+='<option>'+cR[i].nome+'</option>';
     var opD='<option value="">Categoria</option>';for(var i=0;i<cD.length;i++)opD+='<option>'+cD[i].nome+'</option>';
     var btnL=(projecao.receitas.length>0||projecao.despesas.length>0)?'<div style="text-align:right;margin-top:1.25rem"><button class="btn-danger" onclick="limparProjecao()">Limpar simulacao</button></div>':"";
 
@@ -2103,6 +2101,7 @@ function renderProjecao(){
       +'<div style="height:100%;width:'+(pctD*100).toFixed(1)+'%;background:rgba(255,255,255,.5);border-radius:10px"></div></div>'
       +'<div style="display:flex;justify-content:space-between;font-size:12px;opacity:.8;margin-top:6px">'
       +'<span>Receitas: '+fmt(totalR)+'</span><span>Despesas: '+fmt(totalD)+'</span></div></div>'
+      +(totalItens>0?'<div style="background:var(--bg2);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:1.25rem">'        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'        +'<span style="font-size:13px;font-weight:500">✅ Progresso do mês</span>'        +'<span style="font-size:13px;font-weight:700;color:'+(totalExec===totalItens&&totalItens>0?'var(--success)':'var(--text)')+'">'+totalExec+' / '+totalItens+' concluídos</span></div>'        +'<div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;margin-bottom:6px">'        +'<div style="height:100%;width:'+(totalItens>0?(totalExec/totalItens*100).toFixed(0):0)+'%;background:var(--success);border-radius:4px;transition:width .4s"></div></div>'        +(pendD>0?'<div style="font-size:12px;color:var(--text2)">💸 A pagar: <strong style="color:var(--danger)">'+fmt(pendD)+'</strong></div>':'<div style="font-size:12px;color:var(--success);font-weight:500">🎉 Todas as despesas quitadas!</div>')        +'</div>':'')
       +'<div class="proj-grid" style="margin-bottom:1.5rem">'
       +'<div class="card-white">'
       +'<p style="font-size:12px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Receitas previstas</p>'
@@ -2220,6 +2219,15 @@ function addProjItem(tipo){
   salvarProjecao();renderProjecao();
 }
 function remProjItem(tipo,id){if(!projecao)return;projecao[tipo]=projecao[tipo].filter(function(i){return i.id!==id});salvarProjecao();renderProjecao();}
+
+function toggleExecutado(tipo,id){
+  if(!projecao||!projecao[tipo])return;
+  projecao[tipo]=projecao[tipo].map(function(item){
+    return String(item.id)===String(id)?{...item,executado:!item.executado}:item;
+  });
+  salvarProjecao();
+  renderProjecao();
+}
 function limparProjecao(){if(confirm("Limpar toda a simulacao?")){projecao={receitas:[],despesas:[]};salvarProjecao();renderProjecao();}}
 function importarMesAtual(){
   if(!projecao)projecao={receitas:[],despesas:[]};
