@@ -602,6 +602,7 @@ async function loadData(){
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
   console.log('[LoadData] categorias:', catRes.data?.length, 'erro:', catRes.error?.message);
   console.log('[LoadData] projecao:', projRes.data ? 'encontrado' : 'vazio', 'erro:', projRes.error?.message);
+  console.log('[LoadData] projecao data:', JSON.stringify(projRes.data?.despesas?.slice(0,2)));
   if(tRes.error) console.error('[LoadData] ERRO transacoes:', tRes.error);
 
   trans = (tRes.data||[]).map(t=>({...t, contaId:t.conta_id}));
