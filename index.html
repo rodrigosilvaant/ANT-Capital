@@ -2207,7 +2207,8 @@ function renderProjecao(){
 
 async function salvarProjecao(){
   if(!_user||!projecao)return;
-  await sb.rpc("salvar_projecao",{p_receitas:projecao.receitas||[],p_despesas:projecao.despesas||[]});
+  const {data:pd,error:pe}=await sb.rpc("salvar_projecao",{p_receitas:projecao.receitas||[],p_despesas:projecao.despesas||[]});
+  console.log("[salvarProjecao] data:",pd,"error:",pe?.message);
 }
 
 function addProjItem(tipo){
@@ -2227,6 +2228,8 @@ async function toggleExecutado(tipo,id){
   projecao[tipo]=projecao[tipo].map(function(item){
     return String(item.id)===String(id)?{...item,executado:!item.executado}:item;
   });
+  var item=projecao[tipo].find(function(i){return String(i.id)===String(id)});
+  console.log("[toggle] item:",JSON.stringify(item));
   await salvarProjecao();
   renderProjecao();
 }
