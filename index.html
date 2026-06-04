@@ -2208,7 +2208,7 @@ function renderProjecao(){
 async function salvarProjecao(){
   if(!_user||!projecao)return;
   const {data:pd,error:pe}=await sb.rpc("salvar_projecao",{p_receitas:projecao.receitas||[],p_despesas:projecao.despesas||[]});
-  console.log("[salvarProjecao] data:",pd,"error:",pe?.message);
+  console.log("[salvarProjecao] resultado:",pd,"| error:",pe?.message);
 }
 
 function addProjItem(tipo){
