@@ -596,7 +596,7 @@ async function loadData(){
     sb.from('categorias').select('*'),
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.from('projecao').select('*').maybeSingle(),
-    sb.from('profiles').select('limites, metas').eq('id', _user.id).maybeSingle(),
+    sb.rpc('get_profile_data'),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -612,8 +612,8 @@ async function loadData(){
   else{categorias=catRes.data;}
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
-  // Limites e metas vêm da tabela profiles (funciona com sb_publishable_)
-  console.log('[Debug] profRes.data:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
+  // Limites e metas via RPC (contorna cache do PostgREST)
+  console.log('[Debug] profRes:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
   metas = profRes.data?.metas || [];
 
@@ -1357,7 +1357,7 @@ function renderOrcamentoHTML(){
 }
 
 async function refetchLimites(){
-  const {data}=await sb.from('profiles').select('limites').eq('id',_user.id).maybeSingle();
+  const {data}=await sb.rpc('get_profile_data');
   limites=data?.limites||[];
 }
 
@@ -2334,7 +2334,7 @@ function abrirNovaMeta(){
 }
 
 async function refetchMetas(){
-  const {data}=await sb.from('profiles').select('metas').eq('id',_user.id).maybeSingle();
+  const {data}=await sb.rpc('get_profile_data');
   metas=data?.metas||[];
 }
 
