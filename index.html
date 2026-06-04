@@ -1374,15 +1374,15 @@ async function salvarLimite(categoria){
   } else {
     novoLimites=[...limites,{id:Date.now().toString(),categoria,valor,user_id:_user.id}];
   }
-  const {error:le}=await sb.from('profiles').upsert({id:_user.id,limites:novoLimites});
-  console.log('[saveLimite] error:',le?.message);
+  const {error:le}=await sb.rpc('salvar_limites',{p_limites:novoLimites});
+  console.log('[salvarLimite] rpc error:',le?.message);
   limites=novoLimites;
   renderCadastros();
 }
 
 async function removerLimite(categoria){
   const novoLimites=limites.filter(l=>l.categoria!==categoria);
-  await sb.from('profiles').upsert({id:_user.id,limites:novoLimites});
+  await sb.rpc('salvar_limites',{p_limites:novoLimites});
   limites=novoLimites;
   renderCadastros();
 }
@@ -2339,8 +2339,8 @@ async function refetchMetas(){
 }
 
 async function _saveMetasToProfile(novasMetas){
-  const {error:me}=await sb.from('profiles').upsert({id:_user.id,metas:novasMetas});
-  console.log('[saveMetas] error:',me?.message);
+  const {error:me}=await sb.rpc('salvar_metas',{p_metas:novasMetas});
+  console.log('[salvarMetas] rpc error:',me?.message);
   metas=novasMetas;
 }
 
