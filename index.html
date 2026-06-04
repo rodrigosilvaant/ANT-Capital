@@ -2263,40 +2263,79 @@ function renderMetas(){
   const ativas=metas.filter(m=>!m.concluida);
 
   const cardMeta=m=>{
+    const hoje=new Date();
     const pct=m.valor_alvo>0?Math.min(m.valor_atual/m.valor_alvo,1):0;
     const pctNum=Math.round(pct*100);
     const restante=Math.max(m.valor_alvo-m.valor_atual,0);
-    const prazoStr=m.prazo?`Prazo: ${new Date(m.prazo+'T12:00:00').toLocaleDateString('pt-BR',{month:'short',year:'numeric'})}`:null;
-    const diasRestantes=m.prazo?Math.ceil((new Date(m.prazo)-new Date())/(1000*60*60*24)):null;
     const corBarra=m.concluida?"var(--success)":pct>=0.75?"var(--success)":pct>=0.4?"var(--blue2)":"var(--warning)";
-    return`<div class="card" style="margin-bottom:1rem;position:relative">
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
-        <div style="font-size:28px;line-height:1">${m.emoji||'🎯'}</div>
+
+    // Calcular meses restantes e sugestão mensal
+    let mesesRestantes=null,sugestaoMensal=null,ritmoStr=null,prazoLabel=null;
+    if(m.prazo&&!m.concluida){
+      const prazoDate=new Date(m.prazo+'T12:00:00');
+      mesesRestantes=Math.max(
+        (prazoDate.getFullYear()-hoje.getFullYear())*12+(prazoDate.getMonth()-hoje.getMonth()),1
+      );
+      prazoLabel=prazoDate.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      if(restante>0){
+        sugestaoMensal=restante/mesesRestantes;
+        // Verificar ritmo dos aportes (últimos 30 dias de histórico implícito pelo valor_atual)
+        const mesesDecorridos=Math.max(
+          (hoje.getFullYear()-new Date(m.created_at||hoje).getFullYear())*12+
+          (hoje.getMonth()-new Date(m.created_at||hoje).getMonth()),1
+        );
+        const ritmoAtual=m.valor_atual/mesesDecorridos;
+        if(ritmoAtual>=sugestaoMensal*0.9)ritmoStr={cor:'var(--success)',msg:'✅ No ritmo certo!'};
+        else if(ritmoAtual>=sugestaoMensal*0.5)ritmoStr={cor:'var(--warning)',msg:'⚡ Acelere um pouco'};
+        else if(m.valor_atual>0)ritmoStr={cor:'var(--danger)',msg:'🚨 Precisa aportar mais'};
+      }
+    }
+
+    return`<div class="card" style="margin-bottom:1rem">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px">
+        <div style="font-size:30px;line-height:1.1">${m.emoji||'🎯'}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:15px;font-weight:600;margin-bottom:2px">${m.nome}</div>
-          <div style="font-size:12px;color:var(--text2)">
-            Meta: <strong style="color:var(--text)">${fmt(m.valor_alvo)}</strong>
-            ${prazoStr?`· ${prazoStr}`:''}
-            ${diasRestantes!==null&&!m.concluida?`· <span style="color:${diasRestantes<30?'var(--warning)':'var(--text2)'}">${diasRestantes>0?diasRestantes+' dias':diasRestantes===0?'vence hoje':'venceu'}</span>`:''}
-          </div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:3px">${m.nome}</div>
+          ${prazoLabel?`<div style="font-size:12px;color:var(--text2)">📅 ${prazoLabel} · ${mesesRestantes} ${mesesRestantes===1?'mês':'meses'} restantes</div>`:''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           ${m.concluida?'':`<button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditMeta('${m.id}')">${iconEdit()}</button>`}
           <button class="icon-btn" style="color:var(--danger)" onclick="remMeta('${m.id}')">${iconTrash()}</button>
         </div>
       </div>
+
+      <!-- Progresso principal -->
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-        <span style="font-size:13px;color:var(--text2)">Poupado: <strong style="color:var(--text)">${fmt(m.valor_atual)}</strong></span>
-        <span style="font-size:13px;font-weight:700;color:${corBarra}">${pctNum}%</span>
+        <div>
+          <span style="font-size:22px;font-weight:700;color:${corBarra}">${pctNum}%</span>
+          <span style="font-size:12px;color:var(--text2);margin-left:6px">concluído</span>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:600">${fmt(m.valor_atual)}</div>
+          <div style="font-size:11px;color:var(--text2)">de ${fmt(m.valor_alvo)}</div>
+        </div>
       </div>
-      <div style="background:var(--border);border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px">
-        <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${corBarra};border-radius:6px;transition:width .5s"></div>
+      <div style="background:var(--border);border-radius:8px;height:12px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${(pct*100).toFixed(1)}%;background:${corBarra};border-radius:8px;transition:width .5s"></div>
       </div>
+
       ${m.concluida
-        ?`<div style="text-align:center;font-size:13px;color:var(--success);font-weight:600">🎉 Meta concluída!</div>`
-        :`<div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--text2)">Faltam ${fmt(restante)}</span>
-          <button class="btn-sm" onclick="abrirAporteMeta('${m.id}')">+ Registrar aporte</button>
+        ?`<div style="text-align:center;padding:8px;background:rgba(29,158,117,.1);border-radius:var(--radius);color:var(--success);font-weight:600">🎉 Meta concluída!</div>`
+        :`<!-- Info row -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="flex:1;min-width:120px;background:var(--bg2);border-radius:var(--radius);padding:10px 12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">Faltam</div>
+            <div style="font-size:15px;font-weight:600;color:var(--danger)">${fmt(restante)}</div>
+          </div>
+          ${sugestaoMensal?`<div style="flex:1;min-width:120px;background:rgba(58,111,168,.08);border:1px solid rgba(58,111,168,.2);border-radius:var(--radius);padding:10px 12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">💡 Sugestão/mês</div>
+            <div style="font-size:15px;font-weight:700;color:var(--blue2)">${fmt(sugestaoMensal)}</div>
+          </div>`:''}
+        </div>
+        ${ritmoStr?`<div style="font-size:12px;color:${ritmoStr.cor};font-weight:500;margin-bottom:10px">${ritmoStr.msg}</div>`:''}
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="abrirAporteMeta('${m.id}')">+ Registrar aporte</button>
         </div>`}
     </div>`;
   };
