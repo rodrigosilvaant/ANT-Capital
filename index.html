@@ -2208,7 +2208,10 @@ function renderProjecao(){
 
 async function salvarProjecao(){
   if(!_user||!projecao)return;
-  const {data:pd,error:pe}=await sb.rpc("salvar_projecao",{p_receitas:projecao.receitas||[],p_despesas:projecao.despesas||[]});
+  const desp=JSON.parse(JSON.stringify(projecao.despesas||[]));
+  const rec=JSON.parse(JSON.stringify(projecao.receitas||[]));
+  console.log("[salvarProjecao] enviando despesas[0]:",JSON.stringify(desp[0]));
+  const {data:pd,error:pe}=await sb.rpc("salvar_projecao",{p_receitas:rec,p_despesas:desp});
   console.log("[salvarProjecao] resultado:",pd,"| error:",pe?.message);
 }
 
