@@ -588,7 +588,7 @@ async function loadData(){
   const dbgRes = await sb.from('transacoes').select('id').limit(3);
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
-  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, limRes, metRes] = await Promise.all([
+  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes] = await Promise.all([
     sb.from('transacoes').select('*').order('created_at', {ascending:false}),
     sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
     sb.from('contas').select('*'),
@@ -596,8 +596,7 @@ async function loadData(){
     sb.from('categorias').select('*'),
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.from('projecao').select('*').maybeSingle(),
-    sb.from('limites').select('*'),
-    sb.from('metas').select('*').order('created_at',{ascending:true}),
+    sb.from('profiles').select('limites, metas').eq('id', _user.id).single(),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -613,12 +612,9 @@ async function loadData(){
   else{categorias=catRes.data;}
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
-  limites = limRes.data||[];
-  metas = metRes.data||[];
-
-  // Debug específico limites e metas
-  console.log('[Debug] limites — data:', limRes.data?.length, '| error:', limRes.error?.message, '| code:', limRes.error?.code);
-  console.log('[Debug] metas — data:', metRes.data?.length, '| error:', metRes.error?.message, '| code:', metRes.error?.code);
+  // Limites e metas vêm da tabela profiles (funciona com sb_publishable_)
+  limites = profRes.data?.limites || [];
+  metas = profRes.data?.metas || [];
 
   console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
@@ -1360,8 +1356,8 @@ function renderOrcamentoHTML(){
 }
 
 async function refetchLimites(){
-  const {data}=await sb.from('limites').select('*');
-  limites=data||[];
+  const {data}=await sb.from('profiles').select('limites').eq('id',_user.id).single();
+  limites=data?.limites||[];
 }
 
 async function salvarLimite(categoria){
@@ -1370,18 +1366,22 @@ async function salvarLimite(categoria){
   if(!el)return;
   const valor=parseMoedaEl(el);
   if(valor<=0){await removerLimite(categoria);return;}
-  await sb.from('limites').upsert(
-    {user_id:_user.id,categoria,valor},
-    {onConflict:'user_id,categoria'}
-  );
-  await refetchLimites();
+  const existente=limites.find(l=>l.categoria===categoria);
+  let novoLimites;
+  if(existente){
+    novoLimites=limites.map(l=>l.categoria===categoria?{...l,valor}:l);
+  } else {
+    novoLimites=[...limites,{id:Date.now().toString(),categoria,valor,user_id:_user.id}];
+  }
+  await sb.from('profiles').update({limites:novoLimites}).eq('id',_user.id);
+  limites=novoLimites;
   renderCadastros();
 }
 
 async function removerLimite(categoria){
-  const existente=limites.find(l=>l.categoria===categoria);
-  if(existente){await sb.from('limites').delete().eq('id',existente.id);}
-  await refetchLimites();
+  const novoLimites=limites.filter(l=>l.categoria!==categoria);
+  await sb.from('profiles').update({limites:novoLimites}).eq('id',_user.id);
+  limites=novoLimites;
   renderCadastros();
 }
 
@@ -2332,8 +2332,13 @@ function abrirNovaMeta(){
 }
 
 async function refetchMetas(){
-  const {data}=await sb.from('metas').select('*').order('created_at',{ascending:true});
-  metas=data||[];
+  const {data}=await sb.from('profiles').select('metas').eq('id',_user.id).single();
+  metas=data?.metas||[];
+}
+
+async function _saveMetasToProfile(novasMetas){
+  await sb.from('profiles').update({metas:novasMetas}).eq('id',_user.id);
+  metas=novasMetas;
 }
 
 async function salvarNovaMeta(){
@@ -2343,8 +2348,8 @@ async function salvarNovaMeta(){
   const atual=parseMoeda('mt-atual')||0;
   const prazo=document.getElementById('mt-prazo').value||null;
   if(!nome||!alvo)return;
-  await sb.from('metas').insert({user_id:_user.id,nome,emoji,valor_alvo:alvo,valor_atual:atual,prazo});
-  await refetchMetas();
+  const novaMeta={id:Date.now().toString(),nome,emoji,valor_alvo:alvo,valor_atual:atual,prazo,concluida:false,created_at:new Date().toISOString()};
+  await _saveMetasToProfile([...metas,novaMeta]);
   document.getElementById('modal-meta')?.remove();
   renderMetas();
 }
@@ -2381,8 +2386,8 @@ async function salvarEditMeta(){
   const alvo=parseMoeda('mt-alvo');
   const prazo=document.getElementById('mt-prazo').value||null;
   if(!nome||!alvo||!editingMetaId)return;
-  await sb.from('metas').update({nome,emoji,valor_alvo:alvo,prazo}).eq('id',editingMetaId);
-  await refetchMetas();
+  const novasMetas=metas.map(m=>m.id===editingMetaId?{...m,nome,emoji,valor_alvo:alvo,prazo}:m);
+  await _saveMetasToProfile(novasMetas);
   editingMetaId=null;
   document.getElementById('modal-meta')?.remove();
   renderMetas();
@@ -2410,8 +2415,8 @@ async function registrarAporte(id){
   const m=metas.find(x=>x.id===id);if(!m)return;
   const novoAtual=Math.min(m.valor_atual+aporte,m.valor_alvo);
   const concluida=novoAtual>=m.valor_alvo;
-  await sb.from('metas').update({valor_atual:novoAtual,concluida}).eq('id',id);
-  await refetchMetas();
+  const novasMetas=metas.map(x=>x.id===id?{...x,valor_atual:novoAtual,concluida}:x);
+  await _saveMetasToProfile(novasMetas);
   document.getElementById('modal-aporte')?.remove();
   if(concluida)setTimeout(()=>alert(`🎉 Parabéns! Meta "${m.nome}" concluída!`),300);
   renderMetas();
@@ -2419,8 +2424,8 @@ async function registrarAporte(id){
 
 async function remMeta(id){
   if(!confirm('Remover esta meta?'))return;
-  await sb.from('metas').delete().eq('id',id);
-  await refetchMetas();
+  const novasMetas=metas.filter(m=>m.id!==id);
+  await _saveMetasToProfile(novasMetas);
   renderMetas();
 }
 
