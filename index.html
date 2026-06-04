@@ -1357,7 +1357,7 @@ function renderOrcamentoHTML(){
 }
 
 async function refetchLimites(){
-  const {data}=await sb.from('profiles').select('limites').eq('id',_user.id).single();
+  const {data}=await sb.from('profiles').select('limites').eq('id',_user.id).maybeSingle();
   limites=data?.limites||[];
 }
 
@@ -1374,15 +1374,18 @@ async function salvarLimite(categoria){
   } else {
     novoLimites=[...limites,{id:Date.now().toString(),categoria,valor,user_id:_user.id}];
   }
-  await sb.from('profiles').update({limites:novoLimites}).eq('id',_user.id);
+  const {error:le}=await sb.from('profiles').upsert({id:_user.id,limites:novoLimites});
+  console.log('[saveLimite] error:',le?.message);
   limites=novoLimites;
   renderCadastros();
 }
 
 async function removerLimite(categoria){
   const novoLimites=limites.filter(l=>l.categoria!==categoria);
-  await sb.from('profiles').update({limites:novoLimites}).eq('id',_user.id);
+  await sb.from('profiles').upsert({id:_user.id,limites:novoLimites});
   limites=novoLimites;
+  renderCadastros();
+}
   renderCadastros();
 }
 
@@ -2333,12 +2336,13 @@ function abrirNovaMeta(){
 }
 
 async function refetchMetas(){
-  const {data}=await sb.from('profiles').select('metas').eq('id',_user.id).single();
+  const {data}=await sb.from('profiles').select('metas').eq('id',_user.id).maybeSingle();
   metas=data?.metas||[];
 }
 
 async function _saveMetasToProfile(novasMetas){
-  await sb.from('profiles').update({metas:novasMetas}).eq('id',_user.id);
+  const {error:me}=await sb.from('profiles').upsert({id:_user.id,metas:novasMetas});
+  console.log('[saveMetas] error:',me?.message);
   metas=novasMetas;
 }
 
