@@ -596,7 +596,7 @@ async function loadData(){
     sb.from('categorias').select('*'),
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.from('projecao').select('*').maybeSingle(),
-    sb.from('profiles').select('limites, metas').eq('id', _user.id).single(),
+    sb.from('profiles').select('limites, metas').eq('id', _user.id).maybeSingle(),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -613,6 +613,7 @@ async function loadData(){
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
   projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
   // Limites e metas vêm da tabela profiles (funciona com sb_publishable_)
+  console.log('[Debug] profRes.data:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
   metas = profRes.data?.metas || [];
 
