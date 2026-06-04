@@ -2206,8 +2206,8 @@ function renderProjecao(){
 
 
 async function salvarProjecao(){
-  if(!_user)return;
-  await sb.from("projecao").upsert({user_id:_user.id,receitas:projecao.receitas,despesas:projecao.despesas});
+  if(!_user||!projecao)return;
+  await sb.rpc("salvar_projecao",{p_receitas:projecao.receitas||[],p_despesas:projecao.despesas||[]});
 }
 
 function addProjItem(tipo){
@@ -2222,12 +2222,12 @@ function addProjItem(tipo){
 }
 function remProjItem(tipo,id){if(!projecao)return;projecao[tipo]=projecao[tipo].filter(function(i){return i.id!==id});salvarProjecao();renderProjecao();}
 
-function toggleExecutado(tipo,id){
+async function toggleExecutado(tipo,id){
   if(!projecao||!projecao[tipo])return;
   projecao[tipo]=projecao[tipo].map(function(item){
     return String(item.id)===String(id)?{...item,executado:!item.executado}:item;
   });
-  salvarProjecao();
+  await salvarProjecao();
   renderProjecao();
 }
 function limparProjecao(){if(confirm("Limpar toda a simulacao?")){projecao={receitas:[],despesas:[]};salvarProjecao();renderProjecao();}}
