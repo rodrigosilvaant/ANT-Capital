@@ -595,16 +595,14 @@ async function loadData(){
     sb.from('transferencias').select('*').order('created_at', {ascending:false}),
     sb.from('categorias').select('*'),
     sb.from('aposentadoria').select('*').maybeSingle(),
-    sb.from('projecao').select('*').maybeSingle(),
+    sb.rpc('get_projecao'),
     sb.rpc('get_profile_data'),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
   console.log('[LoadData] categorias:', catRes.data?.length, 'erro:', catRes.error?.message);
   console.log('[LoadData] projecao:', projRes.data ? 'encontrado' : 'vazio', 'erro:', projRes.error?.message);
-  console.log('[LoadData] projecao data:', JSON.stringify(projRes.data?.despesas?.slice(0,2)));
   console.log('[LoadData] despesas[0].executado:', projRes.data?.despesas?.[0]?.executado);
-  console.log('[LoadData] receitas[0].executado:', projRes.data?.receitas?.[0]?.executado);
   if(tRes.error) console.error('[LoadData] ERRO transacoes:', tRes.error);
 
   trans = (tRes.data||[]).map(t=>({...t, contaId:t.conta_id}));
@@ -614,7 +612,9 @@ async function loadData(){
   if(!catRes.data||catRes.data.length===0){await criarCatsDefault();}
   else{categorias=catRes.data;}
   retPerfil = retRes.data ? {idadeAtual:retRes.data.idade_atual,idadeApos:retRes.data.idade_apos,rendaMensal:retRes.data.renda_mensal,investAtual:retRes.data.invest_atual,taxaAnual:retRes.data.taxa_anual} : {};
-  projecao = projRes.data ? {receitas:projRes.data.receitas||[],despesas:projRes.data.despesas||[]} : {receitas:[],despesas:[]};
+  // projecao via RPC (contorna cache PostgREST)
+  const projData = projRes.data;
+  projecao = projData ? {receitas:projData.receitas||[],despesas:projData.despesas||[]} : {receitas:[],despesas:[]};
   // Limites e metas via RPC (contorna cache do PostgREST)
   console.log('[Debug] profRes:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
