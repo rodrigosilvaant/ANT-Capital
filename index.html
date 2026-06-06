@@ -1859,19 +1859,40 @@ async function confirmarImport(){
   alert(`✓ ${count} transação(ões) importada(s) com sucesso!`);
 }
 
+async function refetchTrans(){
+  const {data}=await sb.from('transacoes').select('*').order('created_at',{ascending:false});
+  trans=(data||[]).map(t=>({...t,contaId:t.conta_id}));
+}
+async function refetchContas(){
+  const {data}=await sb.from('contas').select('*');
+  contas=data||[];
+}
+
 async function addLanc(){
-  if(tipoLanc==="transferencia"){
-    const fi=document.getElementById("f-from").value,ti=document.getElementById("f-to").value,v=parseMoeda("f-valor"),d=document.getElementById("f-data").value,desc=document.getElementById("f-desc").value.trim();
-    if(!fi||!ti||!v||fi===ti)return;
-    const {data,error}=await sb.from("transferencias").insert({user_id:_user.id,from_id:fi,to_id:ti,valor:v,data:d,descricao:desc}).select().single();
-    if(!error&&data)transferencias.unshift({...data,fromId:data.from_id,toId:data.to_id});
-  } else {
-    const desc=document.getElementById("f-desc").value.trim(),v=parseMoeda("f-valor"),cat=document.getElementById("f-cat").value,d=document.getElementById("f-data").value,ce=document.getElementById("f-conta"),ci=ce&&ce.value?ce.value:null;
-    if(!desc||!v||!cat)return;
-    const {data,error}=await sb.from("transacoes").insert({user_id:_user.id,tipo:tipoLanc,descricao:desc,valor:v,categoria:cat,data:d,conta_id:ci||null}).select().single();
-    if(!error&&data)trans.unshift({...data,contaId:data.conta_id});
+  const btn=document.getElementById('btn-add');
+  if(btn&&btn.disabled)return;
+  if(btn){btn.disabled=true;btn.textContent='Salvando...';}
+  try{
+    if(tipoLanc==='transferencia'){
+      const fi=document.getElementById('f-from').value,ti=document.getElementById('f-to').value,v=parseMoeda('f-valor'),d=document.getElementById('f-data').value,desc=document.getElementById('f-desc').value.trim();
+      if(!fi||!ti||!v||fi===ti){if(btn){btn.disabled=false;btn.textContent='+ Adicionar lançamento';}return;}
+      const {error}=await sb.from('transferencias').insert({user_id:_user.id,from_id:fi,to_id:ti,valor:v,data:d,descricao:desc});
+      if(error){console.error('[addLanc] transferencia error:',error.message);alert('Erro ao salvar: '+error.message);return;}
+      const {data:trData}=await sb.from('transferencias').select('*').order('created_at',{ascending:false});
+      transferencias=(trData||[]).map(t=>({...t,fromId:t.from_id,toId:t.to_id}));
+    } else {
+      const desc=document.getElementById('f-desc').value.trim(),v=parseMoeda('f-valor'),cat=document.getElementById('f-cat').value,d=document.getElementById('f-data').value,ce=document.getElementById('f-conta'),ci=ce&&ce.value?ce.value:null;
+      if(!desc||!v||!cat){if(btn){btn.disabled=false;btn.textContent='+ Adicionar lançamento';}return;}
+      const {error}=await sb.from('transacoes').insert({user_id:_user.id,tipo:tipoLanc,descricao:desc,valor:v,categoria:cat,data:d,conta_id:ci||null});
+      if(error){console.error('[addLanc] transacao error:',error.message);alert('Erro ao salvar: '+error.message);return;}
+      await refetchTrans();
+    }
+    if(btn){btn.textContent='✓ Salvo!';}
+    setTimeout(()=>render(),1000);
+  }catch(e){
+    console.error('[addLanc] exception:',e.message);
+    if(btn){btn.disabled=false;btn.textContent='+ Adicionar lançamento';}
   }
-  const btn=document.getElementById("btn-add");if(btn){btn.textContent="✓ Salvo!";setTimeout(()=>render(),1200)}
 }
 async function remTrans(id){
   await sb.from("transacoes").delete().eq("id",id).eq("user_id",_user.id);
@@ -1936,15 +1957,21 @@ function fecharModalConta(){editingContaId=null;closeModal("modal-conta");}
 async function salvarConta(){
   const banco=document.getElementById("c-banco").value.trim(),ap=document.getElementById("c-apelido").value.trim(),tipo=document.getElementById("c-tipo").value,si=parseMoeda("c-saldo")||0;
   if(!banco)return;
-  if(editingContaId){
-    const {data}=await sb.from("contas").update({banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).eq("id",editingContaId).select().single();
-    if(data){contas=contas.map(c=>c.id===editingContaId?{...data,saldoInicial:data.saldo_inicial}:c);}
-    editingContaId=null;
-  } else {
-    const {data}=await sb.from("contas").insert({user_id:_user.id,banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).select().single();
-    if(data)contas.push({...data,saldoInicial:data.saldo_inicial});
-  }
-  closeModal("modal-conta");render();
+  const btn=document.getElementById("btn-salvar-conta");
+  if(btn){btn.disabled=true;btn.textContent="Salvando...";}
+  try{
+    if(editingContaId){
+      const {error}=await sb.from("contas").update({banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor}).eq("id",editingContaId);
+      if(error)console.error("[salvarConta] update:",error.message);
+      editingContaId=null;
+    } else {
+      const {error}=await sb.from("contas").insert({user_id:_user.id,banco,apelido:ap,tipo,saldo_inicial:si,cor:selectedCor});
+      if(error)console.error("[salvarConta] insert:",error.message);
+    }
+    await refetchContas();
+    closeModal("modal-conta");render();
+  }catch(e){console.error("[salvarConta]:",e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent="Adicionar conta";}}
 }
 async function remConta(id){const eu=trans.some(t=>t.contaId===id)||transferencias.some(t=>t.fromId===id||t.toId===id);if(eu&&!confirm("Esta conta tem movimentações. Remover mesmo assim?"))return;await sb.from("contas").delete().eq("id",id);contas=contas.filter(c=>c.id!==id);render()}
 
@@ -1975,8 +2002,9 @@ async function salvarEdicaoTrans(){
   const tipo=document.getElementById("et-tipo").value,desc=document.getElementById("et-desc").value.trim(),val=parseMoeda("et-valor"),dt=document.getElementById("et-data").value,cat=document.getElementById("et-cat").value;
   const ci=document.getElementById("et-conta")?.value||null;
   if(!desc||!val||!cat)return;
-  const {data}=await sb.from("transacoes").update({tipo,descricao:desc,valor:val,categoria:cat,data:dt,conta_id:ci||null}).eq("id",editingTransId).select().single();
-  if(data){trans=trans.map(t=>t.id===editingTransId?{...data,contaId:data.conta_id}:t);}
+  const {error}=await sb.from("transacoes").update({tipo,descricao:desc,valor:val,categoria:cat,data:dt,conta_id:ci||null}).eq("id",editingTransId);
+  if(error){console.error("[salvarEdicaoTrans]:",error.message);return;}
+  await refetchTrans();
   editingTransId=null;closeModal("modal-edit-trans");render();
 }
 
