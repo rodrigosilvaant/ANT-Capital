@@ -466,21 +466,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 
 /* ===== TOAST NOTIFICATIONS ===== */
 .toast{
-  position:fixed;top:20px;right:20px;z-index:9999;
-  background:#1a2332;border:1px solid var(--border);
-  border-radius:12px;padding:14px 18px;
-  display:flex;align-items:center;gap:10px;
-  box-shadow:0 8px 32px rgba(0,0,0,.25);
-  font-size:14px;color:var(--text);
-  transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-  max-width:320px;
+  position:fixed;top:50%;left:50%;z-index:9999;
+  transform:translate(-50%,-50%) scale(.85);
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:28px 36px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  box-shadow:0 16px 48px rgba(0,0,0,.2);
+  font-size:15px;color:var(--text);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  min-width:240px;text-align:center;
 }
-@media(min-width:768px){.toast{top:24px;right:24px;}}
-.toast.show{transform:translateX(0)}
-.toast-icon{font-size:20px;flex-shrink:0}
-.toast-msg{line-height:1.4}
-.toast-title{font-weight:600;margin-bottom:2px}
-.toast-sub{font-size:12px;color:var(--text2)}
+.toast.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.toast-icon{font-size:36px;line-height:1}
+.toast-msg{line-height:1.5}
+.toast-title{font-weight:700;font-size:16px;margin-bottom:3px}
+.toast-sub{font-size:13px;color:var(--text2)}
 </style>
 </head>
 <body>
