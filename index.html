@@ -1858,7 +1858,7 @@ async function processarPDF(file){
 
     statusEl.innerHTML='<div class="pdf-processing"><div class="pdf-spinner"></div><span>Analisando fatura com IA...</span></div>';
 
-    const mesAtual=`${mesAtivo.ano}-${String(mesAtivo.mes+1).padStart(2,'0')}`;
+    const mesAtual=`${mes.y}-${String(mes.m).padStart(2,'0')}`;
     const resp=await fetch('/api/pdf-import',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1882,7 +1882,7 @@ async function processarPDF(file){
       tipo:t.tipo||'despesa',
       descricao:t.descricao||'',
       valor:Math.abs(t.valor||0),
-      data:t.data||mesAtual+'-01',
+      data:t.data||`${mes.y}-${String(mes.m).padStart(2,'0')}-01`,
       categoria:t.categoria||'Outros'
     }));
     fecharImportPDF();
