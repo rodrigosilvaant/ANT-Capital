@@ -1844,15 +1844,27 @@ function processarArquivo(file){
 async function confirmarImport(){
   const chks=document.querySelectorAll(".imp-chk");
   const cats=document.querySelectorAll(".imp-cat");
-  let count=0;
+  const btn=document.querySelector(".btn-primary[onclick='confirmarImport()']");
+  if(btn){btn.disabled=true;btn.textContent='Importando...';}
+  let count=0,erros=0;
+  const lote=[];
   for(let i=0;i<chks.length;i++){
     if(!chks[i].checked)continue;
     const t=importPreview[i];
     if(!t)continue;
     const cat=cats[i]?cats[i].value:t.categoria;
-    const {data}=await sb.from("transacoes").insert({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||"Outros",data:t.data,conta_id:null}).select().single();
-    if(data)trans.unshift({...data,contaId:null});
-    count++;
+    lote.push({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||'Outros',data:t.data,conta_id:null});
+  }
+  if(lote.length>0){
+    const {error}=await sb.from('transacoes').insert(lote);
+    if(error){
+      console.error('[confirmarImport] erro:',error.message);
+      alert('Erro ao importar: '+error.message);
+      if(btn){btn.disabled=false;btn.textContent='Confirmar importação';}
+      return;
+    }
+    count=lote.length;
+    await refetchTrans();
   }
   importPreview=[];showImport=false;
   render();
@@ -1907,7 +1919,11 @@ async function addDivida(){
   const credor=document.getElementById("d-credor").value.trim(),tipo=document.getElementById("d-tipo").value,valorTotal=parseMoeda("d-valor")||0,parcelas=parseInt(document.getElementById("d-parcelas").value)||1,pagas=parseInt(document.getElementById("d-pagas").value)||0,juros=parseFloat(document.getElementById("d-juros").value)||0,inicio=document.getElementById("d-inicio").value||null,venc=document.getElementById("d-venc").value||null,obs=document.getElementById("d-obs").value.trim();
   if(!credor||!valorTotal)return;
   const {data,error}=await sb.from("dividas").insert({user_id:_user.id,credor,tipo,valor_total:valorTotal,parcelas,pagas,juros,inicio,vencimento:venc,obs,quitada:pagas>=parcelas}).select().single();
-  if(!error&&data)dividas.unshift({...data,valorTotal:data.valor_total,venc:data.vencimento,pagamentos:[]});
+  if(error){console.error("[addDivida]:",error.message);}
+  else{
+    const {data:dList}=await sb.from("dividas").select("*, pagamentos_divida(*)");
+    if(dList)dividas=dList.map(d=>({...d,valorTotal:d.valor_total,venc:d.vencimento,pagamentos:(d.pagamentos_divida||[])}));
+  }
   closeModal("modal-divida");render();
 }
 async function remDivida(id){if(!confirm("Remover esta dívida?"))return;await sb.from("dividas").delete().eq("id",id);dividas=dividas.filter(d=>d.id!==id);render()}
@@ -1915,10 +1931,11 @@ function abrirPag(id){pagarDividaId=id;document.getElementById("p-data").value=t
 async function confirmarPagamento(){
   if(!pagarDividaId)return;const v=parseMoeda("p-valor")||0,d=document.getElementById("p-data").value,obs=document.getElementById("p-obs").value.trim();
   if(!v)return;
-  const {data:pData}=await sb.from("pagamentos_divida").insert({user_id:_user.id,divida_id:pagarDividaId,valor:v,data:d,obs}).select().single();
+  const {error:pErr}=await sb.from("pagamentos_divida").insert({user_id:_user.id,divida_id:pagarDividaId,valor:v,data:d,obs});
+  if(pErr)console.error("[confirmarPagamento]:",pErr.message);
   dividas=dividas.map(d2=>{
     if(d2.id!==pagarDividaId)return d2;
-    const pagamentos=[...(d2.pagamentos||[]),(pData||{id:Date.now(),valor:v,data:d,obs})],pagas=d2.pagas+1;
+    const pagamentos=[...(d2.pagamentos||[]),(pErr?null:{id:Date.now(),valor:v,data:d,obs}).valueOf()||{id:Date.now(),valor:v,data:d,obs}].filter(Boolean),pagas=d2.pagas+1;
     sb.from("dividas").update({pagas,quitada:pagas>=d2.parcelas}).eq("id",d2.id);
     return{...d2,pagamentos,pagas,quitada:pagas>=d2.parcelas};
   });
@@ -2034,8 +2051,9 @@ async function addCat(tipo){
   const inp=document.getElementById(tipo==="receita"?"ncr":"ncd");
   const nome=inp.value.trim();
   if(!nome||categorias.some(c=>c.tipo===tipo&&c.nome.toLowerCase()===nome.toLowerCase()))return;
-  const {data,error}=await sb.from("categorias").insert({user_id:_user.id,nome,tipo}).select().single();
-  if(!error&&data){categorias.push(data);}
+  const {error}=await sb.from("categorias").insert({user_id:_user.id,nome,tipo});
+  if(error){console.error("[addCat]:",error.message);}
+  else{const {data:cList}=await sb.from("categorias").select("*");if(cList)categorias=cList;}
   inp.value="";
   renderCadastros();
 }
