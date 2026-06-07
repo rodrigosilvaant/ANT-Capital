@@ -463,9 +463,28 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav-label-short{display:none}
   .sidebar-brand{display:none}
 }
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast{
+  position:fixed;top:20px;right:20px;z-index:9999;
+  background:#1a2332;border:1px solid var(--border);
+  border-radius:12px;padding:14px 18px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  font-size:14px;color:var(--text);
+  transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  max-width:320px;
+}
+@media(min-width:768px){.toast{top:24px;right:24px;}}
+.toast.show{transform:translateX(0)}
+.toast-icon{font-size:20px;flex-shrink:0}
+.toast-msg{line-height:1.4}
+.toast-title{font-weight:600;margin-bottom:2px}
+.toast-sub{font-size:12px;color:var(--text2)}
 </style>
 </head>
 <body>
+<div id="app-toast" class="toast"><span class="toast-icon" id="toast-icon">✅</span><div class="toast-msg"><div class="toast-title" id="toast-title"></div><div class="toast-sub" id="toast-sub"></div></div></div>
 
 <!-- ===== LOGIN ===== -->
 <div id="login-screen">
@@ -641,6 +660,16 @@ try {
 let _user = null;
 
 // ===== LOAD DATA =====
+
+function showToast(icon,title,sub,duration){
+  const t=document.getElementById('app-toast');
+  document.getElementById('toast-icon').textContent=icon||'✅';
+  document.getElementById('toast-title').textContent=title||'';
+  document.getElementById('toast-sub').textContent=sub||'';
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),duration||3500);
+}
 async function loadData(){
   if(!_user){console.warn('[LoadData] _user é null!');return;}
   const uid = _user.id;
@@ -1927,7 +1956,10 @@ async function confirmarImport(){
       if(btn){btn.disabled=false;btn.textContent='Confirmar importação';}
       return;
     }
-    count=inserted||lote.length;
+    // RPC pode retornar número direto ou string diagnóstica
+    if(typeof inserted==='number') count=inserted;
+    else if(typeof inserted==='string'){const m=inserted.match(/inserted=(\d+)/);count=m?parseInt(m[1]):lote.length;}
+    else count=lote.length;
     await refetchTrans();
     console.log('[confirmarImport] após refetch trans.length:',trans.length);
   } else {
@@ -1935,7 +1967,7 @@ async function confirmarImport(){
   }
   importPreview=[];showImport=false;
   render();
-  alert(`✓ ${count} transação(ões) importada(s) com sucesso!`);
+  showToast('✅',`${count} transações importadas`,`Extrato carregado com sucesso`);
 }
 
 async function refetchTrans(){
