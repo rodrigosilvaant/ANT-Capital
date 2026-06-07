@@ -1856,7 +1856,9 @@ async function confirmarImport(){
     lote.push({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||'Outros',data:t.data,conta_id:null});
   }
   if(lote.length>0){
+    console.log('[confirmarImport] enviando',lote.length,'transações. Primeira:',JSON.stringify(lote[0]));
     const {data:inserted,error}=await sb.rpc('inserir_transacoes_lote',{p_transacoes:lote});
+    console.log('[confirmarImport] resultado:',inserted,'| error:',error?.message||'nenhum');
     if(error){
       console.error('[confirmarImport] erro:',error.message);
       alert('Erro ao importar: '+error.message);
@@ -1865,6 +1867,9 @@ async function confirmarImport(){
     }
     count=inserted||lote.length;
     await refetchTrans();
+    console.log('[confirmarImport] após refetch trans.length:',trans.length);
+  } else {
+    console.log('[confirmarImport] lote vazio — nenhuma transação selecionada');
   }
   importPreview=[];showImport=false;
   render();
