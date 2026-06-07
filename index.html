@@ -1895,11 +1895,11 @@ async function addLanc(){
   }
 }
 async function remTrans(id){
-  await sb.from("transacoes").delete().eq("id",id).eq("user_id",_user.id);
+  await sb.from("transacoes").delete().eq("id",id);
   trans=trans.filter(t=>t.id!==id);render();
 }
 async function remTransf(id){
-  await sb.from("transferencias").delete().eq("id",id).eq("user_id",_user.id);
+  await sb.from("transferencias").delete().eq("id",id);
   transferencias=transferencias.filter(t=>t.id!==id);render();
 }
 
@@ -1910,7 +1910,7 @@ async function addDivida(){
   if(!error&&data)dividas.unshift({...data,valorTotal:data.valor_total,venc:data.vencimento,pagamentos:[]});
   closeModal("modal-divida");render();
 }
-async function remDivida(id){if(!confirm("Remover esta dívida?"))return;await sb.from("dividas").delete().eq("id",id).eq("user_id",_user.id);dividas=dividas.filter(d=>d.id!==id);render()}
+async function remDivida(id){if(!confirm("Remover esta dívida?"))return;await sb.from("dividas").delete().eq("id",id);dividas=dividas.filter(d=>d.id!==id);render()}
 function abrirPag(id){pagarDividaId=id;document.getElementById("p-data").value=todayStr();document.getElementById("p-valor").value="";document.getElementById("p-obs").value="";openModal("modal-pagamento")}
 async function confirmarPagamento(){
   if(!pagarDividaId)return;const v=parseMoeda("p-valor")||0,d=document.getElementById("p-data").value,obs=document.getElementById("p-obs").value.trim();
@@ -1925,7 +1925,7 @@ async function confirmarPagamento(){
   closeModal("modal-pagamento");pagarDividaId=null;render();
 }
 async function remPag(did,pid){
-  await sb.from("pagamentos_divida").delete().eq("id",pid).eq("user_id",_user.id);
+  await sb.from("pagamentos_divida").delete().eq("id",pid);
   dividas=dividas.map(d=>{if(d.id!==did)return d;const pagamentos=(d.pagamentos||[]).filter(p=>p.id!==pid),pagas=Math.max(0,d.pagas-1);sb.from("dividas").update({pagas,quitada:pagas>=d.parcelas}).eq("id",d.id);return{...d,pagamentos,pagas,quitada:pagas>=d.parcelas}});render()
 }
 
@@ -2040,7 +2040,7 @@ async function addCat(tipo){
   renderCadastros();
 }
 async function remCat(id){
-  await sb.from("categorias").delete().eq("id",id).eq("user_id",_user.id);
+  await sb.from("categorias").delete().eq("id",id);
   categorias=categorias.filter(c=>c.id!==id);
   renderCadastros();
 }
