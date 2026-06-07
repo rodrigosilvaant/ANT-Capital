@@ -406,6 +406,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ===== RESPONSIVE SIDEBAR LAYOUT ===== */
+*{box-sizing:border-box}
+html,body{overflow-x:hidden;max-width:100vw}
 .sidebar-brand{display:none}
 
 @media(min-width:768px){
@@ -462,6 +464,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav-label-full{display:inline}
   .nav-label-short{display:none}
   .sidebar-brand{display:none}
+  .content{margin-left:0 !important;padding:.75rem}
+  .card,.card-white{padding:1rem}
+  input,select,textarea{max-width:100%}
+  .proj-grid{grid-template-columns:1fr !important}
 }
 
 /* ===== TOAST NOTIFICATIONS ===== */
