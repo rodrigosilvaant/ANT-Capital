@@ -591,11 +591,11 @@ async function loadData(){
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
   const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes] = await Promise.all([
-    sb.from('transacoes').select('*').order('created_at', {ascending:false}),
-    sb.from('dividas').select('*, pagamentos_divida(*)').order('created_at', {ascending:false}),
-    sb.from('contas').select('*'),
-    sb.from('transferencias').select('*').order('created_at', {ascending:false}),
-    sb.from('categorias').select('*'),
+    sb.rpc('get_transacoes'),
+    sb.rpc('get_dividas'),
+    sb.rpc('get_contas'),
+    sb.rpc('get_transferencias'),
+    sb.rpc('get_categorias'),
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.rpc('get_projecao'),
     sb.rpc('get_profile_data'),
@@ -1879,11 +1879,11 @@ async function confirmarImport(){
 }
 
 async function refetchTrans(){
-  const {data}=await sb.from('transacoes').select('*').order('created_at',{ascending:false});
+  const {data}=await sb.rpc('get_transacoes');
   trans=(data||[]).map(t=>({...t,contaId:t.conta_id}));
 }
 async function refetchContas(){
-  const {data}=await sb.from('contas').select('*');
+  const {data}=await sb.rpc('get_contas');
   contas=data||[];
 }
 
@@ -1897,7 +1897,7 @@ async function addLanc(){
       if(!fi||!ti||!v||fi===ti){if(btn){btn.disabled=false;btn.textContent='+ Adicionar lançamento';}return;}
       const {error}=await sb.from('transferencias').insert({user_id:_user.id,from_id:fi,to_id:ti,valor:v,data:d,descricao:desc});
       if(error){console.error('[addLanc] transf error:',error.message);alert('Erro ao salvar: '+error.message);return;}
-      const {data:trData}=await sb.from('transferencias').select('*').order('created_at',{ascending:false});
+      const {data:trData}=await sb.rpc('get_transferencias');
       transferencias=(trData||[]).map(t=>({...t,fromId:t.from_id,toId:t.to_id}));
     } else {
       const desc=document.getElementById('f-desc').value.trim(),v=parseMoeda('f-valor'),cat=document.getElementById('f-cat').value,d=document.getElementById('f-data').value,ce=document.getElementById('f-conta'),ci=ce&&ce.value?ce.value:null;
