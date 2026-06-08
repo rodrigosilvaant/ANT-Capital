@@ -1339,18 +1339,18 @@ function renderDashboard(){
         </div>`:''}
       </div>
       <!-- 3 key metrics -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:hidden">
         <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
           <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Entradas</div>
-          <div style="font-size:16px;font-weight:600;color:#86efac">${fmt(entradas)}</div>
+          <div style="font-size:14px;font-weight:600;color:#86efac;word-break:break-all">${fmt(entradas)}</div>
         </div>
         <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
           <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Saídas</div>
-          <div style="font-size:16px;font-weight:600;color:#fca5a5">${fmt(saidas)}</div>
+          <div style="font-size:14px;font-weight:600;color:#fca5a5;word-break:break-all">${fmt(saidas)}</div>
         </div>
         <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
           <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Saldo</div>
-          <div style="font-size:16px;font-weight:600;color:${saldo>=0?'#86efac':'#fca5a5'}">${saldo>=0?'+':''}${fmt(saldo)}</div>
+          <div style="font-size:14px;font-weight:600;color:${saldo>=0?'#86efac':'#fca5a5'};word-break:break-all">${saldo>=0?'+':''}${fmt(saldo)}</div>
         </div>
       </div>
     </div>
