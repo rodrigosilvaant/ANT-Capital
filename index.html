@@ -1200,46 +1200,202 @@ function renderDashboard(){
   const entradas=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const saidas=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldo=entradas-saidas;
+  const txPoupanca=entradas>0?((saldo/entradas)*100):0;
   const divPend=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
 
-  const alertas=gerarAlertas(tm,entradas,saidas,saldo);
+  // === HEALTH SCORE ===
+  let score,scoreCor,scoreIcon,scoreMensagem,scoreDetalhe;
+  if(entradas===0){
+    score='sem dados';scoreCor='var(--text2)';scoreIcon='📊';
+    scoreMensagem='Registre seus lançamentos';scoreDetalhe='Importe seu extrato ou adicione lançamentos manualmente para ver sua saúde financeira.';
+  } else if(saldo<0){
+    score='crítico';scoreCor='var(--danger)';scoreIcon='🔴';
+    scoreMensagem='Gastos acima da renda';scoreDetalhe=`Você gastou ${fmt(Math.abs(saldo))} a mais do que recebeu este mês. Prioridade: cortar despesas imediatamente.`;
+  } else if(txPoupanca<10){
+    score='atenção';scoreCor='var(--warning)';scoreIcon='🟡';
+    scoreMensagem='Poupança muito baixa';scoreDetalhe=`Taxa de poupança de ${txPoupanca.toFixed(0)}% está abaixo do ideal. Meta recomendada: acima de 20%.`;
+  } else if(txPoupanca<20){
+    score='regular';scoreCor='#f59e0b';scoreIcon='🟡';
+    scoreMensagem='No caminho certo';scoreDetalhe=`Poupança de ${txPoupanca.toFixed(0)}% — bom, mas há espaço para melhorar. Ideal: acima de 20%.`;
+  } else {
+    score='saudável';scoreCor='var(--success)';scoreIcon='🟢';
+    scoreMensagem='Finanças saudáveis!';scoreDetalhe=`Excelente! Você está poupando ${txPoupanca.toFixed(0)}% da sua renda este mês. Continue assim.`;
+  }
 
-  const contasHtml=contas.length===0
-    ?`<div class="card" style="margin-bottom:1rem;text-align:center;padding:1.25rem"><p style="font-size:13px;color:var(--text2)">Cadastre suas contas em <strong>Cadastros</strong> para ver os saldos aqui.</p></div>`
-    :`<div class="contas-scroll">${contas.map(c=>`<div class="conta-card" style="border-top:3px solid ${c.cor}"><div class="cn">${c.apelido||c.banco}</div><div class="cb">${c.banco}${c.tipo?" · "+c.tipo:""}</div><div class="cv" style="color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div></div>`).join("")}</div>`;
+  // === MAIN PROBLEM: worst budget deviation ===
+  let mainProblem=null;
+  if(limites.length>0&&saidas>0){
+    const gastosCat={};
+    tm.filter(t=>t.tipo==="despesa").forEach(t=>{gastosCat[t.categoria]=(gastosCat[t.categoria]||0)+t.valor;});
+    let maxDesvio=-Infinity,piorCat=null,piorLimite=null,piorGasto=null;
+    limites.forEach(l=>{
+      const gasto=gastosCat[l.categoria]||0;
+      const desvio=gasto-l.valor;
+      const desvioP=l.valor>0?((gasto/l.valor)-1)*100:0;
+      if(desvio>0&&desvioP>maxDesvio){maxDesvio=desvioP;piorCat=l.categoria;piorLimite=l.valor;piorGasto=gasto;}
+    });
+    if(piorCat){mainProblem={cat:piorCat,limite:piorLimite,gasto:piorGasto,pct:maxDesvio};}
+  }
 
-  const allItems=[...tm.map(t=>({...t,_k:"trans"})),...tf.map(t=>({...t,_k:"transf"}))].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5);
+  // === BUDGET BARS ===
+  let orcHtml='';
+  if(limites.length>0){
+    const gastosCat={};
+    tm.filter(t=>t.tipo==="despesa").forEach(t=>{gastosCat[t.categoria]=(gastosCat[t.categoria]||0)+t.valor;});
+    const totalLimite=limites.reduce((s,l)=>s+l.valor,0);
+    const barsHtml=limites.map(l=>{
+      const g=gastosCat[l.categoria]||0;
+      const pct=l.valor>0?Math.min(g/l.valor,1)*100:0;
+      const over=g>l.valor;
+      const cor=over?'var(--danger)':pct>75?'var(--warning)':'var(--success)';
+      const status=over?`-${fmt(g-l.valor)} acima`:g===0?'sem gastos':`${fmt(l.valor-g)} disponível`;
+      return`<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="font-size:13px;font-weight:500">${l.categoria}</span>
+          <span style="font-size:12px;color:${cor};font-weight:600">${fmt(g)} <span style="color:var(--text2);font-weight:400">/ ${fmt(l.valor)}</span></span>
+        </div>
+        <div style="background:var(--border);border-radius:6px;height:8px;overflow:hidden;margin-bottom:3px">
+          <div style="height:100%;width:${Math.min(pct,100).toFixed(1)}%;background:${cor};border-radius:6px;transition:width .5s"></div>
+        </div>
+        <div style="font-size:11px;color:${over?'var(--danger)':'var(--text2)'}">${status}</div>
+      </div>`;
+    }).join('');
+    orcHtml=`<div class="card" style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <p class="section-title" style="margin:0">💰 Orçamento do mês</p>
+        <span style="font-size:12px;color:var(--text2)">Total planejado: ${fmt(totalLimite)}</span>
+      </div>
+      ${barsHtml}
+    </div>`;
+  }
+
+  // === GOALS HIGHLIGHT (top 2) ===
+  let metasHtml='';
+  const metasAtivas=metas.filter(m=>!m.concluida).slice(0,2);
+  if(metasAtivas.length>0){
+    const metaCards=metasAtivas.map(m=>{
+      const pct=m.valor_alvo>0?Math.min(m.valor_atual/m.valor_alvo,1)*100:0;
+      const restante=Math.max(m.valor_alvo-m.valor_atual,0);
+      let sugestao='';
+      if(m.prazo){
+        const hoje=new Date(),prazoDate=new Date(m.prazo+'T12:00:00');
+        const meses=Math.max((prazoDate.getFullYear()-hoje.getFullYear())*12+(prazoDate.getMonth()-hoje.getMonth()),1);
+        if(restante>0)sugestao=`<div style="font-size:12px;color:var(--blue2);margin-top:4px">💡 Poupe ${fmt(restante/meses)}/mês para chegar lá</div>`;
+      }
+      const cor=pct>=75?'var(--success)':pct>=40?'var(--blue2)':'var(--warning)';
+      return`<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+          <span style="font-size:13px;font-weight:500">${m.emoji||'🎯'} ${m.nome}</span>
+          <span style="font-size:12px;font-weight:700;color:${cor}">${pct.toFixed(0)}%</span>
+        </div>
+        <div style="background:var(--border);border-radius:6px;height:8px;overflow:hidden;margin-bottom:3px">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:${cor};border-radius:6px;transition:width .5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--text2)">${fmt(m.valor_atual)} de ${fmt(m.valor_alvo)}</span>
+          <span style="font-size:11px;color:var(--text2)">faltam ${fmt(restante)}</span>
+        </div>
+        ${sugestao}
+      </div>`;
+    }).join('');
+    metasHtml=`<div class="card" style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <p class="section-title" style="margin:0">🎯 Progresso das metas</p>
+        <button class="btn-outline" style="font-size:11px" onclick="setTab('metas')">Ver todas</button>
+      </div>
+      ${metaCards}
+    </div>`;
+  }
+
+  // === RECENT TRANSACTIONS (last 5) ===
+  const allItems=[...tm.map(t=>({...t,_k:'trans'})),...tf.map(t=>({...t,_k:'transf'}))].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5);
   const listHtml=allItems.length===0?`<p class="empty">Nenhuma movimentação neste mês.</p>`
     :`<div class="list">${allItems.map(item=>{
-      if(item._k==="transf")return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">Transferência</div><div class="li-sub">${getNomeConta(item.fromId)} → ${getNomeConta(item.toId)} · ${fmtData(item.data)}</div></div><span style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(item.valor)}</span></div>`;
-      return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao}</div><div class="li-sub">${item.categoria}${item.contaId?" · "+getNomeConta(item.contaId):""} · ${fmtData(item.data)}</div></div><span style="font-size:14px;font-weight:500;color:${item.tipo==="receita"?"var(--success)":"var(--danger)"}">${item.tipo==="receita"?"+":"-"}${fmt(item.valor)}</span></div>`;
-    }).join("")}</div>`;
+      if(item._k==='transf')return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">Transferência</div><div class="li-sub">${getNomeConta(item.fromId)} → ${getNomeConta(item.toId)} · ${fmtData(item.data)}</div></div><span style="font-size:14px;font-weight:500;color:var(--blue)">${fmt(item.valor)}</span></div>`;
+      return`<div class="list-item"><div style="min-width:0;flex:1"><div class="li-desc">${item.descricao}</div><div class="li-sub">${item.categoria} · ${fmtData(item.data)}</div></div><span style="font-size:14px;font-weight:500;color:${item.tipo==='receita'?'var(--success)':'var(--danger)'}">${item.tipo==='receita'?'+':'-'}${fmt(item.valor)}</span></div>`;
+    }).join('')}</div>`;
 
-  const temPvR=true; // sempre mostra PvR (usa limites de orçamento)
-  const temDespesas=tm.some(t=>t.tipo==="despesa");
+  // === GAMIFICATION (small badge) ===
+  const {streak}=calcularStreak();
+  const gamBadge=streak>0?`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:10px;margin-bottom:1rem">
+    <span style="font-size:20px">🔥</span>
+    <div><div style="font-size:13px;font-weight:600;color:#d97706">${streak} ${streak===1?'dia':'dias'} consecutivos</div><div style="font-size:11px;color:var(--text2)">Mantenha o ritmo de registros!</div></div>
+  </div>`:'';
 
-  document.getElementById("view-dashboard").innerHTML=`
+  document.getElementById('view-dashboard').innerHTML=`
     ${mesPicker()}
-    ${htmlGamificacao()}
-    ${htmlAlertas(alertas)}
-    <p class="section-title">Contas</p>${contasHtml}
-    ${contas.length>0?`<div class="card" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center"><div><p class="section-title" style="margin:0 0 2px">Patrimônio total</p><div style="font-size:22px;font-weight:500;color:${getSaldoTotal()>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoTotal())}</div></div></div>`:""}
-    <div class="grid3" style="margin-bottom:1.25rem">
-      <div class="card stat"><label>Saldo do mês</label><div class="val" style="color:${saldo>=0?"var(--success)":"var(--danger)"}">${fmt(saldo)}</div></div>
-      <div class="card stat"><label>Entradas</label><div class="val" style="color:var(--success)">${fmt(entradas)}</div></div>
-      <div class="card stat"><label>Saídas</label><div class="val" style="color:var(--danger)">${fmt(saidas)}</div></div>
-    </div>
-    ${divPend>0?`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem"><div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Dívidas em aberto</label><div style="font-size:18px;font-weight:500;color:var(--warning)">${fmt(divPend)}</div></div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>`:""}
-    ${temDespesas?htmlSuperfluo(tm):""}
-    ${temDespesas?`<div class="card" style="margin-bottom:1.25rem">
-      <p class="section-title" style="margin-bottom:1rem">🍩 Gastos por categoria</p>
-      <div style="max-height:240px"><canvas id="dash-chart-donut"></canvas></div>
-    </div>`:""}
-    ${temPvR?htmlPlanejadoVsRealizado(tm):""}
-    <p class="section-title">Últimas movimentações</p>${listHtml}`;
 
-  // Renderiza gráfico após o HTML estar no DOM
-  if(temDespesas)requestAnimationFrame(()=>renderChartDashboard(tm));
+    <!-- HERO: HEALTH SCORE -->
+    <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);border-radius:var(--radius-xl);padding:1.5rem;color:#fff;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem">
+        <div>
+          <div style="font-size:12px;opacity:.7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Saúde Financeira</div>
+          <div style="font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px">${scoreIcon} ${scoreMensagem}</div>
+          <div style="font-size:13px;opacity:.8;margin-top:4px;max-width:280px">${scoreDetalhe}</div>
+        </div>
+        ${entradas>0?`<div style="text-align:right;flex-shrink:0">
+          <div style="font-size:11px;opacity:.7;margin-bottom:2px">Taxa de poupança</div>
+          <div style="font-size:28px;font-weight:300;color:${txPoupanca<0?'#fca5a5':txPoupanca<20?'#fcd34d':'#86efac'}">${txPoupanca.toFixed(0)}%</div>
+        </div>`:''}
+      </div>
+      <!-- 3 key metrics -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Entradas</div>
+          <div style="font-size:16px;font-weight:600;color:#86efac">${fmt(entradas)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Saídas</div>
+          <div style="font-size:16px;font-weight:600;color:#fca5a5">${fmt(saidas)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:10px 12px">
+          <div style="font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Saldo</div>
+          <div style="font-size:16px;font-weight:600;color:${saldo>=0?'#86efac':'#fca5a5'}">${saldo>=0?'+':''}${fmt(saldo)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN PROBLEM -->
+    ${mainProblem?`<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-left:4px solid var(--danger);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:2px">Principal ponto de atenção</div>
+          <div style="font-size:14px;font-weight:500">${mainProblem.cat}: <strong>${fmt(mainProblem.gasto)}</strong> <span style="color:var(--text2);font-weight:400">de ${fmt(mainProblem.limite)} planejados</span></div>
+          <div style="font-size:12px;color:var(--danger);margin-top:2px">+${fmt(mainProblem.gasto-mainProblem.limite)} acima do orçamento (${mainProblem.pct.toFixed(0)}% a mais)</div>
+        </div>
+      </div>
+    </div>`:''}
+
+    <!-- DIVIDAS -->
+    ${divPend>0?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-left:4px solid var(--warning);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:12px;color:var(--warning);font-weight:600;margin-bottom:2px">Dívidas em aberto</div>
+        <div style="font-size:18px;font-weight:600">${fmt(divPend)}</div></div>
+        <button class="btn-outline" style="font-size:11px" onclick="setTab('dividas')">Ver detalhes</button>
+      </div>
+    </div>`:''}
+
+    <!-- GAMIFICATION -->
+    ${gamBadge}
+
+    <!-- ORÇAMENTO -->
+    ${orcHtml}
+
+    <!-- METAS -->
+    ${metasHtml}
+
+    <!-- ULTIMAS MOVIMENTACOES -->
+    <div class="card" style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <p class="section-title" style="margin:0">📋 Últimas movimentações</p>
+        <button class="btn-outline" style="font-size:11px" onclick="setTab('lancamentos')">Ver todas</button>
+      </div>
+      ${listHtml}
+    </div>
+  `;
+
+  if(tm.some(t=>t.tipo==='despesa'))requestAnimationFrame(()=>renderChartDashboard(tm));
 }
 
 function renderLancamentos(){
