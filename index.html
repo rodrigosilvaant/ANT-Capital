@@ -463,9 +463,39 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav-label-full{display:inline}
   .nav-label-short{display:none}
   .sidebar-brand{display:none}
-  /* Ensure sidebar doesn't affect mobile */
-  .nav-wrap{position:static !important;width:100% !important;height:auto !important;border-right:none !important;flex-direction:row !important}
-  .nav{flex-direction:row !important;overflow-x:auto !important}
+  /* Reset sidebar to original horizontal nav on mobile */
+  .nav-wrap{
+    position:relative !important;
+    left:auto !important;top:auto !important;
+    width:100% !important;height:auto !important;
+    min-height:unset !important;
+    display:block !important;
+    border-right:none !important;
+    border-bottom:1px solid rgba(255,255,255,.1) !important;
+    overflow:visible !important;
+    flex-direction:unset !important;
+    z-index:10 !important;
+  }
+  .nav-wrap::before{display:none !important}
+  .nav-wrap::after{display:block !important}
+  .nav{
+    flex-direction:row !important;
+    overflow-x:auto !important;
+    padding:0 !important;
+  }
+  .nav button{
+    width:auto !important;
+    border-left:none !important;
+    border-bottom:3px solid transparent !important;
+    padding:12px 16px !important;
+    white-space:nowrap !important;
+    border-radius:0 !important;
+  }
+  .nav button.active{
+    border-left-color:transparent !important;
+    border-bottom-color:var(--blue2) !important;
+    background:rgba(255,255,255,.06) !important;
+  }
   .app-header{margin-left:0 !important}
   .content{margin-left:0 !important}
 }
