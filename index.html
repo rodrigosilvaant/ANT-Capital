@@ -1037,7 +1037,18 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","jornada","diagnostico"].forEach(id=>{const v=document.getElementById("view-"+id);const tab=document.getElementById("tab-"+id);if(v)v.style.display=id===t?"block":"none";if(tab)tab.classList.toggle("active",id===t)});render()}
+function setTab(t){
+  currentTab = t;
+
+  ["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","jornada","diagnostico"]
+  .forEach(id => {
+    const v = document.getElementById("view-" + id);
+
+    if (v) {
+      v.style.display = (id === t) ? "block" : "none";
+    }
+  });
+};const tab=document.getElementById("tab-"+id);if(v)v.style.display=id===t?"block":"none";if(tab)tab.classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
