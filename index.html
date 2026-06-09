@@ -1024,7 +1024,7 @@ async function carregarApp(nome){
   document.getElementById("header-nome").textContent=nome;
   showLoading(true);
   await loadData();
-  await loadJornadaSetup();
+  try{await loadJornadaSetup();}catch(e){console.error("Jornada setup falhou:",e);}
   showLoading(false);
   render();
 }
@@ -1132,27 +1132,39 @@ const STEPS_TEMPLATE=[
 let jIsConsultor=false,jData=null,jClienteId=null,jClientes=[],jOpenPhases={},jEditingNote=null,jDraftNote="";
 
 async function loadJornadaSetup(){
-  // Check if user is consultor
-  const {data:profData}=await sb.from("profiles").select("is_consultor,nome").eq("id",_user.id).maybeSingle();
-  jIsConsultor=!!profData?.is_consultor;
-  document.getElementById("tab-jornada").style.display=jIsConsultor||true?"":"none";
-  if(jIsConsultor){
-    const {data:cli}=await sb.rpc("listar_clientes");
-    jClientes=cli||[];
-  } else {
-    // Load own jornada
-    jClienteId=_user.id;
-    await loadJornadaData();
+  try{
+    // Check if user is consultor via RPC (more reliable)
+    const {data:isConsResult,error:icErr}=await sb.rpc("is_consultor");
+    if(icErr){console.error("[is_consultor] error:",icErr.message);jIsConsultor=false;}
+    else jIsConsultor=!!isConsResult;
+    console.log("[Jornada] is_consultor:",jIsConsultor);
+    const tabBtn=document.getElementById("tab-jornada");
+    if(tabBtn)tabBtn.style.display="";
+    if(jIsConsultor){
+      try{
+        const {data:cli,error}=await sb.rpc("listar_clientes");
+        if(error){console.error("[listar_clientes]",error.message);jClientes=[];}
+        else jClientes=cli||[];
+      }catch(e){console.error("[listar_clientes] exception",e);jClientes=[];}
+    } else {
+      // Load own jornada
+      jClienteId=_user.id;
+      await loadJornadaData();
+    }
+  }catch(e){
+    console.error("[loadJornadaSetup] erro:",e);
   }
 }
 
 async function loadJornadaData(){
-  if(!jClienteId)return;
-  const {data,error}=await sb.rpc("get_jornada",{p_client_id:jClienteId});
-  if(error){console.error("[get_jornada]",error.message);return;}
-  jData=data;
-  // Auto-open active phase
-  if(data?.fases){const ativa=data.fases.find(f=>f.status==="active");if(ativa)jOpenPhases[ativa.fase_num]=true;}
+  try{
+    if(!jClienteId)return;
+    const {data,error}=await sb.rpc("get_jornada",{p_client_id:jClienteId});
+    if(error){console.error("[get_jornada]",error.message);return;}
+    jData=data;
+    // Auto-open active phase
+    if(data?.fases){const ativa=data.fases.find(f=>f.status==="active");if(ativa)jOpenPhases[ativa.fase_num]=true;}
+  }catch(e){console.error("[loadJornadaData]",e);}
 }
 
 function jornadaFmtDate(iso){
