@@ -1477,24 +1477,17 @@ async function jornadaCriar(tipo){
 }
 
 function render(){
-
-  console.log("render iniciou");
-
-  try {
-    if(currentTab==="dashboard")renderDashboard();
-    else if(currentTab==="lancamentos")renderLancamentos();
-    else if(currentTab==="graficos")renderGraficos();
-    else if(currentTab==="dividas")renderDividas();
-    else if(currentTab==="metas")renderMetas();
-    else if(currentTab==="aposentadoria")renderAposentadoria();
-    else if(currentTab==="cadastros")renderCadastros();
-    else if(currentTab==="projecao")renderProjecao();
-    else if(currentTab==="relatorios")renderRelatorios();
-    else if(currentTab==="jornada")renderJornada();
-    else if(currentTab==="diagnostico")renderDiagnostico();
-  } catch (e) {
-    console.error("🔥 ERRO REAL:", e);
-  }
+  if(currentTab==="dashboard")renderDashboard();
+  else if(currentTab==="lancamentos")renderLancamentos();
+  else if(currentTab==="graficos")renderGraficos();
+  else if(currentTab==="dividas")renderDividas();
+  else if(currentTab==="metas")renderMetas();
+  else if(currentTab==="aposentadoria")renderAposentadoria();
+  else if(currentTab==="cadastros")renderCadastros();
+  else if(currentTab==="projecao")renderProjecao();
+  else if(currentTab==="relatorios")renderRelatorios();
+  else if(currentTab==="jornada")renderJornada();
+  else if(currentTab==="diagnostico")renderDiagnostico();
 }
 
 // ===== ALERTAS AUTOMÁTICOS =====
