@@ -1334,7 +1334,7 @@ function renderPhaseConsultor(phase,meta,isLast){
           ${step.checked?`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <span class="jornada-step-date">✓ ${jornadaFmtDate(step.checkedAt)}</span>
             ${isEditing?`<div class="jornada-note-edit" style="width:100%">
-              <textarea>teste<textarea>
+              <textarea id="note-edit-${phase.id}-${si}" placeholder="Adicionar nota...">${(step.note||'').replace(/"/g,'&quot;')}</textarea>
               <div class="jornada-note-actions">
                 <button class="jornada-note-save" onclick="jornadaSalvarNotaInput(${phase.id},'${step.id}',${si})">Salvar</button>
                 <button class="jornada-note-cancel" onclick="jEditingNote=null;renderJornada()">Cancelar</button>
