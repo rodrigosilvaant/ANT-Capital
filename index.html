@@ -541,11 +541,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   animation:spin .7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div id="app-toast" class="toast"><span class="toast-icon" id="toast-icon">✅</span><div class="toast-msg"><div class="toast-title" id="toast-title"></div><div class="toast-sub" id="toast-sub"></div></div></div>
@@ -619,7 +616,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-full">Planejamento de Aposentadoria</span><span class="nav-label-short">Aposentadoria</span></button>
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
-      <button id="tab-jornada" onclick="setTab('jornada')" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/></svg>Jornada</button>
       <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
     </nav>
   </div>
@@ -633,7 +629,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     <div id="view-cadastros" style="display:none"></div>
     <div id="view-projecao" style="display:none"></div>
     <div id="view-relatorios" style="display:none"></div>
-    <div id="view-jornada" style="display:none"></div>
     <div id="view-diagnostico" style="display:none"></div>
   </div>
 </div>
@@ -959,7 +954,6 @@ async function carregarApp(nome){
   document.getElementById("header-nome").textContent=nome;
   showLoading(true);
   await loadData();
-  try{await loadJornadaSetup();}catch(e){console.error("[Jornada setup]",e);}
   showLoading(false);
   render();
 }
@@ -1037,7 +1031,7 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","jornada","diagnostico"].forEach(id=>{const v=document.getElementById("view-"+id);const tab=document.getElementById("tab-"+id);if(v)v.style.display=id===t?"block":"none";if(tab)tab.classList.toggle("active",id===t)});render()}
+function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -1046,409 +1040,6 @@ function openModal(id){document.getElementById(id).style.display="flex"}
 function closeModal(id){document.getElementById(id).style.display="none"}
 
 // ===== RENDER =====
-
-// ===== JORNADA TRACKER =====
-const PHASES_META = [
-  {tag:"BOAS-VINDAS",    metaphor:"A Colônia se Forma",       color:"#2E6E8E", duration:"Semana 1"},
-  {tag:"DIAGNÓSTICO",    metaphor:"Reconhecendo o Terreno",   color:"#1F3A52", duration:"Semanas 1–2"},
-  {tag:"ESTRUTURAÇÃO",   metaphor:"Construindo as Fundações", color:"#1A6B85", duration:"Meses 1–2"},
-  {tag:"ACOMPANHAMENTO", metaphor:"O Trabalho da Formiga",    color:"#1A8FA8", duration:"Mensal"},
-  {tag:"CONSOLIDAÇÃO",   metaphor:"Hábitos que Constroem",    color:"#17596E", duration:"Penúltimo mês"},
-  {tag:"ENCERRAMENTO",   metaphor:"A Colônia Prospera",       color:"#1F3A52", duration:"Mês final"}
-];
-
-const STEPS_TPL = [
-  [
-    {id:"0-0",text:"Contrato assinado e formalizado",type:"shared"},
-    {id:"0-1",text:"Questionário de pré-diagnóstico enviado e preenchido",type:"shared"},
-    {id:"0-2",text:"Acesso ao aplicativo liberado",type:"shared"},
-    {id:"0-3",text:"Kit de boas-vindas entregue — símbolo da formiga",type:"shared"},
-    {id:"0-4",text:"Reunião Marco Zero agendada e confirmada",type:"shared"}
-  ],
-  [
-    {id:"1-0",text:"Reunião Marco Zero realizada (90 min)",type:"shared"},
-    {id:"1-1",text:"Levantamento completo de receitas e despesas",type:"shared"},
-    {id:"1-2",text:"Mapeamento de dívidas e compromissos fixos",type:"shared"},
-    {id:"1-3",text:"3 objetivos financeiros principais definidos",type:"shared"},
-    {id:"1-4",text:"Foto do Dia Zero registrada no app",type:"shared"},
-    {id:"1-5",text:"Análise de comportamento e padrão de consumo",type:"pf"},
-    {id:"1-6",text:"Relatório de Diagnóstico Financeiro entregue",type:"shared"}
-  ],
-  [
-    {id:"2-0",text:"Orçamento mensal estruturado e personalizado",type:"shared"},
-    {id:"2-1",text:"Plano de eliminação de dívidas definido",type:"shared"},
-    {id:"2-2",text:"Meta de reserva de emergência estabelecida",type:"shared"},
-    {id:"2-3",text:"Controles financeiros implementados no app",type:"shared"},
-    {id:"2-4",text:"Hierarquia: reserva → proteção → investimento",type:"pf"},
-    {id:"2-5",text:"Plano Financeiro Personalizado entregue",type:"shared"}
-  ],
-  [
-    {id:"3-0",text:"Reunião mensal de revisão realizada (60 min)",type:"shared"},
-    {id:"3-1",text:"Análise do realizado vs. planejado",type:"shared"},
-    {id:"3-2",text:"Relatório mensal de evolução entregue no app",type:"shared"},
-    {id:"3-3",text:"Suporte via WhatsApp entre reuniões",type:"shared"},
-    {id:"3-4",text:"Ajustes de rota realizados conforme necessário",type:"shared"},
-    {id:"3-5",text:"Revisão de comportamento financeiro do mês",type:"pf"},
-    {id:"3-6",text:"Evolução da reserva de emergência monitorada",type:"pf"}
-  ],
-  [
-    {id:"4-0",text:"Avaliação da autonomia financeira adquirida",type:"shared"},
-    {id:"4-1",text:"Revisão e atualização dos objetivos de longo prazo",type:"shared"},
-    {id:"4-2",text:"Ajustes finos no plano para os próximos 12 meses",type:"shared"},
-    {id:"4-3",text:"Solidificação de hábitos e rotinas financeiras",type:"shared"},
-    {id:"4-4",text:"Próximos passos de investimento definidos",type:"pf"}
-  ],
-  [
-    {id:"5-0",text:"Reunião de encerramento realizada (90 min)",type:"shared"},
-    {id:"5-1",text:"Relatório Final Antes & Depois apresentado",type:"shared"},
-    {id:"5-2",text:"Cerimônia de conclusão realizada",type:"shared"},
-    {id:"5-3",text:"Feedback e avaliação do programa coletados",type:"shared"},
-    {id:"5-4",text:"Plano de continuidade entregue",type:"shared"},
-    {id:"5-5",text:"Proposta de renovação apresentada",type:"shared"}
-  ]
-];
-
-let jIsConsultor = false;
-let jData = null;
-let jClienteId = null;
-let jClientes = [];
-let jOpenPhases = {};
-let jEditingNote = null;
-let jView = 'consultor';
-
-async function loadJornadaSetup(){
-  try{
-    const {data:isC, error:e1} = await sb.rpc('is_consultor');
-    if(e1){ console.error('[is_consultor]',e1.message); jIsConsultor=false; }
-    else { jIsConsultor = !!isC; }
-    console.log('[Jornada] is_consultor:', jIsConsultor);
-    const btn = document.getElementById('tab-jornada');
-    if(btn) btn.style.display = '';
-    if(jIsConsultor){
-      const {data:cli, error:e2} = await sb.rpc('listar_clientes');
-      if(e2){ console.error('[listar_clientes]',e2.message); jClientes=[]; }
-      else { jClientes = cli || []; }
-    } else {
-      jClienteId = _user.id;
-      await loadJornadaData();
-    }
-  } catch(e){ console.error('[loadJornadaSetup]',e); }
-}
-
-async function loadJornadaData(){
-  try{
-    if(!jClienteId) return;
-    const {data, error} = await sb.rpc('get_jornada',{p_client_id: jClienteId});
-    if(error){ console.error('[get_jornada]',error.message); return; }
-    jData = data;
-    if(data && data.fases){
-      const ativa = data.fases.find(f=>f.status==='active');
-      if(ativa) jOpenPhases[ativa.fase_num] = true;
-    }
-  } catch(e){ console.error('[loadJornadaData]',e); }
-}
-
-function jFmtDate(iso){
-  if(!iso) return '';
-  return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});
-}
-
-function jWeeksAgo(iso){
-  if(!iso) return 0;
-  return Math.max(0, Math.floor((Date.now()-new Date(iso).getTime())/(7*86400000)));
-}
-
-function jBuildPhases(){
-  if(!jData || !jData.fases) return [];
-  const sm = {};
-  (jData.steps||[]).forEach(s=>{ sm[s.step_id]=s; });
-  return STEPS_TPL.map((tpl,i)=>{
-    const fase = jData.fases.find(f=>f.fase_num===i) || {status:'upcoming'};
-    return {
-      id: i,
-      status: fase.status,
-      startedAt: fase.started_at,
-      doneAt: fase.done_at,
-      steps: tpl.map(t=>{
-        const d = sm[t.id]||{};
-        return {...t, checked:!!d.checked, checkedAt:d.checked_at, note:d.note||''};
-      })
-    };
-  });
-}
-
-async function renderJornada(){
-  const view = document.getElementById('view-jornada');
-  if(!view) return;
-  if(jIsConsultor && !jClienteId && jClientes.length===0){ await loadJornadaSetup(); }
-
-  if(jIsConsultor && !jClienteId){
-    const opts = jClientes.map(c=>`<option value="${c.id}">${c.nome||'(sem nome)'} ${c.has_jornada?'• ativa':'• sem jornada'}</option>`).join('');
-    view.innerHTML = `<div class="jornada-wrap">
-      <div class="jornada-header"><div class="jornada-header-inner">
-        <div class="jornada-eyebrow">ANT CAPITAL · ÁREA DO CONSULTOR</div>
-        <div class="jornada-name">Acompanhamento de Clientes</div>
-        <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.7);margin-top:6px">Selecione um cliente para gerenciar a jornada</div>
-      </div></div>
-      <div class="jornada-body">
-        <div class="jornada-cli-picker">
-          <label>CLIENTE</label>
-          <select id="j-cli-select" onchange="jSelectCliente(this.value)">
-            <option value="">— Selecione —</option>${opts}
-          </select>
-          ${jClientes.length===0?'<p style="margin-top:12px;color:#6B7480;font-size:13px">Nenhum cliente cadastrado ainda.</p>':''}
-        </div>
-      </div>
-    </div>`;
-    return;
-  }
-
-  if(!jData){
-    const cName = jIsConsultor ? (jClientes.find(c=>c.id===jClienteId)||{}).nome||'Cliente' : 'Você';
-    view.innerHTML = `<div class="jornada-wrap"><div class="jornada-body">
-      <div class="jornada-empty">
-        <h3>${cName} ainda não tem jornada criada</h3>
-        <p style="margin-bottom:20px">Inicie o acompanhamento criando a jornada.</p>
-        ${jIsConsultor?`
-        <button class="jornada-create-btn" onclick="jCriar('pf')">Criar Jornada PF</button>
-        <button class="jornada-create-btn" style="background:#1F3A52;margin-left:8px" onclick="jCriar('pme')">Criar Jornada PME</button>
-        <div style="margin-top:20px"><a href="#" onclick="jClienteId=null;jData=null;renderJornada();return false" style="color:#1A8FA8;font-size:13px">← Voltar para clientes</a></div>
-        `:'<p style="color:#6B7480;font-size:13px">Aguarde seu consultor iniciar o acompanhamento.</p>'}
-      </div>
-    </div></div>`;
-    return;
-  }
-
-  const phases = jBuildPhases();
-  const totalDone = phases.reduce((a,p)=>a+p.steps.filter(s=>s.checked).length,0);
-  const phasesDone = phases.filter(p=>p.status==='completed').length;
-  const weeks = jWeeksAgo(jData.jornada && jData.jornada.started_at);
-  const cName = jIsConsultor ? (jClientes.find(c=>c.id===jClienteId)||{}).nome||'Cliente' : 'Você';
-  const tipo = ((jData.jornada && jData.jornada.type)||'pf').toUpperCase();
-  const inicio = jFmtDate(jData.jornada && jData.jornada.started_at);
-  const faseAtual = (jData.jornada && jData.jornada.current_phase) || 0;
-  const backLink = jIsConsultor ? `<div style="max-width:720px;margin:0 auto;padding:16px 24px 0">
-    <a href="#" onclick="jClienteId=null;jData=null;jOpenPhases={};renderJornada();return false" style="color:#1A8FA8;font-size:13px;text-decoration:none">← Voltar para clientes</a></div>` : '';
-  const toggle = jIsConsultor ? `<div class="jornada-toggle">
-    <div class="jornada-toggle-btn ${jView==='consultor'?'active':''}" onclick="jSetView('consultor')">Visão Consultor</div>
-    <div class="jornada-toggle-btn ${jView==='cliente'?'active':''}" onclick="jSetView('cliente')">Visão Cliente</div>
-  </div>` : '';
-  const activePhase = phases.find(p=>p.status==='active');
-  const canAdvance = jIsConsultor && jView==='consultor' && activePhase && activePhase.steps.every(s=>s.checked) && faseAtual<5;
-  const phasesHtml = phases.map((p,i)=> jView==='consultor' ? jRenderConsultor(p,i===phases.length-1) : jRenderCliente(p,i===phases.length-1)).join('');
-
-  view.innerHTML = `<div class="jornada-wrap">
-    <div class="jornada-header"><div class="jornada-header-inner">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
-        <div>
-          <div class="jornada-eyebrow">ANT CAPITAL · JORNADA DO CLIENTE</div>
-          <div class="jornada-name">${cName}</div>
-          <div class="jornada-meta">
-            <span class="jornada-tag">${tipo}</span>
-            <span style="color:rgba(255,255,255,.4)">Início: ${inicio}</span>
-            <span style="color:rgba(255,255,255,.4)">Fase ${faseAtual+1} de 6</span>
-          </div>
-        </div>${toggle}
-      </div>
-      <div class="jornada-stats">
-        <div class="jornada-stat"><div class="jornada-stat-val">${weeks}</div><div class="jornada-stat-lbl">semanas no programa</div></div>
-        <div class="jornada-stat"><div class="jornada-stat-val">${phasesDone}</div><div class="jornada-stat-lbl">fases concluídas</div></div>
-        <div class="jornada-stat"><div class="jornada-stat-val">${totalDone}</div><div class="jornada-stat-lbl">etapas entregues</div></div>
-      </div>
-    </div></div>
-    ${backLink}
-    <div class="jornada-body">
-      <div class="jornada-section-label"><div class="line"></div>
-        <span class="lbl">${jView==='consultor'?'CHECKLIST OPERACIONAL':'SUA JORNADA'}</span>
-      <div class="line"></div></div>
-      ${phasesHtml}
-      ${canAdvance?`<button class="jornada-advance-btn" onclick="jAvancar()">Avançar para próxima fase →</button>`:''}
-    </div>
-    <div class="jornada-footer">Constância constrói.<div class="jornada-footer-sub">ANT CAPITAL</div></div>
-  </div>`;
-}
-
-function jSetView(v){ jView=v; renderJornada(); }
-
-function jRenderConsultor(phase, isLast){
-  const meta = PHASES_META[phase.id];
-  const done = phase.steps.filter(s=>s.checked).length;
-  const total = phase.steps.length;
-  const pct = Math.round((done/total)*100);
-  const isOpen = !!jOpenPhases[phase.id] || phase.status==='active';
-  const st = {
-    completed:{bg:'#E8F7F2',color:'#2A9D6E',label:'✓ Concluída'},
-    active:    {bg:'#EAF6F9',color:'#1A8FA8',label:'◉ Em andamento'},
-    upcoming:  {bg:'#EDF2F6',color:'#6B7480',label:'○ Aguardando'}
-  }[phase.status];
-  const nodeBg = phase.status==='completed'?'#2A9D6E': phase.status==='active'?meta.color:'#CBD8E3';
-  const leftBorder = phase.status==='upcoming'?'#CBD8E3': phase.status==='completed'?'#2A9D6E':meta.color;
-
-  let stepsHtml = '';
-  if(isOpen && phase.status!=='upcoming'){
-    const rows = phase.steps.map((step,si)=>{
-      const editing = jEditingNote===`${phase.id}-${si}`;
-      const canClick = phase.status==='active';
-      return `<div class="jornada-step ${step.checked?'j-checked':''}">
-        <div class="jornada-chk ${step.checked?'j-checked':''} ${canClick?'j-clickable':''}"
-          ${canClick?`onclick="jToggle(${phase.id},'${step.id}',${si})"`:''}>
-          ${step.checked?'✓':''}
-        </div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
-            <span class="jornada-step-txt ${step.checked?'j-checked':''}">${step.text}</span>
-            ${step.type!=='shared'?`<span class="j-tag-badge ${step.type}">${step.type.toUpperCase()}</span>`:''}
-          </div>
-          ${step.checked?`<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="jornada-step-date">✓ ${jFmtDate(step.checkedAt)}</span>
-            ${editing?`<div class="j-note-edit" style="width:100%">
-              <textarea id="j-note-${phase.id}-${si}">${(step.note||'').replace(/</g,'&lt;')}</textarea>
-              <div class="j-note-actions">
-                <button class="j-note-save" onclick="jSalvarNota(${phase.id},'${step.id}',${si})">Salvar</button>
-                <button class="j-note-cancel" onclick="jEditingNote=null;renderJornada()">Cancelar</button>
-              </div></div>`
-            :`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              ${step.note?`<span class="jornada-step-note">"${step.note}"</span>`:''}
-              <span class="j-note-btn" onclick="jEditingNote='${phase.id}-${si}';renderJornada()">${step.note?'✎ Editar nota':'+ Nota'}</span>
-            </div>`}
-          </div>`:''}
-        </div>
-      </div>`;
-    }).join('');
-    stepsHtml = `<div class="jornada-steps">${rows}
-      <div class="jornada-phase-footer">
-        <span>${done} de ${total} etapas</span>
-        <div class="jornada-bar-mini"><div class="jornada-bar-mini-fill" style="width:${pct}%;background:${done===total?'#2A9D6E':meta.color}"></div></div>
-      </div></div>`;
-  }
-
-  return `<div class="jornada-phase">
-    <div class="jornada-node">
-      <div class="jornada-node-dot" style="background:${nodeBg};${phase.status==='active'?'box-shadow:0 0 0 4px #EAF6F9':''}">${phase.status==='completed'?'✓':phase.id+1}</div>
-      ${!isLast?'<div class="jornada-node-line"></div>':''}
-    </div>
-    <div class="jornada-phase-content">
-      <div class="jornada-phase-header"
-        style="background:${phase.status==='upcoming'?'#F8FAFB':'#fff'};border:1px solid ${phase.status==='active'?meta.color+'55':'#D5E1EA'};border-left:3px solid ${leftBorder};${phase.status==='active'?'box-shadow:0 2px 12px rgba(26,143,168,.1)':''}"
-        onclick="jOpenPhases[${phase.id}]=!jOpenPhases[${phase.id}];renderJornada()">
-        <div class="ph-left">
-          <span class="jornada-fase-num">FASE ${phase.id+1}</span>
-          <span class="jornada-fase-tag" style="color:${phase.status==='upcoming'?'#6B7480':meta.color}">${meta.tag}</span>
-          <span class="jornada-fase-meta">— ${meta.metaphor}</span>
-        </div>
-        <div class="ph-right">
-          <span class="jornada-status-pill" style="background:${st.bg};color:${st.color}">${st.label}${phase.status==='completed'?' · '+jFmtDate(phase.doneAt):''}</span>
-          ${phase.status!=='upcoming'?`<span style="color:#6B7480;font-size:12px">${isOpen?'▾':'▸'}</span>`:''}
-        </div>
-      </div>
-      ${stepsHtml}
-    </div>
-  </div>`;
-}
-
-function jRenderCliente(phase, isLast){
-  const meta = PHASES_META[phase.id];
-  const done = phase.steps.filter(s=>s.checked).length;
-  const total = phase.steps.length;
-  const pct = Math.round((done/total)*100);
-  const isActive = phase.status==='active';
-  const isDone = phase.status==='completed';
-  const nodeBg = isDone?'#2A9D6E': isActive?meta.color:'#D0DAE4';
-  let content = '';
-  if(isDone){
-    content = `<div style="padding:10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-family:'Jost',sans-serif;font-size:11px;font-weight:700;color:#2A9D6E">FASE ${phase.id+1} · ${meta.tag}</span>
-      <span class="jornada-fase-meta">${meta.metaphor}</span>
-      <span style="margin-left:auto;font-family:'Jost',sans-serif;font-size:10px;color:#2A9D6E">✓ ${jFmtDate(phase.doneAt)}</span>
-    </div>`;
-  } else if(isActive){
-    const checkedRows = phase.steps.filter(s=>s.checked).map(s=>`
-      <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #D5E1EA">
-        <span style="color:#2A9D6E;font-size:12px;margin-top:2px">✓</span>
-        <div>
-          <div style="font-family:'DM Sans',sans-serif;font-size:12px;color:#2D3E4A">${s.text}</div>
-          ${s.note?`<div style="font-family:'DM Sans',sans-serif;font-size:11px;color:#6B7480;margin-top:2px">${s.note}</div>`:''}
-        </div>
-      </div>`).join('');
-    content = `<div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid ${meta.color}33;box-shadow:0 4px 24px rgba(26,143,168,.1)">
-      <div style="background:linear-gradient(135deg,${meta.color},${meta.color}CC);padding:16px 20px;color:#fff">
-        <div style="font-family:'Jost',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.6);margin-bottom:4px">VOCÊ ESTÁ AQUI · FASE ${phase.id+1}</div>
-        <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:22px;line-height:1.2;margin-bottom:2px">${meta.metaphor}</div>
-        <div style="font-family:'Jost',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.7)">${meta.tag} · ${meta.duration}</div>
-      </div>
-      <div style="padding:16px 20px 8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-family:'DM Sans',sans-serif;font-size:13px;color:#2D3E4A">Progresso desta fase</span>
-          <span style="font-family:'Jost',sans-serif;font-size:13px;font-weight:700;color:${meta.color}">${done}/${total}</span>
-        </div>
-        <div style="height:6px;background:#EDF2F6;border-radius:6px;overflow:hidden">
-          <div style="width:${pct}%;height:100%;background:linear-gradient(to right,${meta.color},${meta.color}BB)"></div>
-        </div>
-      </div>
-      <div style="padding:4px 20px 16px">
-        ${checkedRows}
-        ${done<total?`<div style="padding-top:10px;font-family:'DM Sans',sans-serif;font-size:11px;color:#6B7480;font-style:italic">+ ${total-done} etapa${total-done>1?'s':''} em andamento…</div>`:''}
-      </div>
-    </div>`;
-  } else {
-    content = `<div style="padding:9px 0;display:flex;align-items:center;gap:8px;opacity:.4">
-      <span style="font-family:'Jost',sans-serif;font-size:11px;font-weight:700;color:#6B7480">FASE ${phase.id+1} · ${meta.tag}</span>
-      <span class="jornada-fase-meta">${meta.metaphor}</span>
-    </div>`;
-  }
-
-  return `<div class="jornada-phase">
-    <div class="jornada-node">
-      <div class="jornada-node-dot" style="background:${nodeBg};${isActive?'box-shadow:0 0 0 5px #EAF6F9,0 4px 16px rgba(26,143,168,.25)':''}">${isDone?'✓':isActive?'◉':'○'}</div>
-      ${!isLast?`<div class="jornada-node-line" style="background:${isDone?'#B8D8C8':'#D5E1EA'}"></div>`:''}
-    </div>
-    <div class="jornada-phase-content">${content}</div>
-  </div>`;
-}
-
-async function jToggle(faseNum, stepId, si){
-  const phase = jBuildPhases().find(p=>p.id===faseNum);
-  if(!phase || phase.status!=='active') return;
-  const newChecked = !phase.steps[si].checked;
-  const {error} = await sb.rpc('toggle_step',{p_jornada_id:jData.jornada.id, p_fase_num:faseNum, p_step_id:stepId, p_checked:newChecked});
-  if(error){ showToast('⚠️','Erro',error.message); return; }
-  await loadJornadaData();
-  renderJornada();
-}
-
-async function jSalvarNota(faseNum, stepId, si){
-  const note = document.getElementById('j-note-'+faseNum+'-'+si).value;
-  const {error} = await sb.rpc('salvar_nota',{p_jornada_id:jData.jornada.id, p_fase_num:faseNum, p_step_id:stepId, p_note:note});
-  if(error){ showToast('⚠️','Erro',error.message); return; }
-  jEditingNote = null;
-  await loadJornadaData();
-  renderJornada();
-  showToast('✅','Nota salva','');
-}
-
-async function jAvancar(){
-  if(!confirm('Concluir esta fase e avançar para a próxima?')) return;
-  const {error} = await sb.rpc('avancar_fase',{p_jornada_id:jData.jornada.id});
-  if(error){ showToast('⚠️','Erro',error.message); return; }
-  await loadJornadaData();
-  renderJornada();
-  showToast('🎉','Fase avançada!','Próxima fase ativada');
-}
-
-function jSelectCliente(id){
-  if(!id) return;
-  jClienteId=id; jData=null; jOpenPhases={};
-  loadJornadaData().then(renderJornada);
-}
-
-async function jCriar(tipo){
-  const {error} = await sb.rpc('criar_jornada',{p_client_id:jClienteId, p_type:tipo});
-  if(error){ showToast('⚠️','Erro ao criar jornada',error.message); return; }
-  await loadJornadaData();
-  renderJornada();
-  showToast('✅','Jornada criada','Acompanhamento iniciado');
-}
-
 function render(){
   if(currentTab==="dashboard")renderDashboard();
   else if(currentTab==="lancamentos")renderLancamentos();
@@ -1459,7 +1050,6 @@ function render(){
   else if(currentTab==="cadastros")renderCadastros();
   else if(currentTab==="projecao")renderProjecao();
   else if(currentTab==="relatorios")renderRelatorios();
-  else if(currentTab==="jornada")renderJornada();
   else if(currentTab==="diagnostico")renderDiagnostico();
 }
 
