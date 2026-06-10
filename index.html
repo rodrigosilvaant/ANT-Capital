@@ -2541,15 +2541,18 @@ async function addCat(tipo){
   const inp=document.getElementById(tipo==="receita"?"ncr":"ncd");
   const nome=inp.value.trim();
   if(!nome||categorias.some(c=>c.tipo===tipo&&c.nome.toLowerCase()===nome.toLowerCase()))return;
-  const {error}=await sb.from("categorias").insert({user_id:_user.id,nome,tipo});
-  if(error){console.error("[addCat]:",error.message);}
-  else{const {data:cList}=await sb.from("categorias").select("*");if(cList)categorias=cList;}
+  const{error}=await sb.from("categorias").insert({user_id:_user.id,nome,tipo});
+  if(error){showToast("❌","Erro ao salvar categoria",error.message);return;}
+  const{data:cList}=await sb.rpc("get_categorias");
+  if(cList)categorias=cList;
   inp.value="";
   renderCadastros();
 }
 async function remCat(id){
-  await sb.from("categorias").delete().eq("id",id);
-  categorias=categorias.filter(c=>c.id!==id);
+  const{error}=await sb.from("categorias").delete().eq("id",id);
+  if(error){showToast("❌","Erro ao excluir categoria",error.message);return;}
+  const{data:cList}=await sb.rpc("get_categorias");
+  if(cList)categorias=cList;
   renderCadastros();
 }
 
@@ -3412,7 +3415,8 @@ function exibirDiagnostico(r,ctx){
     </div>`;
 }
 
-function renderDiagnostico(){
+async function renderDiagnostico(){
+  if(_myRole===null)await carregarRole();
   const isConsultor=_myRole==='consultor';
   const temDados=isConsultor?!!_diagClienteId:(()=>{const c=montarContextoFinanceiro();return c.qtdTrans>0||c.hist.some(h=>h.qtdLanc>0);})();
 
