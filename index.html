@@ -3418,56 +3418,64 @@ function exibirDiagnostico(r,ctx){
 async function renderDiagnostico(){
   if(_myRole===null)await carregarRole();
   const isConsultor=_myRole==='consultor';
-  const temDados=isConsultor?!!_diagClienteId:(()=>{const c=montarContextoFinanceiro();return c.qtdTrans>0||c.hist.some(h=>h.qtdLanc>0);})();
-
-  document.getElementById('view-diagnostico').innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
-      <div>
-        <h2 style="font-size:18px;font-weight:600;margin:0 0 4px">🤖 Diagnóstico IA</h2>
-        <p style="font-size:12px;color:var(--text2);margin:0">Análise financeira personalizada com inteligência artificial</p>
-      </div>
-      ${isConsultor&&temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" id="diag-gerar-btn" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
-    </div>
-    <div id="diag-content">
-      ${!isConsultor
-        ?`<div style="text-align:center;padding:3rem 1rem">
-            <div style="font-size:48px;margin-bottom:12px">🤖</div>
-            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Diagnóstico em preparação</div>
-            <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto">
-              Seu consultor irá gerar e compartilhar a análise personalizada da sua situação financeira aqui.
-            </div>
-          </div>`
-        :!temDados
-          ?`<div style="text-align:center;padding:3rem 1rem">
-              <div style="font-size:48px;margin-bottom:12px">📊</div>
-              <div style="font-size:15px;font-weight:500;margin-bottom:8px">Dados insuficientes</div>
-              <div style="font-size:13px;color:var(--text2);line-height:1.6">Registre lançamentos para gerar um diagnóstico preciso.</div>
-            </div>`
-          :`<div style="text-align:center;padding:3rem 1rem">
-              <div style="font-size:48px;margin-bottom:16px">🤖</div>
-              <div style="font-size:15px;font-weight:500;margin-bottom:8px">Pronto para analisar</div>
-              <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem">
-                O Claude vai analisar os dados financeiros e gerar insights personalizados.
-              </div>
-              <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico agora</button>
-            </div>`}
-    </div>
-  `;
+  const el=document.getElementById('view-diagnostico');
+  if(!el)return;
+  if(!isConsultor){
+    el.innerHTML='<div style="text-align:center;padding:3rem 1rem">'
+      +'<div style="font-size:48px;margin-bottom:12px">🤖</div>'
+      +'<div style="font-size:15px;font-weight:500;margin-bottom:8px">Diagnóstico em preparação</div>'
+      +'<div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto">Seu consultor irá gerar e compartilhar a análise personalizada aqui.</div>'
+      +'</div>';
+    return;
+  }
+  el.innerHTML=
+    '<div style="display:flex;align-items:flex-start;margin-bottom:1.25rem">'
+    +'<div><h2 style="font-size:18px;font-weight:600;margin:0 0 4px">🤖 Diagnóstico IA</h2>'
+    +'<p style="font-size:12px;color:var(--text2);margin:0">Análise financeira personalizada com inteligência artificial</p></div></div>'
+    +'<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1.25rem">'
+    +'<label class="label-sm">Selecionar cliente</label>'
+    +'<div id="diag-cliente-selector"><span style="font-size:13px;color:var(--text2)">Carregando...</span></div>'
+    +'</div>'
+    +'<div id="diag-content">'
+    +'<div style="text-align:center;padding:3rem 1rem;color:var(--text2)">'
+    +'<div style="font-size:40px;margin-bottom:12px">🔍</div>'
+    +'<div style="font-size:14px">Selecione um cliente acima para gerar o diagnóstico</div>'
+    +'</div></div>';
+  await carregarSeletorClienteDiag();
+  if(_diagClienteId){
+    const c=document.getElementById('diag-content');
+    if(c)c.innerHTML='<div style="text-align:center;padding:2rem">'
+      +'<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>'
+      +'<p style="font-size:11px;color:var(--text2);margin-top:8px">Cliente: '+jEsc(_diagClienteNome||'')+'</p></div>';
+  }
 }
-
 async function carregarSeletorClienteDiag(){
   const el=document.getElementById("diag-cliente-selector");
   if(!el)return;
   const{data:clientes}=await sb.rpc("listar_clientes");
-  if(!clientes||clientes.length===0){el.innerHTML='<span style="font-size:12px;color:var(--text2)">Nenhum cliente</span>';return;}
+  if(!clientes||clientes.length===0){
+    el.innerHTML='<span style="font-size:13px;color:var(--text2)">Nenhum cliente cadastrado ainda.</span>';
+    return;
+  }
   const opts=clientes.map(c=>'<option value="'+c.id+'" '+(c.id===_diagClienteId?'selected':'')+'>'+jEsc(c.nome||c.email)+'</option>').join('');
-  el.innerHTML='<select style="min-width:200px" onchange="selecionarClienteDiag(this.value)"><option value="">Selecione um cliente...</option>'+opts+'</select>';
+  el.innerHTML='<select style="width:100%;max-width:360px" onchange="selecionarClienteDiag(this.value,this.options[this.selectedIndex].text)"><option value="">Selecione um cliente...</option>'+opts+'</select>';
 }
 
-function selecionarClienteDiag(id){
+function selecionarClienteDiag(id,nome){
   _diagClienteId=id||null;
-  renderDiagnostico();
+  _diagClienteNome=nome||null;
+  const c=document.getElementById('diag-content');
+  if(!c)return;
+  if(!_diagClienteId){
+    c.innerHTML='<div style="text-align:center;padding:3rem 1rem;color:var(--text2)">'
+      +'<div style="font-size:40px;margin-bottom:12px">🔍</div>'
+      +'<div style="font-size:14px">Selecione um cliente acima</div></div>';
+    return;
+  }
+  c.innerHTML='<div style="text-align:center;padding:2rem">'
+    +'<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico de '+jEsc(_diagClienteNome||'')+'</button></div>';
 }
+
 
 // ===== RELATÓRIOS =====
 function renderRelatorios(){
