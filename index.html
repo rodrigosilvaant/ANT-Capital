@@ -541,6 +541,71 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   animation:spin .7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== JORNADA DO PLANEJAMENTO ===== */
+.jornada-hero{background:var(--navy);border-radius:var(--radius-lg);padding:1.25rem;color:#fff;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px}
+.jornada-hero-icon{font-size:28px;flex-shrink:0}
+.jornada-hero-title{font-size:16px;font-weight:500;letter-spacing:.04em}
+.jornada-hero-sub{font-size:12px;color:var(--steel);margin-top:2px}
+.jornada-hero-badge{margin-left:auto;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
+.jb-ativa{background:rgba(255,255,255,.12);color:var(--blue2)}
+.jb-concluida{background:rgba(15,110,86,.3);color:#7ff0d0}
+.jb-pausada{background:rgba(255,255,255,.07);color:var(--steel)}
+.jornada-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.jornada-card:hover{border-color:var(--blue2);box-shadow:0 2px 12px rgba(58,111,168,.1)}
+.jornada-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.jornada-card-title{font-size:15px;font-weight:500;color:var(--navy)}
+.jornada-card-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.jornada-card-actions{display:flex;gap:6px;flex-shrink:0}
+.jornada-progress{height:6px;background:var(--bg3);border-radius:10px;overflow:hidden;margin-bottom:6px}
+.jornada-progress-fill{height:100%;border-radius:10px;background:var(--blue);transition:width .4s}
+.jornada-progress-fill.done{background:var(--success)}
+.jornada-progress-label{font-size:11px;color:var(--text2)}
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:"";position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:20px}
+.timeline-dot{position:absolute;left:-32px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid var(--bg);z-index:1}
+.td-pendente{background:var(--bg3);color:var(--text3);border-color:var(--border)}
+.td-em_andamento{background:var(--blue);color:#fff;border-color:var(--blue)}
+.td-concluida{background:var(--success);color:#fff;border-color:var(--success)}
+.td-atrasada{background:var(--danger);color:#fff;border-color:var(--danger)}
+.timeline-content{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem}
+.timeline-content.ativa{border-color:var(--blue);box-shadow:0 2px 12px rgba(58,111,168,.1)}
+.timeline-content.concluida-bg{opacity:.75}
+.timeline-title{font-size:14px;font-weight:500;color:var(--navy);margin-bottom:4px}
+.timeline-desc{font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.5}
+.timeline-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--text2)}
+.timeline-notas{background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--text);margin-top:10px;line-height:1.5;border-left:3px solid var(--blue2)}
+.timeline-tarefas{margin-top:10px}
+.timeline-tarefa{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.timeline-tarefa span{color:var(--text2)}
+.timeline-tarefa.done span{text-decoration:line-through;color:var(--text3)}
+.check-icon{width:16px;height:16px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}
+.ci-done{background:var(--success-bg);color:var(--success)}
+.ci-pend{background:var(--bg3);color:var(--text3)}
+.timeline-anexos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.anexo-tag{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg3);border-radius:20px;font-size:12px;color:var(--blue);text-decoration:none}
+.anexo-tag:hover{background:var(--bg2)}
+.etapa-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:10px;border-left:4px solid var(--border)}
+.etapa-card.ep-pendente{border-left-color:var(--steel)}
+.etapa-card.ep-em_andamento{border-left-color:var(--blue)}
+.etapa-card.ep-concluida{border-left-color:var(--success)}
+.etapa-card.ep-atrasada{border-left-color:var(--danger)}
+.etapa-header{display:flex;align-items:center;gap:10px}
+.etapa-ordem{width:24px;height:24px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0}
+.etapa-title-wrap{flex:1}
+.etapa-title{font-size:14px;font-weight:500;color:var(--navy)}
+.etapa-meta{font-size:11px;color:var(--text2);margin-top:1px}
+.etapa-actions{display:flex;gap:6px;margin-left:auto}
+.etapa-body{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:none}
+.etapa-body.open{display:block}
+.etapa-toggle{font-size:11px;color:var(--blue);cursor:pointer;background:none;border:none;padding:0;margin-top:4px}
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.sb-pendente{background:var(--bg3);color:var(--text2)}
+.sb-em_andamento{background:#dbeafe;color:#1d4ed8}
+.sb-concluida{background:var(--success-bg);color:var(--success)}
+.sb-atrasada{background:var(--danger-bg);color:var(--danger)}
+.label-sm{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px;display:block}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -617,6 +682,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
       <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
+      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-full">Jornada do Planejamento</span><span class="nav-label-short">Jornada</span></button>
     </nav>
   </div>
   <div class="content">
@@ -630,6 +696,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     <div id="view-projecao" style="display:none"></div>
     <div id="view-relatorios" style="display:none"></div>
     <div id="view-diagnostico" style="display:none"></div>
+    <div id="view-jornada" style="display:none"></div>
   </div>
 </div>
 
@@ -1031,7 +1098,7 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
+function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico","jornada"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -1051,6 +1118,7 @@ function render(){
   else if(currentTab==="projecao")renderProjecao();
   else if(currentTab==="relatorios")renderRelatorios();
   else if(currentTab==="diagnostico")renderDiagnostico();
+  else if(currentTab==="jornada")renderJornada();
 }
 
 // ===== ALERTAS AUTOMÁTICOS =====
@@ -3913,6 +3981,444 @@ function instalarPWA(){
     }
     _deferredPrompt=null;
   });
+}
+
+// ===== JORNADA DO PLANEJAMENTO =====
+let _myRole=null;
+let jornadas_data=[];
+let jornada_ativa_id=null;
+let etapas_data=[];
+let jornada_clientes=[];
+let jornada_filtro_cliente=null;
+let etapa_aberta_id=null;
+let jornada_view='lista';
+
+async function carregarRole(){
+  try{const{data}=await sb.rpc('get_my_role');_myRole=data||'cliente';}
+  catch(e){_myRole='cliente';}
+}
+
+async function renderJornada(){
+  const el=document.getElementById('view-jornada');
+  if(!el)return;
+  if(_myRole===null)await carregarRole();
+  if(_myRole==='consultor'){renderJornadaConsultor(el);}
+  else{renderJornadaCliente(el);}
+}
+
+async function renderJornadaConsultor(el){
+  el.innerHTML=`<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando jornadas...</div>`;
+  const[{data:clientes},{data:jornadas}]=await Promise.all([
+    sb.rpc('listar_clientes'),
+    sb.rpc('listar_jornadas',jornada_filtro_cliente?{p_cliente_id:jornada_filtro_cliente}:{})
+  ]);
+  jornada_clientes=clientes||[];
+  jornadas_data=jornadas||[];
+  if(jornada_view==='detalhe'&&jornada_ativa_id){await renderDetalheJornada(el);return;}
+  const clienteOpts=jornada_clientes.map(c=>`<option value="${c.id}" ${jornada_filtro_cliente===c.id?'selected':''}>${jEsc(c.nome||c.email)}</option>`).join('');
+  el.innerHTML=`
+    <div class="section-title">🐜 Jornada do Planejamento</div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
+      <select style="flex:1;min-width:180px" onchange="jornada_filtro_cliente=this.value||null;renderJornada()">
+        <option value="">Todos os clientes</option>${clienteOpts}
+      </select>
+      <button class="btn-sm" onclick="abrirModalNovaJornada()">+ Nova Jornada</button>
+    </div>
+    ${jornadas_data.length===0?`
+      <div class="card-white" style="text-align:center;padding:2rem;color:var(--text2)">
+        <div style="font-size:32px;margin-bottom:8px">🗺️</div>
+        <div style="font-weight:500;margin-bottom:4px">Nenhuma jornada encontrada</div>
+        <div style="font-size:13px">Crie a primeira jornada para um cliente.</div>
+      </div>`:jornadas_data.map(j=>renderCardJornada(j)).join('')}`;
+}
+
+function renderCardJornada(j){
+  const pct=j.total_etapas>0?Math.round((j.etapas_concluidas/j.total_etapas)*100):0;
+  const statusLabel={ativa:'Ativa',concluida:'Concluída',pausada:'Pausada'}[j.status]||j.status;
+  const clienteLabel=j.cliente_nome||j.cliente_email||'—';
+  return`<div class="jornada-card" onclick="abrirDetalheJornada('${j.id}')">
+    <div class="jornada-card-header">
+      <div>
+        <div class="jornada-card-title">${jEsc(j.titulo)}</div>
+        <div class="jornada-card-meta">👤 ${jEsc(clienteLabel)} · ${j.etapas_concluidas}/${j.total_etapas} etapas</div>
+      </div>
+      <div class="jornada-card-actions" onclick="event.stopPropagation()">
+        <span class="status-badge sb-${j.status}">${statusLabel}</span>
+        <button class="icon-btn" title="Editar" onclick="abrirModalEditarJornada('${j.id}','${jEsc(j.titulo)}','${jEsc(j.descricao||'')}','${j.status}')">${iconEdit()}</button>
+        <button class="icon-btn" title="Excluir" onclick="confirmarExcluirJornada('${j.id}')">${iconTrash()}</button>
+      </div>
+    </div>
+    <div class="jornada-progress"><div class="jornada-progress-fill${pct===100?' done':''}" style="width:${pct}%"></div></div>
+    <div class="jornada-progress-label">${pct}% concluído · Clique para gerenciar etapas</div>
+  </div>`;
+}
+
+async function abrirDetalheJornada(id){
+  jornada_ativa_id=id;jornada_view='detalhe';etapa_aberta_id=null;renderJornada();
+}
+function voltarListaJornadas(){
+  jornada_view='lista';jornada_ativa_id=null;renderJornada();
+}
+
+async function renderDetalheJornada(el){
+  const jornada=jornadas_data.find(j=>j.id===jornada_ativa_id);
+  const{data:etapas}=await sb.rpc('listar_etapas',{p_jornada_id:jornada_ativa_id});
+  etapas_data=etapas||[];
+  const pct=jornada&&jornada.total_etapas>0?Math.round((jornada.etapas_concluidas/jornada.total_etapas)*100):0;
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
+      <button class="btn-outline" onclick="voltarListaJornadas()">← Voltar</button>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:500;color:var(--navy)">${jEsc(jornada?.titulo||'Jornada')}</div>
+        <div style="font-size:12px;color:var(--text2)">${jEsc(jornada?.cliente_nome||jornada?.cliente_email||'')} · ${pct}% concluído</div>
+      </div>
+      <button class="btn-sm" onclick="abrirModalNovaEtapa('${jornada_ativa_id}',${etapas_data.length})">+ Etapa</button>
+    </div>
+    ${etapas_data.length===0?`<div class="card-white" style="text-align:center;padding:1.5rem;color:var(--text2)">Nenhuma etapa cadastrada.</div>`:etapas_data.map(e=>renderEtapaConsultor(e)).join('')}`;
+}
+
+function renderEtapaConsultor(e){
+  const statusMap={pendente:'Pendente',em_andamento:'Em andamento',concluida:'Concluída',atrasada:'Atrasada'};
+  const tarefasHtml=(e.tarefas||[]).map(t=>`
+    <div class="timeline-tarefa${t.concluida?' done':''}">
+      <div class="check-icon ${t.concluida?'ci-done':'ci-pend'}">${t.concluida?'✓':'·'}</div>
+      <span>${jEsc(t.descricao)}</span>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <button class="icon-btn" style="font-size:10px" onclick="toggleTarefa('${t.id}',${!t.concluida},'${jEsc(t.descricao)}')">${t.concluida?'↩':'✓'}</button>
+        <button class="icon-btn" onclick="excluirTarefa('${t.id}')">${iconTrash()}</button>
+      </div>
+    </div>`).join('');
+  const anexosHtml=(e.anexos||[]).map(a=>`
+    <div style="display:flex;align-items:center;gap:6px">
+      <a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>
+      <button class="icon-btn" onclick="excluirAnexo('${a.id}')">${iconTrash()}</button>
+    </div>`).join('');
+  const isOpen=etapa_aberta_id===e.id;
+  return`<div class="etapa-card ep-${e.status}">
+    <div class="etapa-header">
+      <div class="etapa-ordem">${e.ordem}</div>
+      <div class="etapa-title-wrap">
+        <div class="etapa-title">${jEsc(e.titulo)}</div>
+        <div class="etapa-meta">
+          <span class="status-badge sb-${e.status}">${statusMap[e.status]||e.status}</span>
+          ${e.data_prevista?`· Previsto: ${fmtData(e.data_prevista)}`:''}
+          ${e.data_conclusao?`· Concluído: ${fmtData(e.data_conclusao)}`:''}
+        </div>
+      </div>
+      <div class="etapa-actions">
+        <button class="icon-btn" title="Editar" onclick="abrirModalEditarEtapa('${e.id}')">${iconEdit()}</button>
+        <button class="icon-btn" title="Excluir" onclick="confirmarExcluirEtapa('${e.id}')">${iconTrash()}</button>
+      </div>
+    </div>
+    <button class="etapa-toggle" onclick="toggleEtapaBody('${e.id}')">${isOpen?'▲ Recolher':'▼ Ver detalhes / notas / tarefas'}</button>
+    <div class="etapa-body${isOpen?' open':''}">
+      ${e.descricao?`<p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">${jEsc(e.descricao)}</p>`:''}
+      ${e.notas?`<div class="timeline-notas">📝 ${jEsc(e.notas)}</div>`:''}
+      <div style="margin-top:12px">
+        <div class="section-title" style="margin-bottom:6px">Tarefas</div>
+        <div class="timeline-tarefas">${tarefasHtml}</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="nova-tarefa-${e.id}" placeholder="Nova tarefa..." style="flex:1;font-size:13px;padding:7px 10px"/>
+          <button class="btn-sm" onclick="adicionarTarefa('${e.id}')">+</button>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="section-title" style="margin-bottom:6px">Anexos / Links</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${anexosHtml}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input id="anexo-nome-${e.id}" placeholder="Nome do arquivo" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px"/>
+          <input id="anexo-url-${e.id}" placeholder="URL (https://...)" style="flex:2;min-width:180px;font-size:13px;padding:7px 10px"/>
+          <button class="btn-sm" onclick="adicionarAnexo('${e.id}')">+ Anexar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleEtapaBody(id){etapa_aberta_id=etapa_aberta_id===id?null:id;renderJornada();}
+
+async function renderJornadaCliente(el){
+  el.innerHTML=`<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando sua jornada...</div>`;
+  const{data:jornadas}=await sb.rpc('listar_jornadas',{});
+  jornadas_data=jornadas||[];
+  if(jornadas_data.length===0){
+    el.innerHTML=`<div class="card-white" style="text-align:center;padding:2.5rem;color:var(--text2)">
+      <div style="font-size:40px;margin-bottom:12px">🗺️</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px">Sua jornada está sendo preparada</div>
+      <div style="font-size:13px;line-height:1.6">Em breve seu consultor configurará<br>o seu plano personalizado aqui.</div>
+    </div>`;return;
+  }
+  const jornada=jornada_ativa_id?jornadas_data.find(j=>j.id===jornada_ativa_id)||jornadas_data[0]:jornadas_data[0];
+  jornada_ativa_id=jornada.id;
+  const{data:etapas}=await sb.rpc('listar_etapas',{p_jornada_id:jornada.id});
+  etapas_data=etapas||[];
+  const pct=jornada.total_etapas>0?Math.round((jornada.etapas_concluidas/jornada.total_etapas)*100):0;
+  const statusLabel={ativa:'Em andamento',concluida:'Concluída',pausada:'Pausada'}[jornada.status]||jornada.status;
+  const selectorHtml=jornadas_data.length>1?`<div style="margin-bottom:1.25rem">
+    <label class="label-sm">Selecionar jornada</label>
+    <select onchange="jornada_ativa_id=this.value;renderJornada()">
+      ${jornadas_data.map(j=>`<option value="${j.id}" ${j.id===jornada_ativa_id?'selected':''}>${jEsc(j.titulo)}</option>`).join('')}
+    </select></div>`:'';
+  el.innerHTML=`
+    ${selectorHtml}
+    <div class="jornada-hero">
+      <div class="jornada-hero-icon">🐜</div>
+      <div>
+        <div class="jornada-hero-title">${jEsc(jornada.titulo)}</div>
+        <div class="jornada-hero-sub">${jornada.etapas_concluidas} de ${jornada.total_etapas} etapas concluídas</div>
+      </div>
+      <div>
+        <div class="jornada-hero-badge jb-${jornada.status}">${statusLabel}</div>
+        <div style="font-size:20px;font-weight:300;color:#fff;text-align:right;margin-top:4px">${pct}%</div>
+      </div>
+    </div>
+    <div style="margin-bottom:1rem">
+      <div class="jornada-progress" style="height:8px">
+        <div class="jornada-progress-fill${pct===100?' done':''}" style="width:${pct}%"></div>
+      </div>
+    </div>
+    <div class="timeline">${etapas_data.map(e=>renderEtapaCliente(e)).join('')}</div>`;
+}
+
+function renderEtapaCliente(e){
+  const statusMap={pendente:'Pendente',em_andamento:'Em andamento',concluida:'Concluída',atrasada:'Atrasada'};
+  const dotNum={pendente:'·',em_andamento:'→',concluida:'✓',atrasada:'!'}[e.status]||e.ordem;
+  const contentCls=e.status==='em_andamento'?'ativa':e.status==='concluida'?'concluida-bg':'';
+  const tarefasHtml=(e.tarefas||[]).map(t=>`
+    <div class="timeline-tarefa${t.concluida?' done':''}">
+      <div class="check-icon ${t.concluida?'ci-done':'ci-pend'}">${t.concluida?'✓':'·'}</div>
+      <span>${jEsc(t.descricao)}</span>
+    </div>`).join('');
+  const anexosHtml=(e.anexos||[]).map(a=>`<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`).join('');
+  const concluidas=(e.tarefas||[]).filter(t=>t.concluida).length;
+  const totalT=(e.tarefas||[]).length;
+  return`<div class="timeline-item">
+    <div class="timeline-dot td-${e.status}">${dotNum}</div>
+    <div class="timeline-content ${contentCls}">
+      <div class="timeline-title">
+        ${jEsc(e.titulo)}
+        <span class="status-badge sb-${e.status}" style="float:right;margin-top:-2px">${statusMap[e.status]||e.status}</span>
+      </div>
+      ${e.descricao?`<div class="timeline-desc">${jEsc(e.descricao)}</div>`:''}
+      <div class="timeline-meta">
+        ${e.data_prevista?`<span>📅 Previsto: ${fmtData(e.data_prevista)}</span>`:''}
+        ${e.data_conclusao?`<span>✅ Concluído: ${fmtData(e.data_conclusao)}</span>`:''}
+        ${totalT>0?`<span>📋 ${concluidas}/${totalT} tarefas</span>`:''}
+      </div>
+      ${e.notas?`<div class="timeline-notas">${jEsc(e.notas)}</div>`:''}
+      ${tarefasHtml?`<div class="timeline-tarefas">${tarefasHtml}</div>`:''}
+      ${anexosHtml?`<div class="timeline-anexos">${anexosHtml}</div>`:''}
+    </div>
+  </div>`;
+}
+
+// Modais — Jornada
+function abrirModalNovaJornada(){
+  const clienteOpts=jornada_clientes.map(c=>`<option value="${c.id}">${jEsc(c.nome||c.email)}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="modal-nova-jornada" class="modal-bg" style="display:flex">
+      <div class="modal"><h2>Nova Jornada</h2>
+        <div class="modal-f">
+          <div><label class="label-sm">Cliente</label><select id="nj-cliente">${clienteOpts}</select></div>
+          <div><label class="label-sm">Título</label><input id="nj-titulo" value="Jornada de Planejamento"/></div>
+          <div><label class="label-sm">Descrição (opcional)</label><textarea id="nj-desc" placeholder="Observações gerais..."></textarea></div>
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">🐜 As 6 etapas padrão serão criadas automaticamente.</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="document.getElementById('modal-nova-jornada').remove()">Cancelar</button>
+          <button class="btn-primary" onclick="criarJornada()">Criar Jornada</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function criarJornada(){
+  const cliente=document.getElementById('nj-cliente').value;
+  const titulo=document.getElementById('nj-titulo').value.trim();
+  const desc=document.getElementById('nj-desc').value.trim();
+  if(!cliente||!titulo){showToast('⚠️','Preencha todos os campos','');return;}
+  const{error}=await sb.rpc('criar_jornada',{p_cliente_id:cliente,p_titulo:titulo,p_descricao:desc||null});
+  if(error){showToast('❌','Erro ao criar jornada',error.message);return;}
+  document.getElementById('modal-nova-jornada')?.remove();
+  showToast('✅','Jornada criada!','Etapas padrão adicionadas.');
+  renderJornada();
+}
+
+function abrirModalEditarJornada(id,titulo,desc,status){
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="modal-editar-jornada" class="modal-bg" style="display:flex">
+      <div class="modal"><h2>Editar Jornada</h2>
+        <div class="modal-f">
+          <div><label class="label-sm">Título</label><input id="ej-titulo" value="${jEsc(titulo)}"/></div>
+          <div><label class="label-sm">Descrição</label><textarea id="ej-desc">${jEsc(desc)}</textarea></div>
+          <div><label class="label-sm">Status</label>
+            <select id="ej-status">
+              <option value="ativa" ${status==='ativa'?'selected':''}>Ativa</option>
+              <option value="pausada" ${status==='pausada'?'selected':''}>Pausada</option>
+              <option value="concluida" ${status==='concluida'?'selected':''}>Concluída</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="document.getElementById('modal-editar-jornada').remove()">Cancelar</button>
+          <button class="btn-primary" onclick="salvarEdicaoJornada('${id}')">Salvar</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function salvarEdicaoJornada(id){
+  const titulo=document.getElementById('ej-titulo').value.trim();
+  const desc=document.getElementById('ej-desc').value.trim();
+  const status=document.getElementById('ej-status').value;
+  const{error}=await sb.rpc('atualizar_jornada',{p_id:id,p_titulo:titulo,p_descricao:desc,p_status:status});
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  document.getElementById('modal-editar-jornada')?.remove();
+  showToast('✅','Jornada atualizada!','');
+  renderJornada();
+}
+
+async function confirmarExcluirJornada(id){
+  if(!confirm('Excluir esta jornada e todas as suas etapas?'))return;
+  const{error}=await sb.rpc('excluir_jornada',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  showToast('✅','Jornada excluída','');
+  renderJornada();
+}
+
+// Modais — Etapa
+function abrirModalNovaEtapa(jornada_id,ordem){
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="modal-nova-etapa" class="modal-bg" style="display:flex">
+      <div class="modal"><h2>Nova Etapa</h2>
+        <div class="modal-f">
+          <div><label class="label-sm">Título</label><input id="ne-titulo" placeholder="Ex: Revisão de Investimentos"/></div>
+          <div><label class="label-sm">Descrição</label><textarea id="ne-desc" placeholder="O que será feito nesta etapa?"></textarea></div>
+          <div><label class="label-sm">Status</label>
+            <select id="ne-status">
+              <option value="pendente">Pendente</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="concluida">Concluída</option>
+              <option value="atrasada">Atrasada</option>
+            </select>
+          </div>
+          <div><label class="label-sm">Data prevista</label><input id="ne-data" type="date"/></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="document.getElementById('modal-nova-etapa').remove()">Cancelar</button>
+          <button class="btn-primary" onclick="criarEtapa('${jornada_id}',${ordem})">Adicionar</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function criarEtapa(jornada_id,ordem){
+  const titulo=document.getElementById('ne-titulo').value.trim();
+  const desc=document.getElementById('ne-desc').value.trim();
+  const status=document.getElementById('ne-status').value;
+  const data=document.getElementById('ne-data').value||null;
+  if(!titulo){showToast('⚠️','Informe o título','');return;}
+  const{error}=await sb.rpc('criar_etapa',{p_jornada_id:jornada_id,p_titulo:titulo,p_descricao:desc||null,p_ordem:ordem,p_status:status,p_data_prevista:data});
+  if(error){showToast('❌','Erro ao criar etapa',error.message);return;}
+  document.getElementById('modal-nova-etapa')?.remove();
+  showToast('✅','Etapa adicionada!','');
+  renderJornada();
+}
+
+function abrirModalEditarEtapa(etapa_id){
+  const e=etapas_data.find(x=>x.id===etapa_id);
+  if(!e)return;
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="modal-editar-etapa" class="modal-bg" style="display:flex">
+      <div class="modal"><h2>Editar Etapa</h2>
+        <div class="modal-f">
+          <div><label class="label-sm">Título</label><input id="ee-titulo" value="${jEsc(e.titulo)}"/></div>
+          <div><label class="label-sm">Descrição</label><textarea id="ee-desc">${jEsc(e.descricao||'')}</textarea></div>
+          <div><label class="label-sm">Status</label>
+            <select id="ee-status">
+              <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
+              <option value="em_andamento" ${e.status==='em_andamento'?'selected':''}>Em andamento</option>
+              <option value="concluida" ${e.status==='concluida'?'selected':''}>Concluída</option>
+              <option value="atrasada" ${e.status==='atrasada'?'selected':''}>Atrasada</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div><label class="label-sm">Data prevista</label><input id="ee-prevista" type="date" value="${e.data_prevista||''}"/></div>
+            <div><label class="label-sm">Data conclusão</label><input id="ee-conclusao" type="date" value="${e.data_conclusao||''}"/></div>
+          </div>
+          <div><label class="label-sm">Notas para o cliente</label><textarea id="ee-notas" placeholder="Informações visíveis para o cliente...">${jEsc(e.notas||'')}</textarea></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-outline" onclick="document.getElementById('modal-editar-etapa').remove()">Cancelar</button>
+          <button class="btn-primary" onclick="salvarEdicaoEtapa('${etapa_id}')">Salvar</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function salvarEdicaoEtapa(id){
+  const titulo=document.getElementById('ee-titulo').value.trim();
+  const desc=document.getElementById('ee-desc').value.trim();
+  const status=document.getElementById('ee-status').value;
+  const prevista=document.getElementById('ee-prevista').value||null;
+  const conclusao=document.getElementById('ee-conclusao').value||null;
+  const notas=document.getElementById('ee-notas').value.trim();
+  const{error}=await sb.rpc('atualizar_etapa',{p_id:id,p_titulo:titulo,p_descricao:desc||null,p_status:status,p_data_prevista:prevista,p_data_conclusao:conclusao,p_notas:notas||null});
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  document.getElementById('modal-editar-etapa')?.remove();
+  showToast('✅','Etapa atualizada!','');
+  etapa_aberta_id=id;
+  renderJornada();
+}
+
+async function confirmarExcluirEtapa(id){
+  if(!confirm('Excluir esta etapa e suas tarefas/anexos?'))return;
+  const{error}=await sb.rpc('excluir_etapa',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  showToast('✅','Etapa excluída','');
+  renderJornada();
+}
+
+// Tarefas
+async function adicionarTarefa(etapa_id){
+  const el=document.getElementById('nova-tarefa-'+etapa_id);
+  const desc=el?.value?.trim();
+  if(!desc)return;
+  const{error}=await sb.rpc('criar_tarefa',{p_etapa_id:etapa_id,p_descricao:desc});
+  if(error){showToast('❌','Erro',error.message);return;}
+  el.value='';etapa_aberta_id=etapa_id;renderJornada();
+}
+
+async function toggleTarefa(id,concluida,descricao){
+  const{error}=await sb.rpc('atualizar_tarefa',{p_id:id,p_descricao:descricao,p_concluida:concluida});
+  if(error){showToast('❌','Erro',error.message);return;}
+  renderJornada();
+}
+
+async function excluirTarefa(id){
+  const{error}=await sb.rpc('excluir_tarefa',{p_id:id});
+  if(!error)renderJornada();
+}
+
+// Anexos
+async function adicionarAnexo(etapa_id){
+  const nome=document.getElementById('anexo-nome-'+etapa_id)?.value?.trim();
+  const url=document.getElementById('anexo-url-'+etapa_id)?.value?.trim();
+  if(!nome||!url){showToast('⚠️','Preencha nome e URL','');return;}
+  const tipo=url.toLowerCase().includes('.pdf')?'pdf':url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/)?'imagem':'link';
+  const{error}=await sb.rpc('criar_anexo',{p_etapa_id:etapa_id,p_nome:nome,p_url:url,p_tipo:tipo});
+  if(error){showToast('❌','Erro',error.message);return;}
+  etapa_aberta_id=etapa_id;renderJornada();
+}
+
+async function excluirAnexo(id){
+  const{error}=await sb.rpc('excluir_anexo',{p_id:id});
+  if(!error)renderJornada();
+}
+
+function jEsc(s){
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 </script>
 </html>
