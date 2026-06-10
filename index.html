@@ -542,12 +542,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ===== JORNADA DO PLANEJAMENTO ===== */
+/* ===== JORNADA DO PLANEJAMENTO =====*/
 .jornada-hero{background:var(--navy);border-radius:var(--radius-lg);padding:1.25rem;color:#fff;margin-bottom:1.25rem;display:flex;align-items:center;gap:14px}
 .jornada-hero-icon{font-size:28px;flex-shrink:0}
 .jornada-hero-title{font-size:16px;font-weight:500;letter-spacing:.04em}
 .jornada-hero-sub{font-size:12px;color:var(--steel);margin-top:2px}
-.jornada-hero-badge{margin-left:auto;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
 .jb-ativa{background:rgba(255,255,255,.12);color:var(--blue2)}
 .jb-concluida{background:rgba(15,110,86,.3);color:#7ff0d0}
 .jb-pausada{background:rgba(255,255,255,.07);color:var(--steel)}
@@ -663,7 +662,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 <div class="app">
   <div class="app-header">
     <div class="lsm"><img id="li-a" src="" alt="ANT Capital"></div>
-    <div><div class="brand-name">ANT Capital</div><div class="brand-sub">Planejamento Financeiro</div></div>
+    <div><div class="brand-name">ANT Capital</div><div class="brand-sub">Controle Financeiro</div></div>
     <div class="header-user">
       <span id="header-nome"></span>
       <button class="logout-btn" onclick="fazerLogout()">Sair</button>
@@ -681,8 +680,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-full">Planejamento de Aposentadoria</span><span class="nav-label-short">Aposentadoria</span></button>
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
-      <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
-      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-full">Jornada do Planejamento</span><span class="nav-label-short">Jornada</span></button>
+      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Jornada</button>
+            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
     </nav>
   </div>
   <div class="content">
@@ -3376,16 +3375,20 @@ function exibirDiagnostico(r,ctx){
       <div style="font-size:13px;color:var(--blue2);font-weight:500;line-height:1.6">${r.mensagem}</div>
     </div>
 
-    <!-- Refazer -->
+    <!-- Acoes consultor -->
     <div style="text-align:center;margin-top:1.5rem">
-      <button class="btn-sm" onclick="gerarDiagnostico()" style="color:var(--text2);background:var(--bg2);border:1px solid var(--border)">🔄 Gerar nova análise</button>
-      <p style="font-size:11px;color:var(--text2);margin-top:8px">Análise gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn-sm" onclick="gerarDiagnostico()" style="color:var(--text2);background:var(--bg2);border:1px solid var(--border)">🔄 Gerar nova análise</button>
+        <button class="btn-sm" style="background:var(--navy);color:#fff;border:none" onclick="abrirModalExportarDiagnostico()">📤 Exportar para Jornada</button>
+      </div>
+      <p style="font-size:11px;color:var(--text2);margin-top:0">Análise gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
     </div>`;
 }
 
 function renderDiagnostico(){
   const ctx=montarContextoFinanceiro();
   const temDados=ctx.qtdTrans>0||ctx.hist.some(h=>h.qtdLanc>0);
+  const isConsultor=_myRole==='consultor';
 
   document.getElementById('view-diagnostico').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
@@ -3393,27 +3396,34 @@ function renderDiagnostico(){
         <h2 style="font-size:18px;font-weight:600;margin:0 0 4px">🤖 Diagnóstico IA</h2>
         <p style="font-size:12px;color:var(--text2);margin:0">Análise financeira personalizada com inteligência artificial</p>
       </div>
-      ${temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
+      ${isConsultor&&temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
     </div>
     <div id="diag-content">
-      ${!temDados
+      ${!isConsultor
         ?`<div style="text-align:center;padding:3rem 1rem">
-            <div style="font-size:48px;margin-bottom:12px">📊</div>
-            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Dados insuficientes</div>
-            <div style="font-size:13px;color:var(--text2);line-height:1.6">Registre pelo menos alguns lançamentos para gerar um diagnóstico preciso.</div>
-          </div>`
-        :`<div style="text-align:center;padding:3rem 1rem">
-            <div style="font-size:48px;margin-bottom:16px">🤖</div>
-            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Pronto para analisar</div>
-            <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem">
-              O Claude vai analisar seus gastos, orçamento, dívidas e metas para gerar insights personalizados e um plano de ação.
+            <div style="font-size:48px;margin-bottom:12px">🤖</div>
+            <div style="font-size:15px;font-weight:500;margin-bottom:8px">Diagnóstico em preparação</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto">
+              Seu consultor irá gerar e compartilhar a análise personalizada da sua situação financeira aqui.
             </div>
-            <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico agora</button>
-          </div>`}
+          </div>`
+        :!temDados
+          ?`<div style="text-align:center;padding:3rem 1rem">
+              <div style="font-size:48px;margin-bottom:12px">📊</div>
+              <div style="font-size:15px;font-weight:500;margin-bottom:8px">Dados insuficientes</div>
+              <div style="font-size:13px;color:var(--text2);line-height:1.6">Registre lançamentos para gerar um diagnóstico preciso.</div>
+            </div>`
+          :`<div style="text-align:center;padding:3rem 1rem">
+              <div style="font-size:48px;margin-bottom:16px">🤖</div>
+              <div style="font-size:15px;font-weight:500;margin-bottom:8px">Pronto para analisar</div>
+              <div style="font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin:0 auto 1.5rem">
+                O Claude vai analisar os dados financeiros e gerar insights personalizados.
+              </div>
+              <button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:12px 24px;font-size:14px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico agora</button>
+            </div>`}
     </div>
   `;
 }
-
 // ===== RELATÓRIOS =====
 function renderRelatorios(){
   const el=document.getElementById("view-relatorios");
@@ -3983,89 +3993,136 @@ function instalarPWA(){
   });
 }
 
-// ===== JORNADA DO PLANEJAMENTO =====
-let _myRole=null;
-let jornadas_data=[];
-let jornada_ativa_id=null;
-let etapas_data=[];
-let jornada_clientes=[];
-let jornada_filtro_cliente=null;
-let etapa_aberta_id=null;
-let jornada_view='lista';
+// ========== ESTADO DA JORNADA ==========
+let _myRole = null; // 'consultor' | 'cliente'
+let jornadas_data = [];
+let jornada_ativa_id = null;
+let etapas_data = [];
+let jornada_clientes = [];
+let jornada_filtro_cliente = null;
+let etapa_aberta_id = null;
+let jornada_view = 'lista'; // 'lista' | 'detalhe'
 
-async function carregarRole(){
-  try{const{data}=await sb.rpc('get_my_role');_myRole=data||'cliente';}
-  catch(e){_myRole='cliente';}
+// ========== CARREGAR ROLE DO USUÁRIO ==========
+async function carregarRole() {
+  try {
+    const { data } = await sb.rpc('get_my_role');
+    _myRole = data || 'cliente';
+  } catch(e) {
+    _myRole = 'cliente';
+  }
 }
 
-async function renderJornada(){
-  const el=document.getElementById('view-jornada');
-  if(!el)return;
-  if(_myRole===null)await carregarRole();
-  if(_myRole==='consultor'){renderJornadaConsultor(el);}
-  else{renderJornadaCliente(el);}
+// ========== RENDER PRINCIPAL ==========
+async function renderJornada() {
+  const el = document.getElementById('view-jornada');
+  if (!el) return;
+  if (_myRole === null) await carregarRole();
+  if (_myRole === 'consultor') {
+    renderJornadaConsultor(el);
+  } else {
+    renderJornadaCliente(el);
+  }
 }
 
-async function renderJornadaConsultor(el){
-  el.innerHTML=`<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando jornadas...</div>`;
-  const[{data:clientes},{data:jornadas}]=await Promise.all([
+// ================================================================
+// VISÃO DO CONSULTOR
+// ================================================================
+async function renderJornadaConsultor(el) {
+  el.innerHTML = `<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando jornadas...</div>`;
+
+  // Carregar clientes e jornadas
+  const [{ data: clientes }, { data: jornadas }] = await Promise.all([
     sb.rpc('listar_clientes'),
-    sb.rpc('listar_jornadas',jornada_filtro_cliente?{p_cliente_id:jornada_filtro_cliente}:{})
+    sb.rpc('listar_jornadas', jornada_filtro_cliente ? { p_cliente_id: jornada_filtro_cliente } : {})
   ]);
-  jornada_clientes=clientes||[];
-  jornadas_data=jornadas||[];
-  if(jornada_view==='detalhe'&&jornada_ativa_id){await renderDetalheJornada(el);return;}
-  const clienteOpts=jornada_clientes.map(c=>`<option value="${c.id}" ${jornada_filtro_cliente===c.id?'selected':''}>${jEsc(c.nome||c.email)}</option>`).join('');
-  el.innerHTML=`
+  jornada_clientes = clientes || [];
+  jornadas_data = jornadas || [];
+
+  if (jornada_view === 'detalhe' && jornada_ativa_id) {
+    await renderDetalheJornada(el);
+    return;
+  }
+
+  const clienteOpts = jornada_clientes.map(c =>
+    `<option value="${c.id}" ${jornada_filtro_cliente === c.id ? 'selected' : ''}>${c.nome || c.email}</option>`
+  ).join('');
+
+  el.innerHTML = `
     <div class="section-title">🐜 Jornada do Planejamento</div>
+
     <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
-      <select style="flex:1;min-width:180px" onchange="jornada_filtro_cliente=this.value||null;renderJornada()">
-        <option value="">Todos os clientes</option>${clienteOpts}
+      <select id="jornada-filtro-cliente" style="flex:1;min-width:180px"
+        onchange="jornada_filtro_cliente=this.value||null;renderJornada()">
+        <option value="">Todos os clientes</option>
+        ${clienteOpts}
       </select>
       <button class="btn-sm" onclick="abrirModalNovaJornada()">+ Nova Jornada</button>
     </div>
-    ${jornadas_data.length===0?`
+
+    ${jornadas_data.length === 0 ? `
       <div class="card-white" style="text-align:center;padding:2rem;color:var(--text2)">
         <div style="font-size:32px;margin-bottom:8px">🗺️</div>
         <div style="font-weight:500;margin-bottom:4px">Nenhuma jornada encontrada</div>
         <div style="font-size:13px">Crie a primeira jornada para um cliente.</div>
-      </div>`:jornadas_data.map(j=>renderCardJornada(j)).join('')}`;
+      </div>
+    ` : jornadas_data.map(j => renderCardJornada(j)).join('')}
+  `;
 }
 
-function renderCardJornada(j){
-  const pct=j.total_etapas>0?Math.round((j.etapas_concluidas/j.total_etapas)*100):0;
-  const statusLabel={ativa:'Ativa',concluida:'Concluída',pausada:'Pausada'}[j.status]||j.status;
-  const clienteLabel=j.cliente_nome||j.cliente_email||'—';
-  return`<div class="jornada-card" onclick="abrirDetalheJornada('${j.id}')">
-    <div class="jornada-card-header">
-      <div>
-        <div class="jornada-card-title">${jEsc(j.titulo)}</div>
-        <div class="jornada-card-meta">👤 ${jEsc(clienteLabel)} · ${j.etapas_concluidas}/${j.total_etapas} etapas</div>
+function renderCardJornada(j) {
+  const pct = j.total_etapas > 0 ? Math.round((j.etapas_concluidas / j.total_etapas) * 100) : 0;
+  const badgeCls = j.status === 'ativa' ? 'jb-ativa' : j.status === 'concluida' ? 'jb-concluida' : 'jb-pausada';
+  const statusLabel = { ativa: 'Ativa', concluida: 'Concluída', pausada: 'Pausada' }[j.status] || j.status;
+  const clienteLabel = j.cliente_nome || j.cliente_email || '—';
+
+  return `
+    <div class="jornada-card" onclick="abrirDetalheJornada('${j.id}')">
+      <div class="jornada-card-header">
+        <div>
+          <div class="jornada-card-title">${jEsc(j.titulo)}</div>
+          <div class="jornada-card-meta">👤 ${jEsc(clienteLabel)} · ${j.etapas_concluidas}/${j.total_etapas} etapas</div>
+        </div>
+        <div class="jornada-card-actions" onclick="event.stopPropagation()">
+          <span class="status-badge ${badgeCls.replace('jb-','sb-')}">${statusLabel}</span>
+          <button class="icon-btn" title="Editar" onclick="abrirModalEditarJornada('${j.id}','${jEsc(j.titulo)}','${jEsc(j.descricao||'')}','${j.status}')">
+            ${iconEdit()}
+          </button>
+          <button class="icon-btn" title="Excluir" onclick="confirmarExcluirJornada('${j.id}')">
+            ${iconTrash()}
+          </button>
+        </div>
       </div>
-      <div class="jornada-card-actions" onclick="event.stopPropagation()">
-        <span class="status-badge sb-${j.status}">${statusLabel}</span>
-        <button class="icon-btn" title="Editar" onclick="abrirModalEditarJornada('${j.id}','${jEsc(j.titulo)}','${jEsc(j.descricao||'')}','${j.status}')">${iconEdit()}</button>
-        <button class="icon-btn" title="Excluir" onclick="confirmarExcluirJornada('${j.id}')">${iconTrash()}</button>
+      <div class="jornada-progress">
+        <div class="jornada-progress-fill${pct===100?' done':''}" style="width:${pct}%"></div>
       </div>
+      <div class="jornada-progress-label">${pct}% concluído · Clique para gerenciar etapas</div>
     </div>
-    <div class="jornada-progress"><div class="jornada-progress-fill${pct===100?' done':''}" style="width:${pct}%"></div></div>
-    <div class="jornada-progress-label">${pct}% concluído · Clique para gerenciar etapas</div>
-  </div>`;
+  `;
 }
 
-async function abrirDetalheJornada(id){
-  jornada_ativa_id=id;jornada_view='detalhe';etapa_aberta_id=null;renderJornada();
-}
-function voltarListaJornadas(){
-  jornada_view='lista';jornada_ativa_id=null;renderJornada();
+async function abrirDetalheJornada(id) {
+  jornada_ativa_id = id;
+  jornada_view = 'detalhe';
+  etapa_aberta_id = null;
+  renderJornada();
 }
 
-async function renderDetalheJornada(el){
-  const jornada=jornadas_data.find(j=>j.id===jornada_ativa_id);
-  const{data:etapas}=await sb.rpc('listar_etapas',{p_jornada_id:jornada_ativa_id});
-  etapas_data=etapas||[];
-  const pct=jornada&&jornada.total_etapas>0?Math.round((jornada.etapas_concluidas/jornada.total_etapas)*100):0;
-  el.innerHTML=`
+function voltarListaJornadas() {
+  jornada_view = 'lista';
+  jornada_ativa_id = null;
+  renderJornada();
+}
+
+async function renderDetalheJornada(el) {
+  const jornada = jornadas_data.find(j => j.id === jornada_ativa_id);
+  const { data: etapas } = await sb.rpc('listar_etapas', { p_jornada_id: jornada_ativa_id });
+  etapas_data = etapas || [];
+
+  const pct = jornada && jornada.total_etapas > 0
+    ? Math.round((jornada.etapas_concluidas / jornada.total_etapas) * 100) : 0;
+
+  el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
       <button class="btn-outline" onclick="voltarListaJornadas()">← Voltar</button>
       <div style="flex:1">
@@ -4074,92 +4131,139 @@ async function renderDetalheJornada(el){
       </div>
       <button class="btn-sm" onclick="abrirModalNovaEtapa('${jornada_ativa_id}',${etapas_data.length})">+ Etapa</button>
     </div>
-    ${etapas_data.length===0?`<div class="card-white" style="text-align:center;padding:1.5rem;color:var(--text2)">Nenhuma etapa cadastrada.</div>`:etapas_data.map(e=>renderEtapaConsultor(e)).join('')}`;
+
+    ${etapas_data.length === 0 ? `
+      <div class="card-white" style="text-align:center;padding:1.5rem;color:var(--text2)">
+        Nenhuma etapa cadastrada. Clique em "+ Etapa" para adicionar.
+      </div>
+    ` : etapas_data.map(e => renderEtapaConsultor(e)).join('')}
+  `;
 }
 
-function renderEtapaConsultor(e){
-  const statusMap={pendente:'Pendente',em_andamento:'Em andamento',concluida:'Concluída',atrasada:'Atrasada'};
-  const tarefasHtml=(e.tarefas||[]).map(t=>`
+function renderEtapaConsultor(e) {
+  const statusMap = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída', atrasada:'Atrasada' };
+  const tarefasHtml = (e.tarefas||[]).map(t => `
     <div class="timeline-tarefa${t.concluida?' done':''}">
       <div class="check-icon ${t.concluida?'ci-done':'ci-pend'}">${t.concluida?'✓':'·'}</div>
       <span>${jEsc(t.descricao)}</span>
       <div style="margin-left:auto;display:flex;gap:4px">
-        <button class="icon-btn" style="font-size:10px" onclick="toggleTarefa('${t.id}',${!t.concluida},'${jEsc(t.descricao)}')">${t.concluida?'↩':'✓'}</button>
-        <button class="icon-btn" onclick="excluirTarefa('${t.id}')">${iconTrash()}</button>
+        <button class="icon-btn" style="font-size:10px" onclick="toggleTarefa('${t.id}',${!t.concluida},'${jEsc(t.descricao)}')">
+          ${t.concluida?'↩':'✓'}
+        </button>
+        <button class="icon-btn" onclick="excluirTarefa('${t.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
       </div>
-    </div>`).join('');
-  const anexosHtml=(e.anexos||[]).map(a=>`
+    </div>
+  `).join('');
+
+  const anexosHtml = (e.anexos||[]).map(a => `
     <div style="display:flex;align-items:center;gap:6px">
       <a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>
-      <button class="icon-btn" onclick="excluirAnexo('${a.id}')">${iconTrash()}</button>
-    </div>`).join('');
-  const isOpen=etapa_aberta_id===e.id;
-  return`<div class="etapa-card ep-${e.status}">
-    <div class="etapa-header">
-      <div class="etapa-ordem">${e.ordem}</div>
-      <div class="etapa-title-wrap">
-        <div class="etapa-title">${jEsc(e.titulo)}</div>
-        <div class="etapa-meta">
-          <span class="status-badge sb-${e.status}">${statusMap[e.status]||e.status}</span>
-          ${e.data_prevista?`· Previsto: ${fmtData(e.data_prevista)}`:''}
-          ${e.data_conclusao?`· Concluído: ${fmtData(e.data_conclusao)}`:''}
+      <button class="icon-btn" onclick="excluirAnexo('${a.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>
+  `).join('');
+
+  const isOpen = etapa_aberta_id === e.id;
+  return `
+    <div class="etapa-card ep-${e.status}">
+      <div class="etapa-header">
+        <div class="etapa-ordem">${e.ordem}</div>
+        <div class="etapa-title-wrap">
+          <div class="etapa-title">${jEsc(e.titulo)}</div>
+          <div class="etapa-meta">
+            <span class="status-badge sb-${e.status}">${statusMap[e.status]||e.status}</span>
+            ${e.data_prevista?`· Previsto: ${fmtData(e.data_prevista)}`:''}
+            ${e.data_conclusao?`· Concluído: ${fmtData(e.data_conclusao)}`:''}
+          </div>
+        </div>
+        <div class="etapa-actions">
+          <button class="icon-btn" title="Editar" onclick="abrirModalEditarEtapa('${e.id}')">
+            ${iconEdit()}
+          </button>
+          <button class="icon-btn" title="Excluir" onclick="confirmarExcluirEtapa('${e.id}')">
+            ${iconTrash()}
+          </button>
         </div>
       </div>
-      <div class="etapa-actions">
-        <button class="icon-btn" title="Editar" onclick="abrirModalEditarEtapa('${e.id}')">${iconEdit()}</button>
-        <button class="icon-btn" title="Excluir" onclick="confirmarExcluirEtapa('${e.id}')">${iconTrash()}</button>
+      <button class="etapa-toggle" onclick="toggleEtapaBody('${e.id}')">
+        ${isOpen ? '▲ Recolher' : '▼ Ver detalhes / notas / tarefas'}
+      </button>
+      <div class="etapa-body${isOpen?' open':''}">
+        ${e.descricao?`<p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">${jEsc(e.descricao)}</p>`:''}
+        ${e.notas?`<div class="timeline-notas">📝 ${jEsc(e.notas)}</div>`:''}
+
+        <div style="margin-top:12px">
+          <div class="section-title" style="margin-bottom:6px">Tarefas</div>
+          <div class="timeline-tarefas">${tarefasHtml}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="nova-tarefa-${e.id}" placeholder="Nova tarefa..." style="flex:1;font-size:13px;padding:7px 10px"/>
+            <button class="btn-sm" onclick="adicionarTarefa('${e.id}')">+</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="section-title" style="margin-bottom:6px">Anexos / Links</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${anexosHtml}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input id="anexo-nome-${e.id}" placeholder="Nome do arquivo" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px"/>
+            <input id="anexo-url-${e.id}" placeholder="URL (https://...)" style="flex:2;min-width:180px;font-size:13px;padding:7px 10px"/>
+            <button class="btn-sm" onclick="adicionarAnexo('${e.id}')">+ Anexar</button>
+          </div>
+        </div>
       </div>
     </div>
-    <button class="etapa-toggle" onclick="toggleEtapaBody('${e.id}')">${isOpen?'▲ Recolher':'▼ Ver detalhes / notas / tarefas'}</button>
-    <div class="etapa-body${isOpen?' open':''}">
-      ${e.descricao?`<p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">${jEsc(e.descricao)}</p>`:''}
-      ${e.notas?`<div class="timeline-notas">📝 ${jEsc(e.notas)}</div>`:''}
-      <div style="margin-top:12px">
-        <div class="section-title" style="margin-bottom:6px">Tarefas</div>
-        <div class="timeline-tarefas">${tarefasHtml}</div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="nova-tarefa-${e.id}" placeholder="Nova tarefa..." style="flex:1;font-size:13px;padding:7px 10px"/>
-          <button class="btn-sm" onclick="adicionarTarefa('${e.id}')">+</button>
-        </div>
-      </div>
-      <div style="margin-top:12px">
-        <div class="section-title" style="margin-bottom:6px">Anexos / Links</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${anexosHtml}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <input id="anexo-nome-${e.id}" placeholder="Nome do arquivo" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px"/>
-          <input id="anexo-url-${e.id}" placeholder="URL (https://...)" style="flex:2;min-width:180px;font-size:13px;padding:7px 10px"/>
-          <button class="btn-sm" onclick="adicionarAnexo('${e.id}')">+ Anexar</button>
-        </div>
-      </div>
-    </div>
-  </div>`;
+  `;
 }
 
-function toggleEtapaBody(id){etapa_aberta_id=etapa_aberta_id===id?null:id;renderJornada();}
+function toggleEtapaBody(id) {
+  etapa_aberta_id = etapa_aberta_id === id ? null : id;
+  renderJornada();
+}
 
-async function renderJornadaCliente(el){
-  el.innerHTML=`<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando sua jornada...</div>`;
-  const{data:jornadas}=await sb.rpc('listar_jornadas',{});
-  jornadas_data=jornadas||[];
-  if(jornadas_data.length===0){
-    el.innerHTML=`<div class="card-white" style="text-align:center;padding:2.5rem;color:var(--text2)">
-      <div style="font-size:40px;margin-bottom:12px">🗺️</div>
-      <div style="font-size:15px;font-weight:500;margin-bottom:6px">Sua jornada está sendo preparada</div>
-      <div style="font-size:13px;line-height:1.6">Em breve seu consultor configurará<br>o seu plano personalizado aqui.</div>
-    </div>`;return;
+// ================================================================
+// VISÃO DO CLIENTE
+// ================================================================
+async function renderJornadaCliente(el) {
+  el.innerHTML = `<div style="padding:2rem 0;text-align:center;color:var(--text2)">Carregando sua jornada...</div>`;
+
+  const { data: jornadas } = await sb.rpc('listar_jornadas', {});
+  jornadas_data = jornadas || [];
+
+  if (jornadas_data.length === 0) {
+    el.innerHTML = `
+      <div class="card-white" style="text-align:center;padding:2.5rem;color:var(--text2)">
+        <div style="font-size:40px;margin-bottom:12px">🗺️</div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Sua jornada ainda está sendo preparada</div>
+        <div style="font-size:13px;line-height:1.6">Em breve seu consultor configurará<br>o seu plano personalizado aqui.</div>
+      </div>`;
+    return;
   }
-  const jornada=jornada_ativa_id?jornadas_data.find(j=>j.id===jornada_ativa_id)||jornadas_data[0]:jornadas_data[0];
-  jornada_ativa_id=jornada.id;
-  const{data:etapas}=await sb.rpc('listar_etapas',{p_jornada_id:jornada.id});
-  etapas_data=etapas||[];
-  const pct=jornada.total_etapas>0?Math.round((jornada.etapas_concluidas/jornada.total_etapas)*100):0;
-  const statusLabel={ativa:'Em andamento',concluida:'Concluída',pausada:'Pausada'}[jornada.status]||jornada.status;
-  const selectorHtml=jornadas_data.length>1?`<div style="margin-bottom:1.25rem">
-    <label class="label-sm">Selecionar jornada</label>
-    <select onchange="jornada_ativa_id=this.value;renderJornada()">
-      ${jornadas_data.map(j=>`<option value="${j.id}" ${j.id===jornada_ativa_id?'selected':''}>${jEsc(j.titulo)}</option>`).join('')}
-    </select></div>`:'';
-  el.innerHTML=`
+
+  // Selector de jornada se tiver mais de uma
+  const jornada = jornada_ativa_id
+    ? jornadas_data.find(j => j.id === jornada_ativa_id) || jornadas_data[0]
+    : jornadas_data[0];
+  jornada_ativa_id = jornada.id;
+
+  const { data: etapas } = await sb.rpc('listar_etapas', { p_jornada_id: jornada.id });
+  etapas_data = etapas || [];
+
+  const pct = jornada.total_etapas > 0
+    ? Math.round((jornada.etapas_concluidas / jornada.total_etapas) * 100) : 0;
+  const statusLabel = { ativa:'Em andamento', concluida:'Concluída', pausada:'Pausada' }[jornada.status]||jornada.status;
+
+  const selectorHtml = jornadas_data.length > 1 ? `
+    <div class="jornada-select" style="margin-bottom:1.25rem">
+      <label class="label-sm">Selecionar jornada</label>
+      <select onchange="jornada_ativa_id=this.value;renderJornada()">
+        ${jornadas_data.map(j => `<option value="${j.id}" ${j.id===jornada_ativa_id?'selected':''}>${jEsc(j.titulo)}</option>`).join('')}
+      </select>
+    </div>` : '';
+
+  el.innerHTML = `
     ${selectorHtml}
     <div class="jornada-hero">
       <div class="jornada-hero-icon">🐜</div>
@@ -4172,253 +4276,360 @@ async function renderJornadaCliente(el){
         <div style="font-size:20px;font-weight:300;color:#fff;text-align:right;margin-top:4px">${pct}%</div>
       </div>
     </div>
+
     <div style="margin-bottom:1rem">
       <div class="jornada-progress" style="height:8px">
         <div class="jornada-progress-fill${pct===100?' done':''}" style="width:${pct}%"></div>
       </div>
     </div>
-    <div class="timeline">${etapas_data.map(e=>renderEtapaCliente(e)).join('')}</div>`;
+
+    <div class="timeline">
+      ${etapas_data.map(e => renderEtapaCliente(e)).join('')}
+    </div>
+  `;
 }
 
-function renderEtapaCliente(e){
-  const statusMap={pendente:'Pendente',em_andamento:'Em andamento',concluida:'Concluída',atrasada:'Atrasada'};
-  const dotNum={pendente:'·',em_andamento:'→',concluida:'✓',atrasada:'!'}[e.status]||e.ordem;
-  const contentCls=e.status==='em_andamento'?'ativa':e.status==='concluida'?'concluida-bg':'';
-  const tarefasHtml=(e.tarefas||[]).map(t=>`
+function renderEtapaCliente(e) {
+  const statusMap = { pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída', atrasada:'Atrasada' };
+  const dotNum = { pendente:'·', em_andamento:'→', concluida:'✓', atrasada:'!' }[e.status]||e.ordem;
+  const contentCls = e.status === 'em_andamento' ? 'ativa' : e.status === 'concluida' ? 'concluida-bg' : '';
+
+  const tarefasHtml = (e.tarefas||[]).map(t => `
     <div class="timeline-tarefa${t.concluida?' done':''}">
       <div class="check-icon ${t.concluida?'ci-done':'ci-pend'}">${t.concluida?'✓':'·'}</div>
       <span>${jEsc(t.descricao)}</span>
-    </div>`).join('');
-  const anexosHtml=(e.anexos||[]).map(a=>`<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`).join('');
-  const concluidas=(e.tarefas||[]).filter(t=>t.concluida).length;
-  const totalT=(e.tarefas||[]).length;
-  return`<div class="timeline-item">
-    <div class="timeline-dot td-${e.status}">${dotNum}</div>
-    <div class="timeline-content ${contentCls}">
-      <div class="timeline-title">
-        ${jEsc(e.titulo)}
-        <span class="status-badge sb-${e.status}" style="float:right;margin-top:-2px">${statusMap[e.status]||e.status}</span>
-      </div>
-      ${e.descricao?`<div class="timeline-desc">${jEsc(e.descricao)}</div>`:''}
-      <div class="timeline-meta">
-        ${e.data_prevista?`<span>📅 Previsto: ${fmtData(e.data_prevista)}</span>`:''}
-        ${e.data_conclusao?`<span>✅ Concluído: ${fmtData(e.data_conclusao)}</span>`:''}
-        ${totalT>0?`<span>📋 ${concluidas}/${totalT} tarefas</span>`:''}
-      </div>
-      ${e.notas?`<div class="timeline-notas">${jEsc(e.notas)}</div>`:''}
-      ${tarefasHtml?`<div class="timeline-tarefas">${tarefasHtml}</div>`:''}
-      ${anexosHtml?`<div class="timeline-anexos">${anexosHtml}</div>`:''}
     </div>
-  </div>`;
+  `).join('');
+
+  const anexosHtml = (e.anexos||[]).map(a =>
+    `<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`
+  ).join('');
+
+  const concluidas = (e.tarefas||[]).filter(t=>t.concluida).length;
+  const totalT = (e.tarefas||[]).length;
+
+  return `
+    <div class="timeline-item">
+      <div class="timeline-dot td-${e.status}">${dotNum}</div>
+      <div class="timeline-content ${contentCls}">
+        <div class="timeline-title">
+          ${jEsc(e.titulo)}
+          <span class="status-badge sb-${e.status}" style="float:right;margin-top:-2px">${statusMap[e.status]||e.status}</span>
+        </div>
+        ${e.descricao?`<div class="timeline-desc">${jEsc(e.descricao)}</div>`:''}
+        <div class="timeline-meta">
+          ${e.data_prevista?`<span>📅 Previsto: ${fmtData(e.data_prevista)}</span>`:''}
+          ${e.data_conclusao?`<span>✅ Concluído: ${fmtData(e.data_conclusao)}</span>`:''}
+          ${totalT>0?`<span>📋 ${concluidas}/${totalT} tarefas</span>`:''}
+        </div>
+        ${e.notas?`<div class="timeline-notas">${jEsc(e.notas)}</div>`:''}
+        ${tarefasHtml?`<div class="timeline-tarefas">${tarefasHtml}</div>`:''}
+        ${anexosHtml?`<div class="timeline-anexos">${anexosHtml}</div>`:''}
+      </div>
+    </div>
+  `;
 }
 
-// Modais — Jornada
-function abrirModalNovaJornada(){
-  const clienteOpts=jornada_clientes.map(c=>`<option value="${c.id}">${jEsc(c.nome||c.email)}</option>`).join('');
-  document.body.insertAdjacentHTML('beforeend',`
+// ================================================================
+// MODAIS — JORNADA
+// ================================================================
+function abrirModalNovaJornada() {
+  const clienteOpts = jornada_clientes.map(c =>
+    `<option value="${c.id}">${c.nome||c.email}</option>`
+  ).join('');
+  const html = `
     <div id="modal-nova-jornada" class="modal-bg" style="display:flex">
-      <div class="modal"><h2>Nova Jornada</h2>
+      <div class="modal jornada-modal"><h2>Nova Jornada</h2>
         <div class="modal-f">
-          <div><label class="label-sm">Cliente</label><select id="nj-cliente">${clienteOpts}</select></div>
-          <div><label class="label-sm">Título</label><input id="nj-titulo" value="Jornada de Planejamento"/></div>
-          <div><label class="label-sm">Descrição (opcional)</label><textarea id="nj-desc" placeholder="Observações gerais..."></textarea></div>
-          <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">🐜 As 6 etapas padrão serão criadas automaticamente.</div>
+          <div><label class="label-sm">Cliente</label>
+            <select id="nj-cliente">${clienteOpts}</select></div>
+          <div><label class="label-sm">Título</label>
+            <input id="nj-titulo" value="Jornada de Planejamento"/></div>
+          <div><label class="label-sm">Descrição (opcional)</label>
+            <textarea id="nj-desc" placeholder="Observações gerais..."></textarea></div>
+          <div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">
+            🐜 As 6 etapas padrão (Marco Zero → Acompanhamento) serão criadas automaticamente.
+          </div>
         </div>
         <div class="modal-actions">
           <button class="btn-outline" onclick="document.getElementById('modal-nova-jornada').remove()">Cancelar</button>
           <button class="btn-primary" onclick="criarJornada()">Criar Jornada</button>
         </div>
       </div>
-    </div>`);
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function criarJornada(){
-  const cliente=document.getElementById('nj-cliente').value;
-  const titulo=document.getElementById('nj-titulo').value.trim();
-  const desc=document.getElementById('nj-desc').value.trim();
-  if(!cliente||!titulo){showToast('⚠️','Preencha todos os campos','');return;}
-  const{error}=await sb.rpc('criar_jornada',{p_cliente_id:cliente,p_titulo:titulo,p_descricao:desc||null});
-  if(error){showToast('❌','Erro ao criar jornada',error.message);return;}
+async function criarJornada() {
+  const cliente = document.getElementById('nj-cliente').value;
+  const titulo = document.getElementById('nj-titulo').value.trim();
+  const desc = document.getElementById('nj-desc').value.trim();
+  if (!cliente || !titulo) { showToast('⚠️','Preencha todos os campos',''); return; }
+  const { error } = await sb.rpc('criar_jornada', {
+    p_cliente_id: cliente, p_titulo: titulo, p_descricao: desc || null
+  });
+  if (error) { showToast('❌','Erro ao criar jornada',error.message); return; }
   document.getElementById('modal-nova-jornada')?.remove();
   showToast('✅','Jornada criada!','Etapas padrão adicionadas.');
   renderJornada();
 }
 
-function abrirModalEditarJornada(id,titulo,desc,status){
-  document.body.insertAdjacentHTML('beforeend',`
+function abrirModalEditarJornada(id, titulo, desc, status) {
+  const html = `
     <div id="modal-editar-jornada" class="modal-bg" style="display:flex">
-      <div class="modal"><h2>Editar Jornada</h2>
+      <div class="modal jornada-modal"><h2>Editar Jornada</h2>
         <div class="modal-f">
-          <div><label class="label-sm">Título</label><input id="ej-titulo" value="${jEsc(titulo)}"/></div>
-          <div><label class="label-sm">Descrição</label><textarea id="ej-desc">${jEsc(desc)}</textarea></div>
+          <div><label class="label-sm">Título</label>
+            <input id="ej-titulo" value="${jEsc(titulo)}"/></div>
+          <div><label class="label-sm">Descrição</label>
+            <textarea id="ej-desc">${jEsc(desc)}</textarea></div>
           <div><label class="label-sm">Status</label>
             <select id="ej-status">
               <option value="ativa" ${status==='ativa'?'selected':''}>Ativa</option>
               <option value="pausada" ${status==='pausada'?'selected':''}>Pausada</option>
               <option value="concluida" ${status==='concluida'?'selected':''}>Concluída</option>
-            </select>
-          </div>
+            </select></div>
         </div>
         <div class="modal-actions">
           <button class="btn-outline" onclick="document.getElementById('modal-editar-jornada').remove()">Cancelar</button>
           <button class="btn-primary" onclick="salvarEdicaoJornada('${id}')">Salvar</button>
         </div>
       </div>
-    </div>`);
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function salvarEdicaoJornada(id){
-  const titulo=document.getElementById('ej-titulo').value.trim();
-  const desc=document.getElementById('ej-desc').value.trim();
-  const status=document.getElementById('ej-status').value;
-  const{error}=await sb.rpc('atualizar_jornada',{p_id:id,p_titulo:titulo,p_descricao:desc,p_status:status});
-  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+async function salvarEdicaoJornada(id) {
+  const titulo = document.getElementById('ej-titulo').value.trim();
+  const desc = document.getElementById('ej-desc').value.trim();
+  const status = document.getElementById('ej-status').value;
+  const { error } = await sb.rpc('atualizar_jornada', {
+    p_id: id, p_titulo: titulo, p_descricao: desc, p_status: status
+  });
+  if (error) { showToast('❌','Erro ao salvar',error.message); return; }
   document.getElementById('modal-editar-jornada')?.remove();
   showToast('✅','Jornada atualizada!','');
   renderJornada();
 }
 
-async function confirmarExcluirJornada(id){
-  if(!confirm('Excluir esta jornada e todas as suas etapas?'))return;
-  const{error}=await sb.rpc('excluir_jornada',{p_id:id});
-  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+async function confirmarExcluirJornada(id) {
+  if (!confirm('Excluir esta jornada e todas as suas etapas?')) return;
+  const { error } = await sb.rpc('excluir_jornada', { p_id: id });
+  if (error) { showToast('❌','Erro ao excluir',error.message); return; }
   showToast('✅','Jornada excluída','');
   renderJornada();
 }
 
-// Modais — Etapa
-function abrirModalNovaEtapa(jornada_id,ordem){
-  document.body.insertAdjacentHTML('beforeend',`
+// ================================================================
+// MODAIS — ETAPA
+// ================================================================
+function abrirModalNovaEtapa(jornada_id, ordem) {
+  const html = `
     <div id="modal-nova-etapa" class="modal-bg" style="display:flex">
-      <div class="modal"><h2>Nova Etapa</h2>
+      <div class="modal jornada-modal"><h2>Nova Etapa</h2>
         <div class="modal-f">
-          <div><label class="label-sm">Título</label><input id="ne-titulo" placeholder="Ex: Revisão de Investimentos"/></div>
-          <div><label class="label-sm">Descrição</label><textarea id="ne-desc" placeholder="O que será feito nesta etapa?"></textarea></div>
+          <div><label class="label-sm">Título</label>
+            <input id="ne-titulo" placeholder="Ex: Revisão de Investimentos"/></div>
+          <div><label class="label-sm">Descrição</label>
+            <textarea id="ne-desc" placeholder="O que será feito nesta etapa?"></textarea></div>
           <div><label class="label-sm">Status</label>
             <select id="ne-status">
               <option value="pendente">Pendente</option>
               <option value="em_andamento">Em andamento</option>
               <option value="concluida">Concluída</option>
               <option value="atrasada">Atrasada</option>
-            </select>
-          </div>
-          <div><label class="label-sm">Data prevista</label><input id="ne-data" type="date"/></div>
+            </select></div>
+          <div><label class="label-sm">Data prevista</label>
+            <input id="ne-data" type="date"/></div>
         </div>
         <div class="modal-actions">
           <button class="btn-outline" onclick="document.getElementById('modal-nova-etapa').remove()">Cancelar</button>
           <button class="btn-primary" onclick="criarEtapa('${jornada_id}',${ordem})">Adicionar</button>
         </div>
       </div>
-    </div>`);
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function criarEtapa(jornada_id,ordem){
-  const titulo=document.getElementById('ne-titulo').value.trim();
-  const desc=document.getElementById('ne-desc').value.trim();
-  const status=document.getElementById('ne-status').value;
-  const data=document.getElementById('ne-data').value||null;
-  if(!titulo){showToast('⚠️','Informe o título','');return;}
-  const{error}=await sb.rpc('criar_etapa',{p_jornada_id:jornada_id,p_titulo:titulo,p_descricao:desc||null,p_ordem:ordem,p_status:status,p_data_prevista:data});
-  if(error){showToast('❌','Erro ao criar etapa',error.message);return;}
+async function criarEtapa(jornada_id, ordem) {
+  const titulo = document.getElementById('ne-titulo').value.trim();
+  const desc = document.getElementById('ne-desc').value.trim();
+  const status = document.getElementById('ne-status').value;
+  const data = document.getElementById('ne-data').value || null;
+  if (!titulo) { showToast('⚠️','Informe o título',''); return; }
+  const { error } = await sb.rpc('criar_etapa', {
+    p_jornada_id: jornada_id, p_titulo: titulo, p_descricao: desc||null,
+    p_ordem: ordem, p_status: status, p_data_prevista: data
+  });
+  if (error) { showToast('❌','Erro ao criar etapa',error.message); return; }
   document.getElementById('modal-nova-etapa')?.remove();
   showToast('✅','Etapa adicionada!','');
   renderJornada();
 }
 
-function abrirModalEditarEtapa(etapa_id){
-  const e=etapas_data.find(x=>x.id===etapa_id);
-  if(!e)return;
-  document.body.insertAdjacentHTML('beforeend',`
+function abrirModalEditarEtapa(etapa_id) {
+  const e = etapas_data.find(x => x.id === etapa_id);
+  if (!e) return;
+  const html = `
     <div id="modal-editar-etapa" class="modal-bg" style="display:flex">
-      <div class="modal"><h2>Editar Etapa</h2>
+      <div class="modal jornada-modal"><h2>Editar Etapa</h2>
         <div class="modal-f">
-          <div><label class="label-sm">Título</label><input id="ee-titulo" value="${jEsc(e.titulo)}"/></div>
-          <div><label class="label-sm">Descrição</label><textarea id="ee-desc">${jEsc(e.descricao||'')}</textarea></div>
+          <div><label class="label-sm">Título</label>
+            <input id="ee-titulo" value="${jEsc(e.titulo)}"/></div>
+          <div><label class="label-sm">Descrição</label>
+            <textarea id="ee-desc">${jEsc(e.descricao||'')}</textarea></div>
           <div><label class="label-sm">Status</label>
             <select id="ee-status">
               <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
               <option value="em_andamento" ${e.status==='em_andamento'?'selected':''}>Em andamento</option>
               <option value="concluida" ${e.status==='concluida'?'selected':''}>Concluída</option>
               <option value="atrasada" ${e.status==='atrasada'?'selected':''}>Atrasada</option>
-            </select>
-          </div>
+            </select></div>
           <div class="grid2">
-            <div><label class="label-sm">Data prevista</label><input id="ee-prevista" type="date" value="${e.data_prevista||''}"/></div>
-            <div><label class="label-sm">Data conclusão</label><input id="ee-conclusao" type="date" value="${e.data_conclusao||''}"/></div>
+            <div><label class="label-sm">Data prevista</label>
+              <input id="ee-prevista" type="date" value="${e.data_prevista||''}"/></div>
+            <div><label class="label-sm">Data conclusão</label>
+              <input id="ee-conclusao" type="date" value="${e.data_conclusao||''}"/></div>
           </div>
-          <div><label class="label-sm">Notas para o cliente</label><textarea id="ee-notas" placeholder="Informações visíveis para o cliente...">${jEsc(e.notas||'')}</textarea></div>
+          <div><label class="label-sm">Notas para o cliente</label>
+            <textarea id="ee-notas" placeholder="Informações visíveis para o cliente...">${jEsc(e.notas||'')}</textarea></div>
         </div>
         <div class="modal-actions">
           <button class="btn-outline" onclick="document.getElementById('modal-editar-etapa').remove()">Cancelar</button>
           <button class="btn-primary" onclick="salvarEdicaoEtapa('${etapa_id}')">Salvar</button>
         </div>
       </div>
-    </div>`);
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function salvarEdicaoEtapa(id){
-  const titulo=document.getElementById('ee-titulo').value.trim();
-  const desc=document.getElementById('ee-desc').value.trim();
-  const status=document.getElementById('ee-status').value;
-  const prevista=document.getElementById('ee-prevista').value||null;
-  const conclusao=document.getElementById('ee-conclusao').value||null;
-  const notas=document.getElementById('ee-notas').value.trim();
-  const{error}=await sb.rpc('atualizar_etapa',{p_id:id,p_titulo:titulo,p_descricao:desc||null,p_status:status,p_data_prevista:prevista,p_data_conclusao:conclusao,p_notas:notas||null});
-  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+async function salvarEdicaoEtapa(id) {
+  const titulo = document.getElementById('ee-titulo').value.trim();
+  const desc = document.getElementById('ee-desc').value.trim();
+  const status = document.getElementById('ee-status').value;
+  const prevista = document.getElementById('ee-prevista').value || null;
+  const conclusao = document.getElementById('ee-conclusao').value || null;
+  const notas = document.getElementById('ee-notas').value.trim();
+  const { error } = await sb.rpc('atualizar_etapa', {
+    p_id: id, p_titulo: titulo, p_descricao: desc||null,
+    p_status: status, p_data_prevista: prevista,
+    p_data_conclusao: conclusao, p_notas: notas||null
+  });
+  if (error) { showToast('❌','Erro ao salvar',error.message); return; }
   document.getElementById('modal-editar-etapa')?.remove();
   showToast('✅','Etapa atualizada!','');
-  etapa_aberta_id=id;
+  etapa_aberta_id = id;
   renderJornada();
 }
 
-async function confirmarExcluirEtapa(id){
-  if(!confirm('Excluir esta etapa e suas tarefas/anexos?'))return;
-  const{error}=await sb.rpc('excluir_etapa',{p_id:id});
-  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+async function confirmarExcluirEtapa(id) {
+  if (!confirm('Excluir esta etapa e suas tarefas/anexos?')) return;
+  const { error } = await sb.rpc('excluir_etapa', { p_id: id });
+  if (error) { showToast('❌','Erro ao excluir',error.message); return; }
   showToast('✅','Etapa excluída','');
   renderJornada();
 }
 
-// Tarefas
-async function adicionarTarefa(etapa_id){
-  const el=document.getElementById('nova-tarefa-'+etapa_id);
-  const desc=el?.value?.trim();
-  if(!desc)return;
-  const{error}=await sb.rpc('criar_tarefa',{p_etapa_id:etapa_id,p_descricao:desc});
-  if(error){showToast('❌','Erro',error.message);return;}
-  el.value='';etapa_aberta_id=etapa_id;renderJornada();
-}
-
-async function toggleTarefa(id,concluida,descricao){
-  const{error}=await sb.rpc('atualizar_tarefa',{p_id:id,p_descricao:descricao,p_concluida:concluida});
-  if(error){showToast('❌','Erro',error.message);return;}
+// ================================================================
+// TAREFAS
+// ================================================================
+async function adicionarTarefa(etapa_id) {
+  const el = document.getElementById('nova-tarefa-' + etapa_id);
+  const desc = el?.value?.trim();
+  if (!desc) return;
+  const { error } = await sb.rpc('criar_tarefa', { p_etapa_id: etapa_id, p_descricao: desc });
+  if (error) { showToast('❌','Erro',error.message); return; }
+  el.value = '';
+  etapa_aberta_id = etapa_id;
   renderJornada();
 }
 
-async function excluirTarefa(id){
-  const{error}=await sb.rpc('excluir_tarefa',{p_id:id});
-  if(!error)renderJornada();
+async function toggleTarefa(id, concluida, descricao) {
+  const { error } = await sb.rpc('atualizar_tarefa', {
+    p_id: id, p_descricao: descricao, p_concluida: concluida
+  });
+  if (error) { showToast('❌','Erro',error.message); return; }
+  renderJornada();
 }
 
-// Anexos
-async function adicionarAnexo(etapa_id){
-  const nome=document.getElementById('anexo-nome-'+etapa_id)?.value?.trim();
-  const url=document.getElementById('anexo-url-'+etapa_id)?.value?.trim();
-  if(!nome||!url){showToast('⚠️','Preencha nome e URL','');return;}
-  const tipo=url.toLowerCase().includes('.pdf')?'pdf':url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/)?'imagem':'link';
-  const{error}=await sb.rpc('criar_anexo',{p_etapa_id:etapa_id,p_nome:nome,p_url:url,p_tipo:tipo});
-  if(error){showToast('❌','Erro',error.message);return;}
-  etapa_aberta_id=etapa_id;renderJornada();
+async function excluirTarefa(id) {
+  const { error } = await sb.rpc('excluir_tarefa', { p_id: id });
+  if (!error) renderJornada();
 }
 
-async function excluirAnexo(id){
-  const{error}=await sb.rpc('excluir_anexo',{p_id:id});
-  if(!error)renderJornada();
+// ================================================================
+// ANEXOS
+// ================================================================
+async function adicionarAnexo(etapa_id) {
+  const nome = document.getElementById('anexo-nome-' + etapa_id)?.value?.trim();
+  const url = document.getElementById('anexo-url-' + etapa_id)?.value?.trim();
+  if (!nome || !url) { showToast('⚠️','Preencha nome e URL',''); return; }
+  const tipo = url.toLowerCase().includes('.pdf') ? 'pdf' :
+               url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/) ? 'imagem' : 'link';
+  const { error } = await sb.rpc('criar_anexo', {
+    p_etapa_id: etapa_id, p_nome: nome, p_url: url, p_tipo: tipo
+  });
+  if (error) { showToast('❌','Erro',error.message); return; }
+  etapa_aberta_id = etapa_id;
+  renderJornada();
 }
 
-function jEsc(s){
-  if(!s)return'';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+async function excluirAnexo(id) {
+  const { error } = await sb.rpc('excluir_anexo', { p_id: id });
+  if (!error) renderJornada();
+}
+
+// Helper simples de escape
+function jEsc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Exportar diagnostico para jornada
+async function abrirModalExportarDiagnostico(){
+  if(!_diagResult){showToast('⚠️','Nenhum diagnóstico gerado','');return;}
+  const{data:jornadas}=await sb.rpc('listar_jornadas',{});
+  if(!jornadas||jornadas.length===0){showToast('⚠️','Nenhuma jornada encontrada','Crie uma jornada primeiro.');return;}
+  const jornadasOpts=jornadas.map(j=>'<option value="'+j.id+'">'+jEsc(j.cliente_nome||j.cliente_email||'—')+' — '+jEsc(j.titulo)+'</option>').join('');
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="modal-exportar-diag" class="modal-bg" style="display:flex">'
+    +'<div class="modal"><h2>📤 Exportar para Jornada</h2>'
+    +'<div class="modal-f">'
+    +'<div><label class="label-sm">Jornada do cliente</label>'
+    +'<select id="exp-jornada-id" onchange="carregarEtapasExport(this.value)">'+jornadasOpts+'</select></div>'
+    +'<div><label class="label-sm">Etapa</label>'
+    +'<select id="exp-etapa-id"><option value="">Carregando...</option></select></div>'
+    +'<div style="background:var(--bg3);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">O diagnóstico será salvo como nota na etapa selecionada.</div>'
+    +'</div><div class="modal-actions">'
+    +'<button class="btn-outline" onclick="document.getElementById(\'modal-exportar-diag\').remove()">Cancelar</button>'
+    +'<button class="btn-primary" onclick="confirmarExportarDiagnostico()">Exportar</button>'
+    +'</div></div></div>');
+  carregarEtapasExport(jornadas[0].id);
+}
+
+async function carregarEtapasExport(jornada_id){
+  const sel=document.getElementById('exp-etapa-id');
+  if(!sel)return;
+  sel.innerHTML='<option>Carregando...</option>';
+  const{data:etapas}=await sb.rpc('listar_etapas',{p_jornada_id:jornada_id});
+  if(!etapas||etapas.length===0){sel.innerHTML='<option value="">Sem etapas</option>';return;}
+  sel.innerHTML=etapas.map(e=>'<option value="'+e.id+'">'+e.ordem+' — '+jEsc(e.titulo)+'</option>').join('');
+}
+
+async function confirmarExportarDiagnostico(){
+  const etapa_id=document.getElementById('exp-etapa-id').value;
+  if(!etapa_id){showToast('⚠️','Selecione uma etapa','');return;}
+  const r=_diagResult;
+  const labels={critico:'Situação crítica',atencao:'Requer atenção',bom:'Situação boa',excelente:'Excelente!'};
+  const nota=(labels[r.status]||'')+' — Score: '+r.score+'/100\n\n'+r.resumo
+    +'\n\nPlano de ação:\n'+(r.plano_acao||[]).map(function(p,i){return (i+1)+'. ['+p.prioridade.toUpperCase()+'] '+p.acao+' ('+p.prazo+')';}).join('\n')
+    +'\n\n'+r.mensagem;
+  const sel=document.getElementById('exp-etapa-id');
+  const tit=sel&&sel.selectedOptions[0]?sel.selectedOptions[0].text.split(' — ').slice(1).join(' — '):'Etapa';
+  const{error}=await sb.rpc('atualizar_etapa',{p_id:etapa_id,p_titulo:tit,p_descricao:null,p_status:'em_andamento',p_data_prevista:null,p_data_conclusao:null,p_notas:nota});
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  document.getElementById('modal-exportar-diag').remove();
+  showToast('✅','Diagnóstico exportado!','Visível na jornada do cliente.');
 }
 </script>
 </html>
