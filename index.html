@@ -2394,8 +2394,11 @@ async function addLanc(){
   }
 }
 async function remTrans(id){
-  await sb.rpc("deletar_transacao",{p_id:id});
-  trans=trans.filter(t=>t.id!==id);render();
+  const{error}=await sb.rpc("deletar_transacao",{p_id:id});
+  if(error){showToast("❌","Erro ao excluir",error.message);return;}
+  const{data}=await sb.rpc("get_transacoes");
+  trans=(data||[]).map(t=>({...t,contaId:t.conta_id}));
+  render();
 }
 async function remTransf(id){
   await sb.from("transferencias").delete().eq("id",id);
@@ -3142,14 +3145,22 @@ function htmlSuperfluo(tm){
 
 // ===== DIAGNÓSTICO IA =====
 let _diagResult=null;
+let _diagClienteId=null;
+let _diagClienteNome=null;
 
-function montarContextoFinanceiro(){
+function montarContextoFinanceiro(dadosCliente){
+  const _trans=dadosCliente?dadosCliente.trans:trans;
+  const _dividas=dadosCliente?dadosCliente.dividas:dividas;
+  const _metas=dadosCliente?dadosCliente.metas:metas;
+  const _limites=dadosCliente?dadosCliente.limites:limites;
+  const _categorias=dadosCliente?dadosCliente.categorias:categorias;
+
   const hoje=new Date();
   const mesAtual={y:hoje.getFullYear(),m:hoje.getMonth()+1};
   const nomeMes=hoje.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
 
   // Mês atual
-  const tmAtual=trans.filter(t=>{const[ty,tm]=t.data.split('-').map(Number);return ty===mesAtual.y&&tm===mesAtual.m;});
+  const tmAtual=_trans.filter(t=>{const[ty,tm]=t.data.split('-').map(Number);return ty===mesAtual.y&&tm===mesAtual.m;});
   const entradas=tmAtual.filter(t=>t.tipo==='receita').reduce((s,t)=>s+t.valor,0);
   const saidas=tmAtual.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+t.valor,0);
   const saldo=entradas-saidas;
@@ -3164,7 +3175,7 @@ function montarContextoFinanceiro(){
   for(let i=1;i<=3;i++){
     let y=mesAtual.y,m=mesAtual.m-i;
     if(m<=0){m+=12;y--;}
-    const tm=trans.filter(t=>{const[ty,tm2]=t.data.split('-').map(Number);return ty===y&&tm2===m;});
+    const tm=_trans.filter(t=>{const[ty,tm2]=t.data.split('-').map(Number);return ty===y&&tm2===m;});
     const e=tm.filter(t=>t.tipo==='receita').reduce((s,t)=>s+t.valor,0);
     const s=tm.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+t.valor,0);
     const nomeM=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long'});
@@ -3172,7 +3183,7 @@ function montarContextoFinanceiro(){
   }
 
   // Classificação supérfluo
-  const catMap={};categorias.forEach(c=>{catMap[c.nome]=c;});
+  const catMap={};_categorias.forEach(c=>{catMap[c.nome]=c;});
   let totalSuperfluo=0;
   tmAtual.filter(t=>t.tipo==='despesa').forEach(t=>{
     const cat=catMap[t.categoria];
@@ -3180,7 +3191,7 @@ function montarContextoFinanceiro(){
   });
 
   // Orçamento vs realizado
-  const pvr=limites.map(l=>({
+  const pvr=_limites.map(l=>({
     categoria:l.categoria,
     orcado:l.valor,
     gasto:gastoCat[l.categoria]||0,
@@ -3188,14 +3199,14 @@ function montarContextoFinanceiro(){
   }));
 
   // Dívidas
-  const dividasAbertas=dividas.filter(d=>!d.quitada).map(d=>({
+  const dividasAbertas=_dividas.filter(d=>!d.quitada).map(d=>({
     credor:d.credor,tipo:d.tipo,
     total:d.valorTotal,
     parcelas:`${d.pagas}/${d.parcelas}`
   }));
 
   // Metas
-  const metasAtivas=metas.filter(m=>!m.concluida).map(m=>({
+  const metasAtivas=_metas.filter(m=>!m.concluida).map(m=>({
     nome:m.nome,alvo:m.valor_alvo,
     atual:m.valor_atual,
     pct:m.valor_alvo>0?Math.round(m.valor_atual/m.valor_alvo*100)+'%':'0%',
@@ -3251,7 +3262,7 @@ async function gerarDiagnostico(){
   const el=document.getElementById('diag-content');
   el.innerHTML=`<div style="text-align:center;padding:3rem 1rem">
     <div style="font-size:40px;margin-bottom:16px;animation:pulse 1.5s infinite">🤖</div>
-    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Analisando seus dados financeiros...</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:8px">${_diagClienteNome?"Analisando dados de "+_diagClienteNome+"...":"Analisando seus dados financeiros..."}</div>
     <div style="font-size:13px;color:var(--text2)">O Claude está gerando seu diagnóstico personalizado</div>
     <div style="margin-top:20px;display:flex;gap:6px;justify-content:center">
       <div style="width:8px;height:8px;background:var(--blue2);border-radius:50%;animation:bounce 1.2s infinite 0s"></div>
@@ -3260,7 +3271,23 @@ async function gerarDiagnostico(){
     </div>
   </div>`;
 
-  const ctx=montarContextoFinanceiro();
+  let ctx;
+  if(_diagClienteId){
+    const[{data:dt},{data:dd},{data:dm}]=await Promise.all([
+      sb.rpc("get_transacoes_cliente",{p_user_id:_diagClienteId}),
+      sb.rpc("get_dividas_cliente",{p_user_id:_diagClienteId}),
+      sb.rpc("get_metas_cliente",{p_user_id:_diagClienteId})
+    ]);
+    ctx=montarContextoFinanceiro({
+      trans:(dt||[]).map(t=>({...t,contaId:t.conta_id})),
+      dividas:(dd||[]).map(d=>({...d,valorTotal:d.valor_total,venc:d.vencimento,pagamentos:[]})),
+      metas:dm||[],
+      limites:[],
+      categorias:[]
+    });
+  } else {
+    ctx=montarContextoFinanceiro();
+  }
   const prompt=montarPrompt(ctx);
 
   try{
@@ -3386,9 +3413,8 @@ function exibirDiagnostico(r,ctx){
 }
 
 function renderDiagnostico(){
-  const ctx=montarContextoFinanceiro();
-  const temDados=ctx.qtdTrans>0||ctx.hist.some(h=>h.qtdLanc>0);
   const isConsultor=_myRole==='consultor';
+  const temDados=isConsultor?!!_diagClienteId:(()=>{const c=montarContextoFinanceiro();return c.qtdTrans>0||c.hist.some(h=>h.qtdLanc>0);})();
 
   document.getElementById('view-diagnostico').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
@@ -3396,7 +3422,7 @@ function renderDiagnostico(){
         <h2 style="font-size:18px;font-weight:600;margin:0 0 4px">🤖 Diagnóstico IA</h2>
         <p style="font-size:12px;color:var(--text2);margin:0">Análise financeira personalizada com inteligência artificial</p>
       </div>
-      ${isConsultor&&temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
+      ${isConsultor&&temDados?`<button class="btn-sm" style="background:var(--blue);color:#fff;border:none;padding:10px 18px;font-size:13px" id="diag-gerar-btn" onclick="gerarDiagnostico()">✨ Gerar diagnóstico</button>`:''}
     </div>
     <div id="diag-content">
       ${!isConsultor
@@ -3424,6 +3450,21 @@ function renderDiagnostico(){
     </div>
   `;
 }
+
+async function carregarSeletorClienteDiag(){
+  const el=document.getElementById("diag-cliente-selector");
+  if(!el)return;
+  const{data:clientes}=await sb.rpc("listar_clientes");
+  if(!clientes||clientes.length===0){el.innerHTML='<span style="font-size:12px;color:var(--text2)">Nenhum cliente</span>';return;}
+  const opts=clientes.map(c=>'<option value="'+c.id+'" '+(c.id===_diagClienteId?'selected':'')+'>'+jEsc(c.nome||c.email)+'</option>').join('');
+  el.innerHTML='<select style="min-width:200px" onchange="selecionarClienteDiag(this.value)"><option value="">Selecione um cliente...</option>'+opts+'</select>';
+}
+
+function selecionarClienteDiag(id){
+  _diagClienteId=id||null;
+  renderDiagnostico();
+}
+
 // ===== RELATÓRIOS =====
 function renderRelatorios(){
   const el=document.getElementById("view-relatorios");
