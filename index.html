@@ -893,8 +893,11 @@ function renderLogin(){
   if(!el)return;
 
   if(_loginState==="entrar"){
+    const avisoInatividade=sessionStorage.getItem('logout_motivo')==='inatividade';
+    if(avisoInatividade)sessionStorage.removeItem('logout_motivo');
     el.innerHTML=`
       <div class="login-title">Entrar na sua conta</div>
+      ${avisoInatividade?'<div style="background:rgba(239,159,39,.12);color:var(--warning);border-radius:var(--radius);padding:10px 12px;font-size:12px;margin-bottom:12px;text-align:center">⏱️ Sessão encerrada por inatividade. Faça login novamente.</div>':''}
       <div class="login-field" style="margin-top:16px">
         <label>E-mail</label>
         <input id="l-email" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')document.getElementById('l-senha').focus()"/>
@@ -1024,6 +1027,7 @@ async function carregarApp(nome){
   await loadData();
   showLoading(false);
   render();
+  resetInatividadeTimer();
 }
 
 function showLoading(show){
@@ -1037,12 +1041,46 @@ function showLoading(show){
   } else if(el&&!show){el.remove();}
 }
 
-async function fazerLogout(){
-  if(!confirm("Deseja sair?"))return;
+async function fazerLogout(motivo){
+  if(!motivo&&!confirm("Deseja sair?"))return;
   await sb.auth.signOut();
   _user=null;
+  if(motivo==='inatividade'){
+    sessionStorage.setItem('logout_motivo','inatividade');
+  }
   window.location.reload();
 }
+
+// ===== LOGOUT AUTOMATICO POR INATIVIDADE =====
+const INATIVIDADE_LIMITE_MS=30*60*1000; // 30 minutos
+const INATIVIDADE_AVISO_MS=29*60*1000;  // aviso 1 min antes
+let _inatividadeTimerLogout=null;
+let _inatividadeTimerAviso=null;
+
+function resetInatividadeTimer(){
+  if(!_user)return;
+  clearTimeout(_inatividadeTimerLogout);
+  clearTimeout(_inatividadeTimerAviso);
+  document.getElementById('aviso-inatividade')?.remove();
+  _inatividadeTimerAviso=setTimeout(mostrarAvisoInatividade,INATIVIDADE_AVISO_MS);
+  _inatividadeTimerLogout=setTimeout(()=>{fazerLogout('inatividade')},INATIVIDADE_LIMITE_MS);
+}
+
+function mostrarAvisoInatividade(){
+  if(document.getElementById('aviso-inatividade'))return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="aviso-inatividade" style="position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:14px 18px;border-radius:var(--radius-lg);box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:2000;max-width:300px;font-size:13px">'
+    +'<div style="font-weight:500;margin-bottom:6px">⏱️ Sessão por inatividade</div>'
+    +'<div style="color:var(--steel);margin-bottom:10px">Você será desconectado em 1 minuto por segurança.</div>'
+    +'<button class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="resetInatividadeTimer()">Continuar conectado</button>'
+    +'</div>');
+}
+
+['mousedown','keydown','touchstart','scroll'].forEach(evt=>{
+  document.addEventListener(evt,()=>{
+    if(_user)resetInatividadeTimer();
+  },{passive:true});
+});
 
 // ===== HELPERS =====
 const fmt=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);
