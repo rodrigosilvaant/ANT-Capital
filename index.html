@@ -929,7 +929,7 @@ function renderLogin(){
         <input id="l-email-cad" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')document.getElementById('l-senha-cad').focus()"/>
       </div>
       <div class="login-field">
-        <label>Senha (mínimo 6 caracteres)</label>
+        <label>Senha (mín. 8 caracteres, com maiúscula, minúscula, número e símbolo)</label>
         <input id="l-senha-cad" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerCadastro()"/>
       </div>
       <button class="login-btn" onclick="fazerCadastro()">Criar conta</button>
@@ -988,7 +988,11 @@ async function fazerCadastro(){
   const senha=(document.getElementById("l-senha-cad").value||"").trim();
   if(!nome){setLoginError("Informe seu nome.");return;}
   if(!email){setLoginError("Informe seu e-mail.");return;}
-  if(senha.length<6){setLoginError("A senha deve ter pelo menos 6 caracteres.");return;}
+  if(senha.length<8){setLoginError("A senha deve ter pelo menos 8 caracteres.");return;}
+  if(!/[A-Z]/.test(senha)){setLoginError("A senha deve conter pelo menos uma letra maiúscula.");return;}
+  if(!/[a-z]/.test(senha)){setLoginError("A senha deve conter pelo menos uma letra minúscula.");return;}
+  if(!/[0-9]/.test(senha)){setLoginError("A senha deve conter pelo menos um número.");return;}
+  if(!/[^A-Za-z0-9]/.test(senha)){setLoginError("A senha deve conter pelo menos um símbolo (ex: ! @ # $ %).");return;}
   const btns=document.querySelectorAll(".login-btn");btns.forEach(b=>b.disabled=true);
   const {data,error}=await sb.auth.signUp({email,password:senha,options:{data:{nome}}});
   btns.forEach(b=>b.disabled=false);
