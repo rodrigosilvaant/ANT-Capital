@@ -623,6 +623,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       </div>
       <button class="icon-btn" onclick="fecharImportPDF()" style="font-size:18px">✕</button>
     </div>
+    <div id="pdf-import-conta-wrap"></div>
     <div id="pdf-drop-zone" class="pdf-import-area"
       onclick="document.getElementById('file-pdf').click()"
       ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -1429,8 +1430,24 @@ function renderDashboard(){
     <div><div style="font-size:13px;font-weight:600;color:#d97706">${streak} ${streak===1?'dia':'dias'} consecutivos</div><div style="font-size:11px;color:var(--text2)">Mantenha o ritmo de registros!</div></div>
   </div>`:'';
 
+  const saldoTotalContas=contas.reduce((s,c)=>s+getSaldoConta(c.id),0);
+
   document.getElementById('view-dashboard').innerHTML=`
     ${mesPicker()}
+
+    <!-- CONTAS: SALDO TOTAL -->
+    ${contas.length>0?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Saldo total em contas</div>
+        <div style="font-size:22px;font-weight:600;color:${saldoTotalContas>=0?'var(--navy)':'var(--danger)'}">${fmt(saldoTotalContas)}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        ${contas.map(c=>`<div style="background:var(--bg2);border-radius:var(--radius);padding:6px 12px;text-align:right">
+          <div style="font-size:10px;color:var(--text2);display:flex;align-items:center;gap:4px;justify-content:flex-end"><span style="width:6px;height:6px;border-radius:50%;background:${c.cor};display:inline-block"></span>${c.apelido||c.banco}</div>
+          <div style="font-size:13px;font-weight:500;color:${getSaldoConta(c.id)>=0?'var(--text)':'var(--danger)'}">${fmt(getSaldoConta(c.id))}</div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
 
     <!-- HERO: HEALTH SCORE -->
     <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);border-radius:var(--radius-xl);padding:1.5rem;color:#fff;margin-bottom:1.25rem">
@@ -1556,6 +1573,15 @@ function renderLancamentos(){
         </div>
       </div>
       ${showImport?`
+        ${contas.length>0?`<div style="margin-bottom:10px">
+          <label class="label-sm">Conta deste extrato</label>
+          <select id="import-conta-select" style="width:100%;max-width:320px" onchange="_importContaId=this.value||null">
+            <option value="">Sem conta vinculada</option>
+            ${contas.map(c=>`<option value="${c.id}" ${c.id===_importContaId?'selected':''}>${c.apelido||c.banco}${c.tipo?' ('+c.tipo+')':''}</option>`).join('')}
+          </select>
+        </div>`:`<div style="background:rgba(58,111,168,.08);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--text2)">
+          💡 Cadastre uma conta na aba <strong>Cadastros → Contas</strong> para vincular este extrato e manter o saldo atualizado.
+        </div>`}
         <div class="import-zone" id="drop-zone"
           onclick="document.getElementById('file-extrato').click()"
           ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -2124,6 +2150,19 @@ function toggleImport(){showImport=!showImport;importPreview=[];renderLancamento
 
 // ===== PDF IMPORT =====
 function abrirImportPDF(){
+  const wrap=document.getElementById('pdf-import-conta-wrap');
+  if(wrap){
+    if(contas.length>0){
+      wrap.innerHTML='<div style="margin-bottom:1rem">'
+        +'<label class="label-sm">Conta desta fatura</label>'
+        +'<select id="pdf-import-conta-select" style="width:100%" onchange="_importContaId=this.value||null">'
+        +'<option value="">Sem conta vinculada</option>'
+        +contas.map(c=>'<option value="'+c.id+'" '+(c.id===_importContaId?'selected':'')+'>'+jEsc(c.apelido||c.banco)+(c.tipo?' ('+c.tipo+')':'')+'</option>').join('')
+        +'</select></div>';
+    } else {
+      wrap.innerHTML='';
+    }
+  }
   document.getElementById('modal-pdf-import').style.display='flex';
 }
 function fecharImportPDF(){
@@ -2185,7 +2224,7 @@ async function processarPDF(file){
       data:t.data||`${mes.y}-${String(mes.m).padStart(2,'0')}-01`,
       categoria:t.categoria||'Outros'
     }));
-    importPreview=await marcarDuplicatas(parsedPdf);
+    importPreview=(await marcarDuplicatas(parsedPdf)).map(t=>({...t,conta_id:_importContaId||null}));
     fecharImportPDF();
     showImport=true;
     renderLancamentos();
@@ -2354,7 +2393,7 @@ function processarArquivo(file){
       else if(ext==="csv")parsed=parseCSV(content);
     }catch(err){alert("Erro ao ler o arquivo: "+err.message);return;}
     if(parsed.length===0){alert("Nenhuma transação encontrada no arquivo. Verifique se é um arquivo OFX ou CSV válido.");return;}
-    importPreview=await marcarDuplicatas(parsed);
+    importPreview=(await marcarDuplicatas(parsed)).map(t=>({...t,conta_id:_importContaId||null}));
     renderLancamentos();
     // Scroll para o preview
     setTimeout(()=>{const el=document.querySelector(".import-table");if(el)el.scrollIntoView({behavior:"smooth",block:"start"})},100);
@@ -2387,7 +2426,7 @@ async function confirmarImport(){
     const t=importPreview[i];
     if(!t)continue;
     const cat=cats[i]?cats[i].value:t.categoria;
-    lote.push({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||'Outros',data:t.data,conta_id:null});
+    lote.push({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||'Outros',data:t.data,conta_id:t.conta_id||null});
   }
   let ignorados=0;
   if(lote.length>0){
@@ -3198,6 +3237,7 @@ function htmlSuperfluo(tm){
 
 // ===== DIAGNÓSTICO IA =====
 let _diagResult=null;
+let _importContaId=null;
 let _diagClienteId=null;
 let _diagClienteNome=null;
 
