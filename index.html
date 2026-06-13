@@ -2580,7 +2580,11 @@ function abrirEditTrans(id){
   setMoeda("et-valor",t.valor);
   document.getElementById("et-data").value=t.data||"";
   const cats=t.tipo==="receita"?getCatsR():getCatsD();
-  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${cats.map(c=>`<option value="${c.nome}"${c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("")}`;
+  let catOpts=cats.map(c=>`<option value="${c.nome}"${c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("");
+  if(t.categoria&&!cats.some(c=>c.nome===t.categoria)){
+    catOpts+=`<option value="${t.categoria}" selected>${t.categoria} (não cadastrada)</option>`;
+  }
+  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${catOpts}`;
   const contaSel=document.getElementById("et-conta");
   contaSel.innerHTML=`<option value="">Nenhuma</option>${contas.map(c=>`<option value="${c.id}"${c.id===t.contaId?" selected":""}>${c.apelido||c.banco}</option>`).join("")}`;
   document.getElementById("et-conta-wrap").style.display=contas.length>0?"block":"none";
@@ -2590,16 +2594,22 @@ function etAtualizarCats(){
   if(!editingTransId)return;
   const t=trans.find(x=>x.id===editingTransId);
   const tipo=document.getElementById("et-tipo").value;
-  const cats=tipo==="receita"?getCatsR():getCatsD();
-  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${cats.map(c=>`<option value="${c.nome}"${t&&c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("")}`;
+  const cats=tipo===t?.tipo?(tipo==="receita"?getCatsR():getCatsD()):(tipo==="receita"?getCatsR():getCatsD());
+  let catOpts=cats.map(c=>`<option value="${c.nome}"${t&&tipo===t.tipo&&c.nome===t.categoria?" selected":""}>${c.nome}</option>`).join("");
+  if(t&&tipo===t.tipo&&t.categoria&&!cats.some(c=>c.nome===t.categoria)){
+    catOpts+=`<option value="${t.categoria}" selected>${t.categoria} (não cadastrada)</option>`;
+  }
+  document.getElementById("et-cat").innerHTML=`<option value="">Selecione</option>${catOpts}`;
 }
 async function salvarEdicaoTrans(){
   if(!editingTransId)return;
   const tipo=document.getElementById("et-tipo").value,desc=document.getElementById("et-desc").value.trim(),val=parseMoeda("et-valor"),dt=document.getElementById("et-data").value,cat=document.getElementById("et-cat").value;
   const ci=document.getElementById("et-conta")?.value||null;
-  if(!desc||!val||!cat)return;
+  if(!desc){showToast('⚠️','Informe a descrição','');return;}
+  if(!val){showToast('⚠️','Informe o valor','');return;}
+  if(!cat){showToast('⚠️','Selecione uma categoria','');return;}
   const {error}=await sb.rpc('atualizar_transacao',{p_id:editingTransId,p_tipo:tipo,p_descricao:desc,p_valor:val,p_categoria:cat,p_data:dt,p_conta_id:ci||null});
-  if(error){console.error("[salvarEdicaoTrans]:",error.message);return;}
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
   await refetchTrans();
   editingTransId=null;closeModal("modal-edit-trans");render();
 }
