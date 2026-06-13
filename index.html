@@ -279,6 +279,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 .import-table tr:last-child td{border-bottom:none}
 .import-table tr:hover td{background:var(--bg2)}
 .import-table select{padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+.imp-dup-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--warning);background:rgba(239,159,39,.12);padding:2px 7px;border-radius:10px;white-space:nowrap}
+.import-table tr.imp-duplicada td{opacity:.55}
 .imp-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
 .imp-badge.receita{background:var(--success-bg);color:var(--success)}
 .imp-badge.despesa{background:var(--danger-bg);color:var(--danger)}
@@ -1480,23 +1482,24 @@ function renderLancamentos(){
   const catOptsAll=allCats.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join("");
   const previewHtml=importPreview.length>0?`
     <div style="margin-top:1.25rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <p style="font-size:13px;font-weight:500;color:var(--navy)">${importPreview.length} transação(ões) encontrada(s)</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <p style="font-size:13px;font-weight:500;color:var(--navy)">${importPreview.length} transação(ões) encontrada(s)${importPreview.some(t=>t._duplicada)?` · <span style="color:var(--warning);font-weight:600">${importPreview.filter(t=>t._duplicada).length} já importada(s)</span>`:""}</p>
         <div style="display:flex;gap:8px">
           <button class="btn-outline" onclick="cancelarImport()">Cancelar</button>
           <button class="btn-sm" onclick="confirmarImport()">↓ Importar selecionados</button>
         </div>
       </div>
+      ${importPreview.some(t=>t._duplicada)?`<p style="font-size:12px;color:var(--text2);margin-bottom:8px">⚠ As linhas em destaque já existem no seu histórico e vêm desmarcadas por padrão. Marque-as se quiser importar mesmo assim (ex: gasto repetido no mesmo dia).</p>`:""}
       <div style="overflow-x:auto">
         <table class="import-table">
           <thead><tr>
             <th><input type="checkbox" id="chk-all" onchange="toggleAllImport(this.checked)" checked/></th>
             <th>Data</th><th>Descrição</th><th class="col-tipo">Tipo</th><th>Valor</th><th>Categoria</th>
           </tr></thead>
-          <tbody>${importPreview.map((t,i)=>`<tr>
-            <td><input type="checkbox" class="imp-chk" data-i="${i}" checked/></td>
+          <tbody>${importPreview.map((t,i)=>`<tr class="${t._duplicada?"imp-duplicada":""}">
+            <td><input type="checkbox" class="imp-chk" data-i="${i}" ${t._duplicada?"":"checked"}/></td>
             <td style="color:var(--text2);white-space:nowrap">${fmtData(t.data)}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.descricao}">${t.descricao||"—"}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.descricao}">${t.descricao||"—"}${t._duplicada?` <span class="imp-dup-badge">⚠ Já importado</span>`:""}</td>
             <td><span class="imp-badge ${t.tipo}">${t.tipo==="receita"?"Receita":"Despesa"}</span></td>
             <td style="font-weight:500;color:${t.tipo==="receita"?"var(--success)":"var(--danger)"}; white-space:nowrap">${t.tipo==="receita"?"+":"-"}${fmt(t.valor)}</td>
             <td><select class="imp-cat" data-i="${i}"><option value="">Sem categoria</option>${catOptsAll}</select></td>
@@ -2137,13 +2140,14 @@ async function processarPDF(file){
     }
 
     // Load into importPreview and open normal import flow
-    importPreview=transacoes.map(t=>({
+    const parsedPdf=transacoes.map(t=>({
       tipo:t.tipo||'despesa',
       descricao:t.descricao||'',
       valor:Math.abs(t.valor||0),
       data:t.data||`${mes.y}-${String(mes.m).padStart(2,'0')}-01`,
       categoria:t.categoria||'Outros'
     }));
+    importPreview=await marcarDuplicatas(parsedPdf);
     fecharImportPDF();
     showImport=true;
     renderLancamentos();
@@ -2304,7 +2308,7 @@ function processarArquivo(file){
   if(!file)return;
   const ext=file.name.split(".").pop().toLowerCase();
   const reader=new FileReader();
-  reader.onload=function(e){
+  reader.onload=async function(e){
     const content=e.target.result;
     let parsed=[];
     try{
@@ -2312,12 +2316,25 @@ function processarArquivo(file){
       else if(ext==="csv")parsed=parseCSV(content);
     }catch(err){alert("Erro ao ler o arquivo: "+err.message);return;}
     if(parsed.length===0){alert("Nenhuma transação encontrada no arquivo. Verifique se é um arquivo OFX ou CSV válido.");return;}
-    importPreview=parsed;
+    importPreview=await marcarDuplicatas(parsed);
     renderLancamentos();
     // Scroll para o preview
     setTimeout(()=>{const el=document.querySelector(".import-table");if(el)el.scrollIntoView({behavior:"smooth",block:"start"})},100);
   };
   reader.readAsText(file,"UTF-8");
+}
+
+// Marca cada item do preview com {_duplicada:true/false} consultando o banco
+async function marcarDuplicatas(parsed){
+  try{
+    const payload=parsed.map(t=>({data:t.data,valor:t.valor,tipo:t.tipo,descricao:t.descricao}));
+    const{data,error}=await sb.rpc('verificar_duplicatas',{p_transacoes:payload});
+    if(error||!data)return parsed;
+    return parsed.map((t,i)=>({...t,_duplicada:!!(data[i]&&data[i].duplicada)}));
+  }catch(e){
+    console.error('[marcarDuplicatas]',e.message);
+    return parsed;
+  }
 }
 
 async function confirmarImport(){
@@ -2334,28 +2351,23 @@ async function confirmarImport(){
     const cat=cats[i]?cats[i].value:t.categoria;
     lote.push({user_id:_user.id,tipo:t.tipo,descricao:t.descricao,valor:t.valor,categoria:cat||'Outros',data:t.data,conta_id:null});
   }
+  let ignorados=0;
   if(lote.length>0){
-    console.log('[confirmarImport] enviando',lote.length,'transações. Primeira:',JSON.stringify(lote[0]));
-    const {data:inserted,error}=await sb.rpc('inserir_transacoes_lote',{p_transacoes:lote});
-    console.log('[confirmarImport] resultado:',inserted,'| error:',error?.message||'nenhum');
+    const {data:resultado,error}=await sb.rpc('inserir_transacoes_lote_dedupe',{p_transacoes:lote});
     if(error){
       console.error('[confirmarImport] erro:',error.message);
       alert('Erro ao importar: '+error.message);
       if(btn){btn.disabled=false;btn.textContent='Confirmar importação';}
       return;
     }
-    // RPC pode retornar número direto ou string diagnóstica
-    if(typeof inserted==='number') count=inserted;
-    else if(typeof inserted==='string'){const m=inserted.match(/inserted=(\d+)/);count=m?parseInt(m[1]):lote.length;}
-    else count=lote.length;
+    count=resultado?.inseridos||0;
+    ignorados=resultado?.ignorados||0;
     await refetchTrans();
-    console.log('[confirmarImport] após refetch trans.length:',trans.length);
-  } else {
-    console.log('[confirmarImport] lote vazio — nenhuma transação selecionada');
   }
   importPreview=[];showImport=false;
   render();
-  showToast('✅',`${count} transações importadas`,`Extrato carregado com sucesso`);
+  const subMsg=ignorados>0?`${count} novas · ${ignorados} já existiam e foram ignoradas`:'Extrato carregado com sucesso';
+  showToast('✅',`${count} transações importadas`,subMsg);
 }
 
 async function refetchTrans(){
