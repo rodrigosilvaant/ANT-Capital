@@ -1629,6 +1629,7 @@ function renderGraficos(){
   if(chartInst){chartInst.destroy();chartInst=null}
   if(window._chartDonut){window._chartDonut.destroy();window._chartDonut=null}
   if(window._chartMensal){window._chartMensal.destroy();window._chartMensal=null}
+  if(window._chart502030){window._chart502030.destroy();window._chart502030=null}
 
   const tm=getTransMes(),filtered=tm.filter(t=>t.tipo===grafTipo);
   const map={};filtered.forEach(t=>{map[t.categoria]=(map[t.categoria]||0)+t.valor});
@@ -1657,6 +1658,21 @@ function renderGraficos(){
     return result;
   }
   const dadosMensais=getDadosMensais();
+
+  // Dados 50-30-20
+  const catMapGraf={};categorias.forEach(c=>{catMapGraf[c.nome]=c;});
+  const classifs502030=categorias.some(c=>c.essencial_superfluo);
+  let g_necessidades=0,g_desejos=0,g_futuro=0;
+  tm.filter(t=>t.tipo==='despesa').forEach(t=>{
+    const cat=catMapGraf[t.categoria];
+    const grupo=cat?.essencial_superfluo||'essencial';
+    if(grupo==='futuro')g_futuro+=t.valor;
+    else if(grupo==='superfluo')g_desejos+=t.valor;
+    else g_necessidades+=t.valor;
+  });
+  const g_pctNec=entradas>0?g_necessidades/entradas*100:0;
+  const g_pctDes=entradas>0?g_desejos/entradas*100:0;
+  const g_pctFut=entradas>0?g_futuro/entradas*100:0;
 
   // Legenda do donut
   const legendaHtml=labels.length>0
@@ -1697,6 +1713,22 @@ function renderGraficos(){
       </div>`}
     </div>
 
+    <!-- Regra 50-30-20: Real vs Meta -->
+    ${classifs502030&&entradas>0?`<div class="card-white" style="margin-bottom:1.5rem">
+      <p class="section-title">Regra 50-30-20 — Real vs Meta (${mesNome(mes.y,mes.m)})</p>
+      <div style="position:relative;height:200px"><canvas id="chart502030"></canvas></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.6">
+        🏠 Necessidades: ${fmt(g_necessidades)} (${g_pctNec.toFixed(0)}% — meta 50%) &nbsp;·&nbsp;
+        🛍️ Desejos: ${fmt(g_desejos)} (${g_pctDes.toFixed(0)}% — meta 30%) &nbsp;·&nbsp;
+        🌱 Futuro: ${fmt(g_futuro)} (${g_pctFut.toFixed(0)}% — meta 20%)
+      </div>
+      <button onclick="setTab('cadastros');setCadTab('categorias')" style="font-size:11px;color:var(--blue2);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:8px">Editar classificação das categorias →</button>
+    </div>`:classifs502030?'':`<div class="card-white" style="margin-bottom:1.5rem">
+      <p class="section-title">Regra 50-30-20</p>
+      <p class="empty">Classifique suas categorias em Cadastros para ver essa análise.</p>
+      <button onclick="setTab('cadastros');setCadTab('categorias')" style="font-size:11px;color:var(--blue2);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">Ir para classificação →</button>
+    </div>`}
+
     <!-- Barras mensais -->
     <div class="card-white" style="margin-bottom:1.5rem">
       <p class="section-title">Receitas vs Despesas — últimos 6 meses</p>
@@ -1718,6 +1750,35 @@ function renderGraficos(){
           plugins:{
             legend:{display:false},
             tooltip:{callbacks:{label:c=>" "+c.label+": "+fmt(c.raw)+" ("+( total>0?((c.raw/total)*100).toFixed(1):0)+"%)"}}}
+        }
+      });
+    }
+  }
+
+  // Renderizar Grafico 50-30-20
+  if(classifs502030&&entradas>0){
+    const ctx502=document.getElementById("chart502030");
+    if(ctx502){
+      window._chart502030=new Chart(ctx502,{
+        type:"bar",
+        data:{
+          labels:["Necessidades","Desejos","Futuro"],
+          datasets:[
+            {label:"Real (%)",data:[g_pctNec,g_pctDes,g_pctFut],backgroundColor:["#3a6fa8","#EF9F27","#1D9E75"],borderRadius:5,borderSkipped:false},
+            {label:"Meta (%)",data:[50,30,20],backgroundColor:"rgba(143,168,196,.35)",borderRadius:5,borderSkipped:false}
+          ]
+        },
+        options:{
+          indexAxis:"y",
+          responsive:true,maintainAspectRatio:false,
+          plugins:{
+            legend:{position:"top",labels:{color:"#4a6278",font:{size:12},boxWidth:12,boxHeight:12,borderRadius:3,useBorderRadius:true}},
+            tooltip:{callbacks:{label:c=>" "+c.dataset.label+": "+c.raw.toFixed(0)+"%"}}
+          },
+          scales:{
+            x:{ticks:{color:"#8fa8c4",font:{size:11},callback:v=>v+"%"},grid:{color:"rgba(21,35,54,.06)"},border:{display:false},max:Math.max(60,g_pctNec,g_pctDes,g_pctFut)+10},
+            y:{ticks:{color:"#8fa8c4",font:{size:11}},grid:{display:false},border:{display:false}}
+          }
         }
       });
     }
