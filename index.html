@@ -1718,9 +1718,9 @@ function renderGraficos(){
       <p class="section-title">Regra 50-30-20 — Real vs Meta (${mesNome(mes.y,mes.m)})</p>
       <div style="position:relative;height:200px"><canvas id="chart502030"></canvas></div>
       <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.6">
-        🏠 Necessidades: ${fmt(g_necessidades)} (${g_pctNec.toFixed(0)}% — meta 50%) &nbsp;·&nbsp;
-        🛍️ Desejos: ${fmt(g_desejos)} (${g_pctDes.toFixed(0)}% — meta 30%) &nbsp;·&nbsp;
-        🌱 Futuro: ${fmt(g_futuro)} (${g_pctFut.toFixed(0)}% — meta 20%)
+        🏠 Necessidades: ${fmt(g_necessidades)} (${Math.round(g_pctNec)}% — meta 50%) &nbsp;·&nbsp;
+        🛍️ Desejos: ${fmt(g_desejos)} (${Math.round(g_pctDes)}% — meta 30%) &nbsp;·&nbsp;
+        🌱 Futuro: ${fmt(g_futuro)} (${Math.round(g_pctFut)}% — meta 20%)
       </div>
       <button onclick="setTab('cadastros');setCadTab('categorias')" style="font-size:11px;color:var(--blue2);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:8px">Editar classificação das categorias →</button>
     </div>`:classifs502030?'':`<div class="card-white" style="margin-bottom:1.5rem">
@@ -1764,7 +1764,7 @@ function renderGraficos(){
         data:{
           labels:["Necessidades","Desejos","Futuro"],
           datasets:[
-            {label:"Real (%)",data:[g_pctNec,g_pctDes,g_pctFut],backgroundColor:["#3a6fa8","#EF9F27","#1D9E75"],borderRadius:5,borderSkipped:false},
+            {label:"Real (%)",data:[Math.round(g_pctNec),Math.round(g_pctDes),Math.round(g_pctFut)],backgroundColor:["#3a6fa8","#EF9F27","#1D9E75"],borderRadius:5,borderSkipped:false},
             {label:"Meta (%)",data:[50,30,20],backgroundColor:"rgba(143,168,196,.35)",borderRadius:5,borderSkipped:false}
           ]
         },
@@ -1776,7 +1776,7 @@ function renderGraficos(){
             tooltip:{callbacks:{label:c=>" "+c.dataset.label+": "+c.raw.toFixed(0)+"%"}}
           },
           scales:{
-            x:{ticks:{color:"#8fa8c4",font:{size:11},callback:v=>v+"%"},grid:{color:"rgba(21,35,54,.06)"},border:{display:false},max:Math.max(60,g_pctNec,g_pctDes,g_pctFut)+10},
+            x:{ticks:{color:"#8fa8c4",font:{size:11},callback:v=>Math.round(v)+"%"},grid:{color:"rgba(21,35,54,.06)"},border:{display:false},max:Math.ceil(Math.max(60,g_pctNec,g_pctDes,g_pctFut)/10)*10},
             y:{ticks:{color:"#8fa8c4",font:{size:11}},grid:{display:false},border:{display:false}}
           }
         }
