@@ -803,7 +803,7 @@ const CATEG_R_PAD=["Salário","Freelance","Investimentos","Aluguel Recebido","B�
 const CATEG_D_PAD=["Alimentação","Moradia","Transporte","Saúde","Educação","Lazer","Roupas","Contas","Assinaturas","Outros"];
 const CORES=["#3a6fa8","#1D9E75","#E24B4A","#EF9F27","#7F77DD","#D4537E","#152336","#639922","#D85A30","#8fa8c4"];
 
-let trans,dividas,retPerfil,contas,transferencias,categorias,projecao,limites=[],metas=[];
+let trans,dividas,retPerfil,contas,transferencias,categorias,projecao,limites=[],metas=[],seguros=[],patrimonio=[];
 
 // ===== SUPABASE =====
 const SUPABASE_URL = 'https://pdjggmwhhtmrkmyxzrgi.supabase.co';
@@ -836,7 +836,7 @@ async function loadData(){
   const dbgRes = await sb.from('transacoes').select('id').limit(3);
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
-  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes] = await Promise.all([
+  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes, segRes, patRes] = await Promise.all([
     sb.rpc('get_transacoes'),
     sb.rpc('get_dividas'),
     sb.rpc('get_contas'),
@@ -845,6 +845,8 @@ async function loadData(){
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.rpc('get_projecao'),
     sb.rpc('get_profile_data'),
+    sb.rpc('get_seguros'),
+    sb.rpc('get_patrimonio'),
   ]);
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
@@ -867,6 +869,8 @@ async function loadData(){
   console.log('[Debug] profRes:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
   metas = profRes.data?.metas || [];
+  seguros = segRes.data || [];
+  patrimonio = patRes.data || [];
 
   console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
@@ -1435,6 +1439,9 @@ function renderDashboard(){
   </div>`:'';
 
   const saldoTotalContas=contas.reduce((s,c)=>s+getSaldoConta(c.id),0);
+  const totalAtivosPatr=patrimonio.reduce((s,p)=>s+(p.valor_atual||0),0);
+  const totalPassivosPatr=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
+  const patrimonioLiquidoDash=totalAtivosPatr-totalPassivosPatr;
 
   document.getElementById('view-dashboard').innerHTML=`
     ${mesPicker()}
@@ -1452,6 +1459,9 @@ function renderDashboard(){
         </div>`).join('')}
       </div>
     </div>`:''}
+
+    <!-- PATRIMÔNIO LÍQUIDO -->
+    ${totalAtivosPatr>0?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Patrimônio líquido</div><div style="font-size:22px;font-weight:600;color:${patrimonioLiquidoDash>=0?'var(--navy)':'var(--danger)'}">${fmt(patrimonioLiquidoDash)}</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Ativos: ${fmt(totalAtivosPatr)} · Dívidas: ${fmt(totalPassivosPatr)}</div></div><button onclick="setTab('cadastros');setCadTab('patrimonio')" style="font-size:12px;color:var(--blue2);background:none;border:none;cursor:pointer">Ver patrimônio →</button></div>`:''}    
 
     <!-- HERO: HEALTH SCORE -->
     <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);border-radius:var(--radius-xl);padding:1.5rem;color:#fff;margin-bottom:1.25rem">
@@ -1832,7 +1842,7 @@ function renderAposentadoria(){
 
 function renderCadastros(){
   const cR=getCatsR(),cD=getCatsD();
-  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="orcamento"?"active":""}" onclick="setCadTab('orcamento')">💰 Orçamento</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
+  let html=`<div class="sub-nav"><button class="${cadTab==="contas"?"active":""}" onclick="setCadTab('contas')">Contas</button><button class="${cadTab==="categorias"?"active":""}" onclick="setCadTab('categorias')">Categorias</button><button class="${cadTab==="orcamento"?"active":""}" onclick="setCadTab('orcamento')">💰 Orçamento</button><button class="${cadTab==="seguros"?"active":""}" onclick="setCadTab('seguros')">🛡️ Seguros</button><button class="${cadTab==="patrimonio"?"active":""}" onclick="setCadTab('patrimonio')">🏠 Patrimônio</button><button class="${cadTab==="migracao"?"active":""}" onclick="setCadTab('migracao')" style="color:var(--warning)">⚡ Migrar dados</button></div>`;
   if(cadTab==="contas"){
     const cl=contas.length===0?`<p class="empty">Nenhuma conta cadastrada.</p>`:`<div class="list">${contas.map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.cor}"></div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${c.apelido||c.banco}</div><div style="font-size:12px;color:var(--text2)">${c.banco}${c.tipo?" · "+c.tipo:""}</div></div><div style="text-align:right;margin-right:12px"><div style="font-size:14px;font-weight:500;color:${getSaldoConta(c.id)>=0?"var(--success)":"var(--danger)"}">${fmt(getSaldoConta(c.id))}</div><div style="font-size:11px;color:var(--text2)">Inicial: ${fmt(c.saldoInicial||c.saldo_inicial||0)}</div></div><button class="icon-btn" style="color:var(--blue2)" onclick="abrirEditConta('${c.id}')">${iconEdit()}</button><button class="icon-btn" onclick="remConta('${c.id}')">${iconTrash()}</button></div>`).join("")}</div>`;
     html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><p class="section-title" style="margin:0">Suas contas</p><button class="btn-sm" onclick="abrirNovaContaModal()">+ Nova conta</button></div>${cl}`;
@@ -1852,6 +1862,10 @@ function renderCadastros(){
     </div>`;
   } else if(cadTab==="orcamento"){
     html+=renderOrcamentoHTML();
+  } else if(cadTab==="seguros"){
+    html+=renderSegurosHTML();
+  } else if(cadTab==="patrimonio"){
+    html+=renderPatrimonioHTML();
   } else if(cadTab==="migracao"){
     html+=renderMigracaoHTML();
   }
@@ -4265,6 +4279,162 @@ let etapas_data = [];
 let jornada_clientes = [];
 let jornada_filtro_cliente = null;
 let etapa_aberta_id = null;
+
+// ===== SEGUROS =====
+const TIPO_SEGURO_ICONS = {vida:'❤️',saude:'🏥',automovel:'🚗',residencial:'🏠',previdencia:'📈',outro:'📋'};
+const TIPO_SEGURO_LABELS = {vida:'Vida',saude:'Saúde',automovel:'Automóvel',residencial:'Residencial',previdencia:'Previdência',outro:'Outro'};
+
+function renderSegurosHTML(){
+  const ativos=seguros.filter(s=>s.status==='ativo');
+  const vencidos=seguros.filter(s=>s.status!=='ativo');
+  const totalMensal=ativos.reduce((s,x)=>s+(x.premio_mensal||0),0);
+  const hoje=new Date();
+  const em30=new Date(hoje);em30.setDate(em30.getDate()+30);
+  const vencendoBreve=ativos.filter(s=>s.vencimento&&new Date(s.vencimento)<=em30&&new Date(s.vencimento)>=hoje);
+  const cardSeguro=s=>{
+    const icon=TIPO_SEGURO_ICONS[s.tipo]||'📋';
+    const label=TIPO_SEGURO_LABELS[s.tipo]||s.tipo;
+    const venc=s.vencimento?new Date(s.vencimento):null;
+    const diasVenc=venc?Math.ceil((venc-hoje)/(1000*60*60*24)):null;
+    const vencAlert=diasVenc!==null&&diasVenc<=30&&diasVenc>=0;
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1">'
+      +'<div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:14px;font-weight:500">'+jEsc(s.seguradora||label)+(s.descricao?' — '+jEsc(s.descricao):'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'
+      +label+(s.numero_apolice?' · Apólice: '+jEsc(s.numero_apolice):'')
+      +(s.vencimento?(' · '+(vencAlert?'<span style="color:var(--warning);font-weight:500">⚠️ Vence em '+diasVenc+' dias</span>':('Vence: '+fmtData(s.vencimento)))):'')
+      +'</div>'
+      +(s.beneficiarios?'<div style="font-size:11px;color:var(--text2);margin-top:2px">Beneficiários: '+jEsc(s.beneficiarios)+'</div>':'')
+      +'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +(s.premio_mensal?'<div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(s.premio_mensal)+'<span style="font-size:11px;font-weight:400;color:var(--text2)">/mês</span></div>':'')
+      +'<span class="status-badge '+(s.status==='ativo'?'sb-concluida':s.status==='vencido'?'sb-atrasada':'sb-pendente')+'" style="margin-top:4px;display:inline-flex">'
+      +(s.status==='ativo'?'Ativo':s.status==='vencido'?'Vencido':'Cancelado')+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;margin-left:8px">'
+      +'<button class="icon-btn" onclick="abrirEditSeguro(''+s.id+'')">'+iconEdit()+'</button>'
+      +'<button class="icon-btn" onclick="excluirSeguro(''+s.id+'')">'+iconTrash()+'</button>'
+      +'</div></div>'
+      +(s.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(s.observacoes)+'</div>':'')
+      +'</div>';
+  };
+  let h='';
+  if(vencendoBreve.length>0){h+='<div style="background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.3);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:1rem;font-size:13px;color:var(--warning)">⚠️ '+vencendoBreve.length+' seguro(s) vencem nos próximos 30 dias</div>';}
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><div>'+(totalMensal>0?'<div style="font-size:13px;color:var(--text2)">Total mensal em seguros: <strong style="color:var(--navy)">'+fmt(totalMensal)+'</strong></div>':'')+'</div><button class="btn-sm" onclick="abrirModalNovoSeguro()">+ Novo seguro</button></div>';
+  if(seguros.length===0){h+='<p class="empty">Nenhum seguro cadastrado.</p>';}
+  else{if(ativos.length>0)h+='<p class="section-title">Ativos</p>'+ativos.map(cardSeguro).join('');if(vencidos.length>0)h+='<p class="section-title" style="margin-top:1.5rem">Inativos</p>'+vencidos.map(cardSeguro).join('');}
+  return h;
+}
+
+function abrirModalNovoSeguro(s){
+  const editing=!!s,id=s?.id||'';
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="modal-seguro" class="modal-bg" style="display:flex"><div class="modal"><h2>'+(editing?'Editar':'Novo')+' Seguro</h2><div class="modal-f">'
+    +'<div><label class="label-sm">Tipo</label><select id="seg-tipo">'+Object.entries(TIPO_SEGURO_LABELS).map(([v,l])=>'<option value="'+v+'" '+(s?.tipo===v?'selected':'')+'>'+TIPO_SEGURO_ICONS[v]+' '+l+'</option>').join('')+'</select></div>'
+    +'<div><label class="label-sm">Seguradora</label><input id="seg-seg" value="'+jEsc(s?.seguradora||'')+'" placeholder="Ex: Porto Seguro"/></div>'
+    +'<div><label class="label-sm">Descrição (opcional)</label><input id="seg-desc" value="'+jEsc(s?.descricao||'')+'" placeholder="Ex: Seguro de vida familiar"/></div>'
+    +'<div><label class="label-sm">Número da apólice (opcional)</label><input id="seg-apolice" value="'+jEsc(s?.numero_apolice||'')+'"/></div>'
+    +'<div class="grid2"><div><label class="label-sm">Prêmio mensal (R$)</label><input id="seg-premio" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
+    +'<div><label class="label-sm">Vencimento/Renovação</label><input id="seg-venc" type="date" value="'+(s?.vencimento||'')+'"/></div></div>'
+    +'<div><label class="label-sm">Beneficiários (opcional)</label><input id="seg-benef" value="'+jEsc(s?.beneficiarios||'')+'" placeholder="Ex: Cônjuge e filhos"/></div>'
+    +'<div><label class="label-sm">Status</label><select id="seg-status"><option value="ativo" '+((!s||s.status==="ativo")?"selected":"")+'>Ativo</option><option value="vencido" '+(s?.status==="vencido"?"selected":"")+'>Vencido</option><option value="cancelado" '+(s?.status==="cancelado"?"selected":"")+'>Cancelado</option></select></div>'
+    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="seg-obs" placeholder="Coberturas, franquias, contato do corretor...">'+jEsc(s?.observacoes||'')+'</textarea></div>'
+    +'</div><div class="modal-actions"><button class="btn-outline" onclick="document.getElementById('modal-seguro').remove()">Cancelar</button>'
+    +'<button class="btn-primary" onclick="salvarSeguro(''+id+'')">'+( editing?'Salvar':'Adicionar')+'</button></div></div></div>');
+  if(s?.premio_mensal)setMoeda('seg-premio',s.premio_mensal);
+}
+function abrirEditSeguro(id){const s=seguros.find(x=>x.id===id);if(s)abrirModalNovoSeguro(s);}
+async function salvarSeguro(id){
+  const tipo=document.getElementById('seg-tipo').value,seg=document.getElementById('seg-seg').value.trim(),desc=document.getElementById('seg-desc').value.trim(),apolice=document.getElementById('seg-apolice').value.trim(),premio=parseMoeda('seg-premio'),venc=document.getElementById('seg-venc').value||null,benef=document.getElementById('seg-benef').value.trim(),status=document.getElementById('seg-status').value,obs=document.getElementById('seg-obs').value.trim();
+  if(!tipo){showToast('⚠️','Selecione o tipo','');return;}
+  let error;
+  if(id){({error}=await sb.rpc('atualizar_seguro',{p_id:id,p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
+  else{({error}=await sb.rpc('inserir_seguro',{p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  const{data}=await sb.rpc('get_seguros');seguros=data||[];
+  document.getElementById('modal-seguro')?.remove();showToast('✅',id?'Seguro atualizado!':'Seguro cadastrado!','');renderCadastros();
+}
+async function excluirSeguro(id){
+  if(!confirm('Excluir este seguro?'))return;
+  const{error}=await sb.rpc('excluir_seguro',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  const{data}=await sb.rpc('get_seguros');seguros=data||[];showToast('✅','Seguro excluído','');renderCadastros();
+}
+
+// ===== PATRIMÔNIO =====
+const TIPO_PAT_ICONS={imovel:'🏠',veiculo:'🚗',investimento:'📈',bem:'💎'};
+const TIPO_PAT_LABELS={imovel:'Imóvel',veiculo:'Veículo',investimento:'Investimento',bem:'Bem de Valor'};
+
+function renderPatrimonioHTML(){
+  const totalAtivos=patrimonio.reduce((s,p)=>s+(p.valor_atual||0),0);
+  const totalDividas=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
+  const patrimonioLiquido=totalAtivos-totalDividas;
+  const grupos={imovel:[],veiculo:[],investimento:[],bem:[]};
+  patrimonio.forEach(p=>{if(grupos[p.tipo])grupos[p.tipo].push(p);else grupos.bem.push(p);});
+  const cardPat=p=>{
+    const icon=TIPO_PAT_ICONS[p.tipo]||'💎';
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1"><div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
+      +'<div style="flex:1"><div style="font-size:14px;font-weight:500">'+jEsc(p.nome)+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+(p.descricao?jEsc(p.descricao):'')+(p.data_aquisicao?' · Adquirido em '+fmtData(p.data_aquisicao):'')+'</div>'
+      +(p.divida_id&&p.divida_credor?'<div style="font-size:11px;color:var(--warning);margin-top:3px">🔗 Financiado: '+jEsc(p.divida_credor)+' (saldo: '+fmt(p.divida_saldo||0)+')</div>':'')
+      +'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(p.valor_atual)+'</div>'
+      +(p.divida_id&&p.divida_saldo?'<div style="font-size:11px;color:var(--success);margin-top:2px">Equidade: '+fmt((p.valor_atual||0)-(p.divida_saldo||0))+'</div>':'')+'</div>'
+      +'<div style="display:flex;gap:6px;margin-left:8px"><button class="icon-btn" onclick="abrirEditPatrimonio(''+p.id+'')">'+iconEdit()+'</button><button class="icon-btn" onclick="excluirPatrimonio(''+p.id+'')">'+iconTrash()+'</button></div></div>'
+      +(p.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(p.observacoes)+'</div>':'')
+      +'</div>';
+  };
+  let h='<div class="grid3" style="margin-bottom:1.25rem">'
+    +'<div class="card stat"><label>Total de ativos</label><div class="val" style="color:var(--navy)">'+fmt(totalAtivos)+'</div></div>'
+    +'<div class="card stat"><label>Total de dívidas</label><div class="val" style="color:var(--danger)">'+fmt(totalDividas)+'</div></div>'
+    +'<div class="card stat"><label>Patrimônio líquido</label><div class="val" style="color:'+(patrimonioLiquido>=0?'var(--success)':'var(--danger)')+'">'+fmt(patrimonioLiquido)+'</div></div>'
+    +'</div><div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="btn-sm" onclick="abrirModalNovoPatrimonio()">+ Novo bem</button></div>';
+  if(patrimonio.length===0){h+='<p class="empty">Nenhum bem cadastrado.</p>';}
+  else{Object.entries(grupos).forEach(([tipo,itens])=>{if(itens.length===0)return;h+='<p class="section-title">'+TIPO_PAT_ICONS[tipo]+' '+TIPO_PAT_LABELS[tipo]+'s</p>'+itens.map(cardPat).join('');});}
+  return h;
+}
+
+function abrirModalNovoPatrimonio(p){
+  const editing=!!p,id=p?.id||'';
+  const dividasAbertas=dividas.filter(d=>!d.quitada);
+  const dividaOpts='<option value="">Nenhuma</option>'+dividasAbertas.map(d=>'<option value="'+d.id+'" '+(p?.divida_id===d.id?'selected':'')+'>'+jEsc(d.credor)+' ('+fmt(d.valorTotal)+')</option>').join('');
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="modal-patrimonio" class="modal-bg" style="display:flex"><div class="modal"><h2>'+(editing?'Editar':'Novo')+' Bem</h2><div class="modal-f">'
+    +'<div><label class="label-sm">Tipo</label><select id="pat-tipo">'+Object.entries(TIPO_PAT_LABELS).map(([v,l])=>'<option value="'+v+'" '+(p?.tipo===v?'selected':'')+'>'+TIPO_PAT_ICONS[v]+' '+l+'</option>').join('')+'</select></div>'
+    +'<div><label class="label-sm">Nome</label><input id="pat-nome" value="'+jEsc(p?.nome||'')+'" placeholder="Ex: Apartamento Centro, Honda Civic 2020"/></div>'
+    +'<div><label class="label-sm">Descrição (opcional)</label><input id="pat-desc" value="'+jEsc(p?.descricao||'')+'" placeholder="Detalhes adicionais"/></div>'
+    +'<div class="grid2"><div><label class="label-sm">Valor atual (R$)</label><input id="pat-valor" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
+    +'<div><label class="label-sm">Data de aquisição (opcional)</label><input id="pat-data" type="date" value="'+(p?.data_aquisicao||'')+'"/></div></div>'
+    +'<div><label class="label-sm">Dívida vinculada (financiamento)</label><select id="pat-divida">'+dividaOpts+'</select></div>'
+    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="pat-obs" placeholder="Localização, matrícula, RENAVAM...">'+jEsc(p?.observacoes||'')+'</textarea></div>'
+    +'</div><div class="modal-actions"><button class="btn-outline" onclick="document.getElementById('modal-patrimonio').remove()">Cancelar</button>'
+    +'<button class="btn-primary" onclick="salvarPatrimonio(''+id+'')">'+( editing?'Salvar':'Adicionar')+'</button></div></div></div>');
+  if(p?.valor_atual)setMoeda('pat-valor',p.valor_atual);
+}
+function abrirEditPatrimonio(id){const p=patrimonio.find(x=>x.id===id);if(p)abrirModalNovoPatrimonio(p);}
+async function salvarPatrimonio(id){
+  const tipo=document.getElementById('pat-tipo').value,nome=document.getElementById('pat-nome').value.trim(),desc=document.getElementById('pat-desc').value.trim(),valor=parseMoeda('pat-valor'),data=document.getElementById('pat-data').value||null,dividaId=document.getElementById('pat-divida').value||null,obs=document.getElementById('pat-obs').value.trim();
+  if(!nome){showToast('⚠️','Informe o nome do bem','');return;}
+  if(!valor){showToast('⚠️','Informe o valor atual','');return;}
+  let error;
+  if(id){({error}=await sb.rpc('atualizar_patrimonio',{p_id:id,p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
+  else{({error}=await sb.rpc('inserir_patrimonio',{p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  const{data:pData}=await sb.rpc('get_patrimonio');patrimonio=pData||[];
+  document.getElementById('modal-patrimonio')?.remove();showToast('✅',id?'Bem atualizado!':'Bem cadastrado!','');renderCadastros();
+}
+async function excluirPatrimonio(id){
+  if(!confirm('Excluir este bem do patrimônio?'))return;
+  const{error}=await sb.rpc('excluir_patrimonio',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  const{data}=await sb.rpc('get_patrimonio');patrimonio=data||[];showToast('✅','Bem excluído','');renderCadastros();
+}
+
 let jornada_view = 'lista'; // 'lista' | 'detalhe'
 
 // ========== CARREGAR ROLE DO USUÁRIO ==========
