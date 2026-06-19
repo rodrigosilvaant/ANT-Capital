@@ -836,7 +836,7 @@ async function loadData(){
   const dbgRes = await sb.from('transacoes').select('id').limit(3);
   console.log('[Debug] transacoes sem filtro:', dbgRes.data?.length, 'erro:', dbgRes.error?.message);
 
-  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes, segRes, patRes] = await Promise.all([
+  const [tRes, dRes, cRes, trRes, catRes, retRes, projRes, profRes] = await Promise.all([
     sb.rpc('get_transacoes'),
     sb.rpc('get_dividas'),
     sb.rpc('get_contas'),
@@ -845,9 +845,17 @@ async function loadData(){
     sb.from('aposentadoria').select('*').maybeSingle(),
     sb.rpc('get_projecao'),
     sb.rpc('get_profile_data'),
-    sb.rpc('get_seguros'),
-    sb.rpc('get_patrimonio'),
   ]);
+
+  // Seguros e patrimônio carregados separadamente para não bloquear o app em caso de erro
+  try {
+    const segRes = await sb.rpc('get_seguros');
+    seguros = Array.isArray(segRes.data) ? segRes.data : [];
+  } catch(e) { console.warn('[loadData] get_seguros:', e.message); seguros = []; }
+  try {
+    const patRes = await sb.rpc('get_patrimonio');
+    patrimonio = Array.isArray(patRes.data) ? patRes.data : [];
+  } catch(e) { console.warn('[loadData] get_patrimonio:', e.message); patrimonio = []; }
 
   console.log('[LoadData] transacoes:', tRes.data?.length, 'erro:', tRes.error?.message);
   console.log('[LoadData] categorias:', catRes.data?.length, 'erro:', catRes.error?.message);
@@ -869,8 +877,7 @@ async function loadData(){
   console.log('[Debug] profRes:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
   metas = profRes.data?.metas || [];
-  seguros = Array.isArray(segRes.data) ? segRes.data : [];
-  patrimonio = Array.isArray(patRes.data) ? patRes.data : [];
+
 
   console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
