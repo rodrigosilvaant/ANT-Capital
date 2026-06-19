@@ -869,8 +869,8 @@ async function loadData(){
   console.log('[Debug] profRes:', JSON.stringify(profRes.data), '| error:', profRes.error?.message);
   limites = profRes.data?.limites || [];
   metas = profRes.data?.metas || [];
-  seguros = segRes.data || [];
-  patrimonio = patRes.data || [];
+  seguros = Array.isArray(segRes.data) ? segRes.data : [];
+  patrimonio = Array.isArray(patRes.data) ? patRes.data : [];
 
   console.log('[LoadData] Concluído — trans:', trans.length, 'cats:', categorias.length, 'limites:', limites.length, 'metas:', metas.length);
 }
@@ -4285,6 +4285,7 @@ const TIPO_SEGURO_ICONS = {vida:'❤️',saude:'🏥',automovel:'🚗',residenci
 const TIPO_SEGURO_LABELS = {vida:'Vida',saude:'Saúde',automovel:'Automóvel',residencial:'Residencial',previdencia:'Previdência',outro:'Outro'};
 
 function renderSegurosHTML(){
+  if(!seguros||!Array.isArray(seguros))seguros=[];
   const ativos=seguros.filter(s=>s.status==='ativo');
   const vencidos=seguros.filter(s=>s.status!=='ativo');
   const totalMensal=ativos.reduce((s,x)=>s+(x.premio_mensal||0),0);
@@ -4369,6 +4370,7 @@ const TIPO_PAT_ICONS={imovel:'🏠',veiculo:'🚗',investimento:'📈',bem:'💎
 const TIPO_PAT_LABELS={imovel:'Imóvel',veiculo:'Veículo',investimento:'Investimento',bem:'Bem de Valor'};
 
 function renderPatrimonioHTML(){
+  if(!patrimonio||!Array.isArray(patrimonio))patrimonio=[];
   const totalAtivos=patrimonio.reduce((s,p)=>s+(p.valor_atual||0),0);
   const totalDividas=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
   const patrimonioLiquido=totalAtivos-totalDividas;
