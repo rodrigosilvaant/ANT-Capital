@@ -5240,7 +5240,7 @@ async function uploadImagemAnexo(etapa_id) {
 
   // Upload para Supabase Storage
   const ext = file.name.split('.').pop();
-  const path = \`jornada/\${etapa_id}/\${Date.now()}.\${ext}\`;
+  const path = 'jornada/' + etapa_id + '/' + Date.now() + '.' + ext;
   const { data, error } = await sb.storage.from('jornada-anexos').upload(path, file, {
     cacheControl: '3600', upsert: false, contentType: file.type
   });
