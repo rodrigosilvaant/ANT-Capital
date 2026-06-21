@@ -87,11 +87,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .brand-sub{color:var(--steel);font-size:11px}
 .header-user{margin-left:auto;display:flex;align-items:center;gap:10px}
 .header-user span{color:var(--steel);font-size:12px}
+.header-brand-area{display:flex;align-items:center;gap:10px}
 .logout-btn{background:rgba(255,255,255,.08);border:none;color:var(--steel);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px}
 .logout-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
 .nav-wrap{background:var(--navy2);border-bottom:1px solid rgba(255,255,255,.08);position:relative}
-.nav-wrap::after{content:"";position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,var(--navy2));pointer-events:none}
+.nav-wrap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:20px;background:linear-gradient(to left,transparent,var(--navy2));pointer-events:none;z-index:1}
+.nav-wrap::after{content:"";position:absolute;right:0;top:0;bottom:0;width:40px;background:linear-gradient(to right,transparent,var(--navy2));pointer-events:none;z-index:1}
 .nav{display:flex;max-width:100%;margin:0 auto;padding:0 1rem;overflow-x:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav button{display:flex;align-items:center;gap:5px;padding:11px 12px;border:none;background:transparent;cursor:pointer;font-size:12px;color:var(--steel);font-weight:400;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
@@ -109,7 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .stat .val{font-size:18px;font-weight:500}
 .section-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 .mes-picker{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem}
-.mes-picker span{font-size:14px;font-weight:500;min-width:160px;text-align:center}
+.mes-picker span{font-size:14px;font-weight:500;min-width:140px;text-align:center}
 .mes-picker button{background:none;border:none;cursor:pointer;color:var(--text2);padding:4px;display:flex;align-items:center;border-radius:4px}
 .tipo-toggle{display:flex;gap:8px;margin-bottom:1rem}
 .tipo-toggle button{flex:1;padding:9px 4px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500;background:var(--bg);color:var(--text2)}
@@ -164,8 +166,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 .pay-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
 .pay-item:last-child{border-bottom:none}
 
-.sub-nav{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
-.sub-nav button{padding:9px 18px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:400}
+.sub-nav{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sub-nav::-webkit-scrollbar{display:none}
+.sub-nav button{padding:9px 18px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:400;white-space:nowrap;flex-shrink:0}
 .sub-nav button.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:500}
 .cat-section{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem}
 .cat-section h3{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:10px}
@@ -273,8 +276,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 .import-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
 .import-zone:hover{border-color:var(--blue);background:var(--bg3)}
 .import-zone.drag-over{border-color:var(--blue);background:var(--bg3)}
-.import-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:1rem}
-.import-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.import-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:1rem;border-radius:var(--radius)}
+.import-table{width:100%;min-width:560px;border-collapse:collapse;font-size:13px}
+.import-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;white-space:nowrap}
 .import-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
 .import-table tr:last-child td{border-bottom:none}
 .import-table tr:hover td{background:var(--bg2)}
@@ -325,7 +329,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .header-user span{display:none}
   .logout-btn{padding:5px 8px;font-size:10px}
   /* Nav */
-  .nav button{padding:10px 10px;font-size:11px;gap:3px}
+  .nav button{padding:10px 8px;font-size:10px;gap:3px}
   .nav button svg{width:13px;height:13px}
   /* Content */
   .content{padding:.875rem 1rem}
@@ -356,7 +360,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   /* Section title */
   .section-title{font-size:10px}
   /* Mes picker */
-  .mes-picker span{min-width:140px;font-size:13px}
+  .mes-picker span{min-width:110px;font-size:13px}
+  .mes-picker{gap:4px}
   /* Login */
   .login-box{padding:1.5rem 1.25rem}
   .login-brand{font-size:18px}
@@ -376,7 +381,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .lsm{width:32px;height:32px}
   .lsm img{width:24px;height:24px}
   /* Nav compact */
-  .nav button{padding:9px 8px;font-size:10px}
+  .nav button{padding:8px 6px;font-size:10px}
   /* Grid2 inside cards → stack (forms keep their layout) */
   .debt-card .grid2{grid-template-columns:1fr}
   .modal .grid2{grid-template-columns:1fr}
@@ -420,6 +425,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     display:flex;flex-direction:column;
   }
   .nav-wrap::after{display:none}
+  .nav-wrap::before{display:none}
 
   /* Brand logo in sidebar */
   .sidebar-brand{
@@ -432,13 +438,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 
   /* Header shifts right */
   .app-header{margin-left:220px;position:sticky;top:0;z-index:150}
+  .app-header .lsm{display:none}
+  .brand-name{display:none}
+  .brand-sub{display:none}
 
   /* Content shifts right */
   .content{margin-left:220px}
   .app{padding-bottom:2rem}
 
   /* Vertical nav */
-  .nav{flex-direction:column;overflow-x:unset;padding:.5rem 0;gap:0}
+  .nav{flex-direction:column;overflow-x:unset;overflow-y:auto;padding:.5rem 0;gap:0;flex:1}
   .nav button{
     width:100%;justify-content:flex-start;
     padding:11px 20px;border-bottom:none !important;
@@ -456,14 +465,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav button svg{width:16px;height:16px;flex-shrink:0}
 
   /* Label switching */
+  .nav-label-sidebar{display:inline}
+  .nav-label-short{display:none}
   .nav-label-full{display:none}
-  .nav-label-short{display:inline}
 }
 
 /* Mobile: hide sidebar brand, keep top nav */
 @media(max-width:767px){
-  .nav-label-full{display:inline}
-  .nav-label-short{display:none}
+  .nav-label-full{display:none}
+  .nav-label-sidebar{display:none}
+  .nav-label-short{display:inline}
   .sidebar-brand{display:none}
   /* Reset sidebar to original horizontal nav on mobile */
   .nav-wrap{
@@ -674,17 +685,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   <div class="nav-wrap">
     <div class="sidebar-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;flex-shrink:0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>ANT Capital</span></div>
     <nav class="nav">
-      <button id="tab-dashboard" class="active" onclick="setTab('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Resumo</button>
-      <button id="tab-lancamentos" onclick="setTab('lancamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>Lançamentos</button>
-      <button id="tab-projecao" onclick="setTab('projecao')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Projeção</button>
-      <button id="tab-graficos" onclick="setTab('graficos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>Análise</button>
-      <button id="tab-dividas" onclick="setTab('dividas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Dívidas</button>
-      <button id="tab-metas" onclick="setTab('metas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Metas</button>
-      <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-full">Planejamento de Aposentadoria</span><span class="nav-label-short">Aposentadoria</span></button>
-      <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>Cadastros</button>
-      <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Relatórios</button>
-      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Jornada</button>
-            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg>Diagnóstico IA</button>
+      <button id="tab-dashboard" class="active" onclick="setTab('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label-sidebar">Resumo</span><span class="nav-label-short">Res.</span></button>
+      <button id="tab-lancamentos" onclick="setTab('lancamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg><span class="nav-label-sidebar">Lançamentos</span><span class="nav-label-short">Lanç.</span></button>
+      <button id="tab-projecao" onclick="setTab('projecao')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label-sidebar">Projeção</span><span class="nav-label-short">Proj.</span></button>
+      <button id="tab-graficos" onclick="setTab('graficos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg><span class="nav-label-sidebar">Análise</span><span class="nav-label-short">Anál.</span></button>
+      <button id="tab-dividas" onclick="setTab('dividas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="nav-label-sidebar">Dívidas</span><span class="nav-label-short">Dívi.</span></button>
+      <button id="tab-metas" onclick="setTab('metas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="nav-label-sidebar">Metas</span><span class="nav-label-short">Metas</span></button>
+      <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-full">Aposentadoria</span><span class="nav-label-sidebar">Aposentadoria</span></button>
+      <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg><span class="nav-label-sidebar">Cadastros</span><span class="nav-label-short">Cad.</span></button>
+      <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label-sidebar">Relatórios</span><span class="nav-label-short">Rel.</span></button>
+      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-sidebar">Jornada</span><span class="nav-label-short">Jorn.</span></button>
+            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg><span class="nav-label-sidebar">Diagnóstico IA</span><span class="nav-label-short">Diag.</span></button>
     </nav>
   </div>
   <div class="content">
@@ -1733,7 +1744,7 @@ function renderGraficos(){
     <!-- Regra 50-30-20: Real vs Meta -->
     ${classifs502030&&entradas>0?`<div class="card-white" style="margin-bottom:1.5rem">
       <p class="section-title">Regra 50-30-20 — Real vs Meta (${mesNome(mes.y,mes.m)})</p>
-      <div style="position:relative;height:200px"><canvas id="chart502030"></canvas></div>
+      <div style="position:relative;height:clamp(160px,40vw,200px)"><canvas id="chart502030"></canvas></div>
       <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.6">
         🏠 Necessidades: ${fmt(g_necessidades)} (${Math.round(g_pctNec)}% — meta 50%) &nbsp;·&nbsp;
         🛍️ Desejos: ${fmt(g_desejos)} (${Math.round(g_pctDes)}% — meta 30%) &nbsp;·&nbsp;
@@ -1749,7 +1760,7 @@ function renderGraficos(){
     <!-- Barras mensais -->
     <div class="card-white" style="margin-bottom:1.5rem">
       <p class="section-title">Receitas vs Despesas — últimos 6 meses</p>
-      <div style="position:relative;height:240px"><canvas id="chartMensal"></canvas></div>
+      <div style="position:relative;height:clamp(180px,45vw,240px)"><canvas id="chartMensal"></canvas></div>
     </div>`;
 
   // Renderizar Donut
@@ -1846,216 +1857,6 @@ function renderAposentadoria(){
   if(p.investAtual)setMoeda("r-inv",p.investAtual);
   if(p.idadeAtual)setTimeout(calcApos,50);
 }
-
-// ===== SEGUROS =====
-const TIPO_SEGURO_ICONS = {vida:'❤️',saude:'🏥',automovel:'🚗',residencial:'🏠',previdencia:'📈',outro:'📋'};
-const TIPO_SEGURO_LABELS = {vida:'Vida',saude:'Saúde',automovel:'Automóvel',residencial:'Residencial',previdencia:'Previdência',outro:'Outro'};
-
-function renderSegurosHTML(){
-  if(!seguros||!Array.isArray(seguros))seguros=[];
-  const ativos=seguros.filter(s=>s.status==='ativo');
-  const vencidos=seguros.filter(s=>s.status!=='ativo');
-  const totalMensal=ativos.reduce((s,x)=>s+(x.premio_mensal||0),0);
-  const hoje=new Date();
-  const em30=new Date(hoje);em30.setDate(em30.getDate()+30);
-  const vencendoBreve=ativos.filter(s=>s.vencimento&&new Date(s.vencimento)<=em30&&new Date(s.vencimento)>=hoje);
-  const cardSeguro=s=>{
-    const icon=TIPO_SEGURO_ICONS[s.tipo]||'📋';
-    const label=TIPO_SEGURO_LABELS[s.tipo]||s.tipo;
-    const venc=s.vencimento?new Date(s.vencimento):null;
-    const diasVenc=venc?Math.ceil((venc-hoje)/(1000*60*60*24)):null;
-    const vencAlert=diasVenc!==null&&diasVenc<=30&&diasVenc>=0;
-    return '<div class="card" style="margin-bottom:10px">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
-      +'<div style="display:flex;align-items:center;gap:10px;flex:1">'
-      +'<div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:14px;font-weight:500">'+jEsc(s.seguradora||label)+(s.descricao?' — '+jEsc(s.descricao):'')+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'
-      +label+(s.numero_apolice?' · Apólice: '+jEsc(s.numero_apolice):'')
-      +(s.vencimento?(' · '+(vencAlert?'<span style="color:var(--warning);font-weight:500">⚠️ Vence em '+diasVenc+' dias</span>':('Vence: '+fmtData(s.vencimento)))):'')
-      +'</div>'
-      +(s.beneficiarios?'<div style="font-size:11px;color:var(--text2);margin-top:2px">Beneficiários: '+jEsc(s.beneficiarios)+'</div>':'')
-      +'</div></div>'
-      +'<div style="text-align:right;flex-shrink:0">'
-      +(s.premio_mensal?'<div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(s.premio_mensal)+'<span style="font-size:11px;font-weight:400;color:var(--text2)">/mês</span></div>':'')
-      +'<span class="status-badge '+(s.status==='ativo'?'sb-concluida':s.status==='vencido'?'sb-atrasada':'sb-pendente')+'" style="margin-top:4px;display:inline-flex">'
-      +(s.status==='ativo'?'Ativo':s.status==='vencido'?'Vencido':'Cancelado')+'</span>'
-      +'</div>'
-      +'<div style="display:flex;gap:6px;margin-left:8px">'
-      +'<button class="icon-btn" onclick="abrirEditSeguro('+JSON.stringify(s.id)+')">'+ iconEdit()+'</button>'
-      +'<button class="icon-btn" onclick="excluirSeguro('+JSON.stringify(s.id)+')">'+ iconTrash()+'</button>'
-      +'</div></div>'
-      +(s.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(s.observacoes)+'</div>':'')
-      +'</div>';
-  };
-  let h='';
-  if(vencendoBreve.length>0){h+='<div style="background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.3);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:1rem;font-size:13px;color:var(--warning)">⚠️ '+vencendoBreve.length+' seguro(s) vencem nos próximos 30 dias</div>';}
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><div>'+(totalMensal>0?'<div style="font-size:13px;color:var(--text2)">Total mensal em seguros: <strong style="color:var(--navy)">'+fmt(totalMensal)+'</strong></div>':'')+'</div><button class="btn-sm" onclick="abrirModalNovoSeguro()">+ Novo seguro</button></div>';
-  if(seguros.length===0){h+='<p class="empty">Nenhum seguro cadastrado.</p>';}
-  else{if(ativos.length>0)h+='<p class="section-title">Ativos</p>'+ativos.map(cardSeguro).join('');if(vencidos.length>0)h+='<p class="section-title" style="margin-top:1.5rem">Inativos</p>'+vencidos.map(cardSeguro).join('');}
-  return h;
-}
-
-function abrirModalNovoSeguro(s){
-  const editing=!!s,id=s?s.id:'';
-  const tipoOpts=Object.entries(TIPO_SEGURO_LABELS).map(function(e){
-    return '<option value="'+e[0]+'" '+(s&&s.tipo===e[0]?'selected':'')+'>'+TIPO_SEGURO_ICONS[e[0]]+' '+e[1]+'</option>';
-  }).join('');
-  const el=document.createElement('div');
-  el.id='modal-seguro';el.className='modal-bg';el.style.display='flex';
-  const t=document.createElement('template');
-  t.innerHTML='<div class="modal">'
-    +'<h2>'+(editing?'Editar':'Novo')+' Seguro</h2>'
-    +'<div class="modal-f">'
-    +'<div><label class="label-sm">Tipo</label><select id="seg-tipo">'+tipoOpts+'</select></div>'
-    +'<div><label class="label-sm">Seguradora</label><input id="seg-seg" placeholder="Ex: Porto Seguro"/></div>'
-    +'<div><label class="label-sm">Descrição (opcional)</label><input id="seg-desc" placeholder="Ex: Seguro de vida familiar"/></div>'
-    +'<div><label class="label-sm">Número da apólice (opcional)</label><input id="seg-apolice"/></div>'
-    +'<div class="grid2">'
-    +'<div><label class="label-sm">Prêmio mensal (R$)</label><input id="seg-premio" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
-    +'<div><label class="label-sm">Vencimento/Renovação</label><input id="seg-venc" type="date"/></div>'
-    +'</div>'
-    +'<div><label class="label-sm">Beneficiários (opcional)</label><input id="seg-benef" placeholder="Ex: Cônjuge e filhos"/></div>'
-    +'<div><label class="label-sm">Status</label><select id="seg-status">'
-    +'<option value="ativo">Ativo</option>'
-    +'<option value="vencido">Vencido</option>'
-    +'<option value="cancelado">Cancelado</option>'
-    +'</select></div>'
-    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="seg-obs" placeholder="Coberturas, franquias, contato do corretor..."></textarea></div>'
-    +'</div>'
-    +'<div class="modal-actions">'
-    +'<button class="btn-outline" id="seg-btn-cancel">Cancelar</button>'
-    +'<button class="btn-primary" id="seg-btn-save">'+(editing?'Salvar':'Adicionar')+'</button>'
-    +'</div></div>';
-  el.appendChild(t.content);
-  document.body.appendChild(el);
-  el.querySelector('#seg-btn-cancel').onclick=function(){el.remove();};
-  el.querySelector('#seg-btn-save').onclick=function(){salvarSeguro(id);};
-  if(s){
-    if(s.seguradora)document.getElementById('seg-seg').value=s.seguradora;
-    if(s.descricao)document.getElementById('seg-desc').value=s.descricao;
-    if(s.numero_apolice)document.getElementById('seg-apolice').value=s.numero_apolice;
-    if(s.vencimento)document.getElementById('seg-venc').value=s.vencimento;
-    if(s.beneficiarios)document.getElementById('seg-benef').value=s.beneficiarios;
-    if(s.status)document.getElementById('seg-status').value=s.status;
-    if(s.observacoes)document.getElementById('seg-obs').value=s.observacoes;
-    if(s.premio_mensal)setMoeda('seg-premio',s.premio_mensal);
-  }
-}
-function abrirEditSeguro(id){const s=seguros.find(x=>x.id===id);if(s)abrirModalNovoSeguro(s);}
-async function salvarSeguro(id){
-  const tipo=document.getElementById('seg-tipo').value,seg=document.getElementById('seg-seg').value.trim(),desc=document.getElementById('seg-desc').value.trim(),apolice=document.getElementById('seg-apolice').value.trim(),premio=parseMoeda('seg-premio'),venc=document.getElementById('seg-venc').value||null,benef=document.getElementById('seg-benef').value.trim(),status=document.getElementById('seg-status').value,obs=document.getElementById('seg-obs').value.trim();
-  if(!tipo){showToast('⚠️','Selecione o tipo','');return;}
-  let error;
-  if(id){({error}=await sb.rpc('atualizar_seguro',{p_id:id,p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
-  else{({error}=await sb.rpc('inserir_seguro',{p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
-  if(error){showToast('❌','Erro ao salvar',error.message);return;}
-  const{data}=await sb.rpc('get_seguros');seguros=data||[];
-  document.getElementById('modal-seguro')?.remove();showToast('✅',id?'Seguro atualizado!':'Seguro cadastrado!','');renderCadastros();
-}
-async function excluirSeguro(id){
-  if(!confirm('Excluir este seguro?'))return;
-  const{error}=await sb.rpc('excluir_seguro',{p_id:id});
-  if(error){showToast('❌','Erro ao excluir',error.message);return;}
-  const{data}=await sb.rpc('get_seguros');seguros=data||[];showToast('✅','Seguro excluído','');renderCadastros();
-}
-
-// ===== PATRIMÔNIO =====
-const TIPO_PAT_ICONS={imovel:'🏠',veiculo:'🚗',investimento:'📈',bem:'💎'};
-const TIPO_PAT_LABELS={imovel:'Imóvel',veiculo:'Veículo',investimento:'Investimento',bem:'Bem de Valor'};
-
-function renderPatrimonioHTML(){
-  if(!patrimonio||!Array.isArray(patrimonio))patrimonio=[];
-  const totalAtivos=patrimonio.reduce((s,p)=>s+(p.valor_atual||0),0);
-  const totalDividas=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
-  const patrimonioLiquido=totalAtivos-totalDividas;
-  const grupos={imovel:[],veiculo:[],investimento:[],bem:[]};
-  patrimonio.forEach(p=>{if(grupos[p.tipo])grupos[p.tipo].push(p);else grupos.bem.push(p);});
-  const cardPat=p=>{
-    const icon=TIPO_PAT_ICONS[p.tipo]||'💎';
-    return '<div class="card" style="margin-bottom:10px">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
-      +'<div style="display:flex;align-items:center;gap:10px;flex:1"><div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
-      +'<div style="flex:1"><div style="font-size:14px;font-weight:500">'+jEsc(p.nome)+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+(p.descricao?jEsc(p.descricao):'')+(p.data_aquisicao?' · Adquirido em '+fmtData(p.data_aquisicao):'')+'</div>'
-      +(p.divida_id&&p.divida_credor?'<div style="font-size:11px;color:var(--warning);margin-top:3px">🔗 Financiado: '+jEsc(p.divida_credor)+' (saldo: '+fmt(p.divida_saldo||0)+')</div>':'')
-      +'</div></div>'
-      +'<div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(p.valor_atual)+'</div>'
-      +(p.divida_id&&p.divida_saldo?'<div style="font-size:11px;color:var(--success);margin-top:2px">Equidade: '+fmt((p.valor_atual||0)-(p.divida_saldo||0))+'</div>':'')+'</div>'
-      +'<div style="display:flex;gap:6px;margin-left:8px"><button class="icon-btn" onclick="abrirEditPatrimonio(\'+p.id+\')">'+iconEdit()+'</button><button class="icon-btn" onclick="excluirPatrimonio(\'+p.id+\')">'+iconTrash()+'</button></div></div>'
-      +(p.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(p.observacoes)+'</div>':'')
-      +'</div>';
-  };
-  let h='<div class="grid3" style="margin-bottom:1.25rem">'
-    +'<div class="card stat"><label>Total de ativos</label><div class="val" style="color:var(--navy)">'+fmt(totalAtivos)+'</div></div>'
-    +'<div class="card stat"><label>Total de dívidas</label><div class="val" style="color:var(--danger)">'+fmt(totalDividas)+'</div></div>'
-    +'<div class="card stat"><label>Patrimônio líquido</label><div class="val" style="color:'+(patrimonioLiquido>=0?'var(--success)':'var(--danger)')+'">'+fmt(patrimonioLiquido)+'</div></div>'
-    +'</div><div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="btn-sm" onclick="abrirModalNovoPatrimonio()">+ Novo bem</button></div>';
-  if(patrimonio.length===0){h+='<p class="empty">Nenhum bem cadastrado.</p>';}
-  else{Object.entries(grupos).forEach(([tipo,itens])=>{if(itens.length===0)return;h+='<p class="section-title">'+TIPO_PAT_ICONS[tipo]+' '+TIPO_PAT_LABELS[tipo]+'s</p>'+itens.map(cardPat).join('');});}
-  return h;
-}
-
-function abrirModalNovoPatrimonio(p){
-  const editing=!!p,id=p?p.id:'';
-  const dividasAbertas=dividas.filter(function(d){return !d.quitada;});
-  const tipoOpts=Object.entries(TIPO_PAT_LABELS).map(function(e){
-    return '<option value="'+e[0]+'" '+(p&&p.tipo===e[0]?'selected':'')+'>'+TIPO_PAT_ICONS[e[0]]+' '+e[1]+'</option>';
-  }).join('');
-  const dividaOpts='<option value="">Nenhuma</option>'
-    +dividasAbertas.map(function(d){return '<option value="'+d.id+'" '+(p&&p.divida_id===d.id?'selected':'')+'>'+jEsc(d.credor)+' ('+fmt(d.valorTotal)+')</option>';}).join('');
-  const el=document.createElement('div');
-  el.id='modal-patrimonio';el.className='modal-bg';el.style.display='flex';
-  const t=document.createElement('template');
-  t.innerHTML='<div class="modal">'
-    +'<h2>'+(editing?'Editar':'Novo')+' Bem</h2>'
-    +'<div class="modal-f">'
-    +'<div><label class="label-sm">Tipo</label><select id="pat-tipo">'+tipoOpts+'</select></div>'
-    +'<div><label class="label-sm">Nome</label><input id="pat-nome" placeholder="Ex: Apartamento Centro, Honda Civic 2020"/></div>'
-    +'<div><label class="label-sm">Descrição (opcional)</label><input id="pat-desc" placeholder="Detalhes adicionais"/></div>'
-    +'<div class="grid2">'
-    +'<div><label class="label-sm">Valor atual (R$)</label><input id="pat-valor" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
-    +'<div><label class="label-sm">Data de aquisição (opcional)</label><input id="pat-data" type="date"/></div>'
-    +'</div>'
-    +'<div><label class="label-sm">Dívida vinculada (financiamento)</label><select id="pat-divida">'+dividaOpts+'</select></div>'
-    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="pat-obs" placeholder="Localização, matrícula, RENAVAM..."></textarea></div>'
-    +'</div>'
-    +'<div class="modal-actions">'
-    +'<button class="btn-outline" id="pat-btn-cancel">Cancelar</button>'
-    +'<button class="btn-primary" id="pat-btn-save">'+(editing?'Salvar':'Adicionar')+'</button>'
-    +'</div></div>';
-  el.appendChild(t.content);
-  document.body.appendChild(el);
-  el.querySelector('#pat-btn-cancel').onclick=function(){el.remove();};
-  el.querySelector('#pat-btn-save').onclick=function(){salvarPatrimonio(id);};
-  if(p){
-    if(p.nome)document.getElementById('pat-nome').value=p.nome;
-    if(p.descricao)document.getElementById('pat-desc').value=p.descricao;
-    if(p.data_aquisicao)document.getElementById('pat-data').value=p.data_aquisicao;
-    if(p.observacoes)document.getElementById('pat-obs').value=p.observacoes;
-    if(p.valor_atual)setMoeda('pat-valor',p.valor_atual);
-  }
-}
-function abrirEditPatrimonio(id){const p=patrimonio.find(x=>x.id===id);if(p)abrirModalNovoPatrimonio(p);}
-async function salvarPatrimonio(id){
-  const tipo=document.getElementById('pat-tipo').value,nome=document.getElementById('pat-nome').value.trim(),desc=document.getElementById('pat-desc').value.trim(),valor=parseMoeda('pat-valor'),data=document.getElementById('pat-data').value||null,dividaId=document.getElementById('pat-divida').value||null,obs=document.getElementById('pat-obs').value.trim();
-  if(!nome){showToast('⚠️','Informe o nome do bem','');return;}
-  if(!valor){showToast('⚠️','Informe o valor atual','');return;}
-  let error;
-  if(id){({error}=await sb.rpc('atualizar_patrimonio',{p_id:id,p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
-  else{({error}=await sb.rpc('inserir_patrimonio',{p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
-  if(error){showToast('❌','Erro ao salvar',error.message);return;}
-  const{data:pData}=await sb.rpc('get_patrimonio');patrimonio=pData||[];
-  document.getElementById('modal-patrimonio')?.remove();showToast('✅',id?'Bem atualizado!':'Bem cadastrado!','');renderCadastros();
-}
-async function excluirPatrimonio(id){
-  if(!confirm('Excluir este bem do patrimônio?'))return;
-  const{error}=await sb.rpc('excluir_patrimonio',{p_id:id});
-  if(error){showToast('❌','Erro ao excluir',error.message);return;}
-  const{data}=await sb.rpc('get_patrimonio');patrimonio=data||[];showToast('✅','Bem excluído','');renderCadastros();
-}
-
 
 function renderCadastros(){
   const cR=getCatsR(),cD=getCatsD();
@@ -3069,7 +2870,7 @@ function renderProjecao(){
         // Donut
         +'<div class="card-white">'
         +'<p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem">Composição do orçamento</p>'
-        +'<div style="position:relative;height:200px"><canvas id="proj-donut"></canvas>'
+        +'<div style="position:relative;height:clamp(160px,40vw,200px)"><canvas id="proj-donut"></canvas>'
         +(totalR>0?'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">'
           +'<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Saldo</div>'
           +'<div style="font-size:15px;font-weight:600;color:'+(saldo>=0?"var(--success)":"var(--danger)")+'">'+fmt(saldo)+'</div>'
@@ -3079,7 +2880,7 @@ function renderProjecao(){
         +'<div class="card-white">'
         +'<p style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem">Despesas por categoria</p>'
         +(totalD===0?'<p class="empty">Nenhuma despesa prevista.</p>'
-          :'<div style="position:relative;height:200px"><canvas id="proj-barras"></canvas></div>')
+          :'<div style="position:relative;height:clamp(160px,40vw,200px)"><canvas id="proj-barras"></canvas></div>')
         +'</div>'
         +'</div>'
       :"");
@@ -4496,6 +4297,163 @@ let etapas_data = [];
 let jornada_clientes = [];
 let jornada_filtro_cliente = null;
 let etapa_aberta_id = null;
+
+// ===== SEGUROS =====
+const TIPO_SEGURO_ICONS = {vida:'❤️',saude:'🏥',automovel:'🚗',residencial:'🏠',previdencia:'📈',outro:'📋'};
+const TIPO_SEGURO_LABELS = {vida:'Vida',saude:'Saúde',automovel:'Automóvel',residencial:'Residencial',previdencia:'Previdência',outro:'Outro'};
+
+function renderSegurosHTML(){
+  if(!seguros||!Array.isArray(seguros))seguros=[];
+  const ativos=seguros.filter(s=>s.status==='ativo');
+  const vencidos=seguros.filter(s=>s.status!=='ativo');
+  const totalMensal=ativos.reduce((s,x)=>s+(x.premio_mensal||0),0);
+  const hoje=new Date();
+  const em30=new Date(hoje);em30.setDate(em30.getDate()+30);
+  const vencendoBreve=ativos.filter(s=>s.vencimento&&new Date(s.vencimento)<=em30&&new Date(s.vencimento)>=hoje);
+  const cardSeguro=s=>{
+    const icon=TIPO_SEGURO_ICONS[s.tipo]||'📋';
+    const label=TIPO_SEGURO_LABELS[s.tipo]||s.tipo;
+    const venc=s.vencimento?new Date(s.vencimento):null;
+    const diasVenc=venc?Math.ceil((venc-hoje)/(1000*60*60*24)):null;
+    const vencAlert=diasVenc!==null&&diasVenc<=30&&diasVenc>=0;
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1">'
+      +'<div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:14px;font-weight:500">'+jEsc(s.seguradora||label)+(s.descricao?' — '+jEsc(s.descricao):'')+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'
+      +label+(s.numero_apolice?' · Apólice: '+jEsc(s.numero_apolice):'')
+      +(s.vencimento?(' · '+(vencAlert?'<span style="color:var(--warning);font-weight:500">⚠️ Vence em '+diasVenc+' dias</span>':('Vence: '+fmtData(s.vencimento)))):'')
+      +'</div>'
+      +(s.beneficiarios?'<div style="font-size:11px;color:var(--text2);margin-top:2px">Beneficiários: '+jEsc(s.beneficiarios)+'</div>':'')
+      +'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +(s.premio_mensal?'<div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(s.premio_mensal)+'<span style="font-size:11px;font-weight:400;color:var(--text2)">/mês</span></div>':'')
+      +'<span class="status-badge '+(s.status==='ativo'?'sb-concluida':s.status==='vencido'?'sb-atrasada':'sb-pendente')+'" style="margin-top:4px;display:inline-flex">'
+      +(s.status==='ativo'?'Ativo':s.status==='vencido'?'Vencido':'Cancelado')+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;margin-left:8px">'
+      +'<button class="icon-btn" onclick="abrirEditSeguro(''+s.id+'')">'+iconEdit()+'</button>'
+      +'<button class="icon-btn" onclick="excluirSeguro(''+s.id+'')">'+iconTrash()+'</button>'
+      +'</div></div>'
+      +(s.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(s.observacoes)+'</div>':'')
+      +'</div>';
+  };
+  let h='';
+  if(vencendoBreve.length>0){h+='<div style="background:rgba(239,159,39,.1);border:1px solid rgba(239,159,39,.3);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:1rem;font-size:13px;color:var(--warning)">⚠️ '+vencendoBreve.length+' seguro(s) vencem nos próximos 30 dias</div>';}
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem"><div>'+(totalMensal>0?'<div style="font-size:13px;color:var(--text2)">Total mensal em seguros: <strong style="color:var(--navy)">'+fmt(totalMensal)+'</strong></div>':'')+'</div><button class="btn-sm" onclick="abrirModalNovoSeguro()">+ Novo seguro</button></div>';
+  if(seguros.length===0){h+='<p class="empty">Nenhum seguro cadastrado.</p>';}
+  else{if(ativos.length>0)h+='<p class="section-title">Ativos</p>'+ativos.map(cardSeguro).join('');if(vencidos.length>0)h+='<p class="section-title" style="margin-top:1.5rem">Inativos</p>'+vencidos.map(cardSeguro).join('');}
+  return h;
+}
+
+function abrirModalNovoSeguro(s){
+  const editing=!!s,id=s?.id||'';
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="modal-seguro" class="modal-bg" style="display:flex"><div class="modal"><h2>'+(editing?'Editar':'Novo')+' Seguro</h2><div class="modal-f">'
+    +'<div><label class="label-sm">Tipo</label><select id="seg-tipo">'+Object.entries(TIPO_SEGURO_LABELS).map(([v,l])=>'<option value="'+v+'" '+(s?.tipo===v?'selected':'')+'>'+TIPO_SEGURO_ICONS[v]+' '+l+'</option>').join('')+'</select></div>'
+    +'<div><label class="label-sm">Seguradora</label><input id="seg-seg" value="'+jEsc(s?.seguradora||'')+'" placeholder="Ex: Porto Seguro"/></div>'
+    +'<div><label class="label-sm">Descrição (opcional)</label><input id="seg-desc" value="'+jEsc(s?.descricao||'')+'" placeholder="Ex: Seguro de vida familiar"/></div>'
+    +'<div><label class="label-sm">Número da apólice (opcional)</label><input id="seg-apolice" value="'+jEsc(s?.numero_apolice||'')+'"/></div>'
+    +'<div class="grid2"><div><label class="label-sm">Prêmio mensal (R$)</label><input id="seg-premio" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
+    +'<div><label class="label-sm">Vencimento/Renovação</label><input id="seg-venc" type="date" value="'+(s?.vencimento||'')+'"/></div></div>'
+    +'<div><label class="label-sm">Beneficiários (opcional)</label><input id="seg-benef" value="'+jEsc(s?.beneficiarios||'')+'" placeholder="Ex: Cônjuge e filhos"/></div>'
+    +'<div><label class="label-sm">Status</label><select id="seg-status"><option value="ativo" '+((!s||s.status==="ativo")?"selected":"")+'>Ativo</option><option value="vencido" '+(s?.status==="vencido"?"selected":"")+'>Vencido</option><option value="cancelado" '+(s?.status==="cancelado"?"selected":"")+'>Cancelado</option></select></div>'
+    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="seg-obs" placeholder="Coberturas, franquias, contato do corretor...">'+jEsc(s?.observacoes||'')+'</textarea></div>'
+    +'</div><div class="modal-actions"><button class="btn-outline" onclick="document.getElementById('modal-seguro').remove()">Cancelar</button>'
+    +'<button class="btn-primary" onclick="salvarSeguro(''+id+'')">'+( editing?'Salvar':'Adicionar')+'</button></div></div></div>');
+  if(s?.premio_mensal)setMoeda('seg-premio',s.premio_mensal);
+}
+function abrirEditSeguro(id){const s=seguros.find(x=>x.id===id);if(s)abrirModalNovoSeguro(s);}
+async function salvarSeguro(id){
+  const tipo=document.getElementById('seg-tipo').value,seg=document.getElementById('seg-seg').value.trim(),desc=document.getElementById('seg-desc').value.trim(),apolice=document.getElementById('seg-apolice').value.trim(),premio=parseMoeda('seg-premio'),venc=document.getElementById('seg-venc').value||null,benef=document.getElementById('seg-benef').value.trim(),status=document.getElementById('seg-status').value,obs=document.getElementById('seg-obs').value.trim();
+  if(!tipo){showToast('⚠️','Selecione o tipo','');return;}
+  let error;
+  if(id){({error}=await sb.rpc('atualizar_seguro',{p_id:id,p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
+  else{({error}=await sb.rpc('inserir_seguro',{p_tipo:tipo,p_seguradora:seg||null,p_descricao:desc||null,p_numero_apolice:apolice||null,p_premio_mensal:premio||0,p_vencimento:venc,p_beneficiarios:benef||null,p_status:status,p_observacoes:obs||null}));}
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  const{data}=await sb.rpc('get_seguros');seguros=data||[];
+  document.getElementById('modal-seguro')?.remove();showToast('✅',id?'Seguro atualizado!':'Seguro cadastrado!','');renderCadastros();
+}
+async function excluirSeguro(id){
+  if(!confirm('Excluir este seguro?'))return;
+  const{error}=await sb.rpc('excluir_seguro',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  const{data}=await sb.rpc('get_seguros');seguros=data||[];showToast('✅','Seguro excluído','');renderCadastros();
+}
+
+// ===== PATRIMÔNIO =====
+const TIPO_PAT_ICONS={imovel:'🏠',veiculo:'🚗',investimento:'📈',bem:'💎'};
+const TIPO_PAT_LABELS={imovel:'Imóvel',veiculo:'Veículo',investimento:'Investimento',bem:'Bem de Valor'};
+
+function renderPatrimonioHTML(){
+  if(!patrimonio||!Array.isArray(patrimonio))patrimonio=[];
+  const totalAtivos=patrimonio.reduce((s,p)=>s+(p.valor_atual||0),0);
+  const totalDividas=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
+  const patrimonioLiquido=totalAtivos-totalDividas;
+  const grupos={imovel:[],veiculo:[],investimento:[],bem:[]};
+  patrimonio.forEach(p=>{if(grupos[p.tipo])grupos[p.tipo].push(p);else grupos.bem.push(p);});
+  const cardPat=p=>{
+    const icon=TIPO_PAT_ICONS[p.tipo]||'💎';
+    return '<div class="card" style="margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex:1"><div style="font-size:24px;flex-shrink:0">'+icon+'</div>'
+      +'<div style="flex:1"><div style="font-size:14px;font-weight:500">'+jEsc(p.nome)+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+(p.descricao?jEsc(p.descricao):'')+(p.data_aquisicao?' · Adquirido em '+fmtData(p.data_aquisicao):'')+'</div>'
+      +(p.divida_id&&p.divida_credor?'<div style="font-size:11px;color:var(--warning);margin-top:3px">🔗 Financiado: '+jEsc(p.divida_credor)+' (saldo: '+fmt(p.divida_saldo||0)+')</div>':'')
+      +'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:600;color:var(--navy)">'+fmt(p.valor_atual)+'</div>'
+      +(p.divida_id&&p.divida_saldo?'<div style="font-size:11px;color:var(--success);margin-top:2px">Equidade: '+fmt((p.valor_atual||0)-(p.divida_saldo||0))+'</div>':'')+'</div>'
+      +'<div style="display:flex;gap:6px;margin-left:8px"><button class="icon-btn" onclick="abrirEditPatrimonio(''+p.id+'')">'+iconEdit()+'</button><button class="icon-btn" onclick="excluirPatrimonio(''+p.id+'')">'+iconTrash()+'</button></div></div>'
+      +(p.observacoes?'<div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+jEsc(p.observacoes)+'</div>':'')
+      +'</div>';
+  };
+  let h='<div class="grid3" style="margin-bottom:1.25rem">'
+    +'<div class="card stat"><label>Total de ativos</label><div class="val" style="color:var(--navy)">'+fmt(totalAtivos)+'</div></div>'
+    +'<div class="card stat"><label>Total de dívidas</label><div class="val" style="color:var(--danger)">'+fmt(totalDividas)+'</div></div>'
+    +'<div class="card stat"><label>Patrimônio líquido</label><div class="val" style="color:'+(patrimonioLiquido>=0?'var(--success)':'var(--danger)')+'">'+fmt(patrimonioLiquido)+'</div></div>'
+    +'</div><div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><button class="btn-sm" onclick="abrirModalNovoPatrimonio()">+ Novo bem</button></div>';
+  if(patrimonio.length===0){h+='<p class="empty">Nenhum bem cadastrado.</p>';}
+  else{Object.entries(grupos).forEach(([tipo,itens])=>{if(itens.length===0)return;h+='<p class="section-title">'+TIPO_PAT_ICONS[tipo]+' '+TIPO_PAT_LABELS[tipo]+'s</p>'+itens.map(cardPat).join('');});}
+  return h;
+}
+
+function abrirModalNovoPatrimonio(p){
+  const editing=!!p,id=p?.id||'';
+  const dividasAbertas=dividas.filter(d=>!d.quitada);
+  const dividaOpts='<option value="">Nenhuma</option>'+dividasAbertas.map(d=>'<option value="'+d.id+'" '+(p?.divida_id===d.id?'selected':'')+'>'+jEsc(d.credor)+' ('+fmt(d.valorTotal)+')</option>').join('');
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="modal-patrimonio" class="modal-bg" style="display:flex"><div class="modal"><h2>'+(editing?'Editar':'Novo')+' Bem</h2><div class="modal-f">'
+    +'<div><label class="label-sm">Tipo</label><select id="pat-tipo">'+Object.entries(TIPO_PAT_LABELS).map(([v,l])=>'<option value="'+v+'" '+(p?.tipo===v?'selected':'')+'>'+TIPO_PAT_ICONS[v]+' '+l+'</option>').join('')+'</select></div>'
+    +'<div><label class="label-sm">Nome</label><input id="pat-nome" value="'+jEsc(p?.nome||'')+'" placeholder="Ex: Apartamento Centro, Honda Civic 2020"/></div>'
+    +'<div><label class="label-sm">Descrição (opcional)</label><input id="pat-desc" value="'+jEsc(p?.descricao||'')+'" placeholder="Detalhes adicionais"/></div>'
+    +'<div class="grid2"><div><label class="label-sm">Valor atual (R$)</label><input id="pat-valor" type="text" inputmode="numeric" oninput="mascaraMoeda(this)" placeholder="R$ 0,00"/></div>'
+    +'<div><label class="label-sm">Data de aquisição (opcional)</label><input id="pat-data" type="date" value="'+(p?.data_aquisicao||'')+'"/></div></div>'
+    +'<div><label class="label-sm">Dívida vinculada (financiamento)</label><select id="pat-divida">'+dividaOpts+'</select></div>'
+    +'<div><label class="label-sm">Observações (opcional)</label><textarea id="pat-obs" placeholder="Localização, matrícula, RENAVAM...">'+jEsc(p?.observacoes||'')+'</textarea></div>'
+    +'</div><div class="modal-actions"><button class="btn-outline" onclick="document.getElementById('modal-patrimonio').remove()">Cancelar</button>'
+    +'<button class="btn-primary" onclick="salvarPatrimonio(''+id+'')">'+( editing?'Salvar':'Adicionar')+'</button></div></div></div>');
+  if(p?.valor_atual)setMoeda('pat-valor',p.valor_atual);
+}
+function abrirEditPatrimonio(id){const p=patrimonio.find(x=>x.id===id);if(p)abrirModalNovoPatrimonio(p);}
+async function salvarPatrimonio(id){
+  const tipo=document.getElementById('pat-tipo').value,nome=document.getElementById('pat-nome').value.trim(),desc=document.getElementById('pat-desc').value.trim(),valor=parseMoeda('pat-valor'),data=document.getElementById('pat-data').value||null,dividaId=document.getElementById('pat-divida').value||null,obs=document.getElementById('pat-obs').value.trim();
+  if(!nome){showToast('⚠️','Informe o nome do bem','');return;}
+  if(!valor){showToast('⚠️','Informe o valor atual','');return;}
+  let error;
+  if(id){({error}=await sb.rpc('atualizar_patrimonio',{p_id:id,p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
+  else{({error}=await sb.rpc('inserir_patrimonio',{p_tipo:tipo,p_nome:nome,p_descricao:desc||null,p_valor_atual:valor,p_data_aquisicao:data,p_divida_id:dividaId,p_observacoes:obs||null}));}
+  if(error){showToast('❌','Erro ao salvar',error.message);return;}
+  const{data:pData}=await sb.rpc('get_patrimonio');patrimonio=pData||[];
+  document.getElementById('modal-patrimonio')?.remove();showToast('✅',id?'Bem atualizado!':'Bem cadastrado!','');renderCadastros();
+}
+async function excluirPatrimonio(id){
+  if(!confirm('Excluir este bem do patrimônio?'))return;
+  const{error}=await sb.rpc('excluir_patrimonio',{p_id:id});
+  if(error){showToast('❌','Erro ao excluir',error.message);return;}
+  const{data}=await sb.rpc('get_patrimonio');patrimonio=data||[];showToast('✅','Bem excluído','');renderCadastros();
+}
 
 let jornada_view = 'lista'; // 'lista' | 'detalhe'
 
