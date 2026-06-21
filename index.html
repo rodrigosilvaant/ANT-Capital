@@ -4753,14 +4753,23 @@ function renderEtapaConsultor(e) {
     </div>
   `).join('');
 
-  const anexosHtml = (e.anexos||[]).map(a => `
-    <div style="display:flex;align-items:center;gap:6px">
-      <a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>
+  const anexosHtml = (e.anexos||[]).map(a => {
+    const isImg = a.tipo === 'imagem';
+    const preview = isImg
+      ? `<div style="display:flex;flex-direction:column;gap:3px">
+          <a href="${jEsc(a.url)}" target="_blank">
+            <img src="${jEsc(a.url)}" alt="${jEsc(a.nome)}" style="max-height:80px;max-width:130px;border-radius:var(--radius);border:1px solid var(--border);object-fit:cover;display:block"/>
+          </a>
+          <span style="font-size:10px;color:var(--text2)">${jEsc(a.nome)}</span>
+        </div>`
+      : `<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`;
+    return `<div style="display:flex;align-items:flex-start;gap:6px">
+      ${preview}
       <button class="icon-btn" onclick="excluirAnexo('${a.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
       </button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   const isOpen = etapa_aberta_id === e.id;
   return `
@@ -4803,10 +4812,32 @@ function renderEtapaConsultor(e) {
         <div style="margin-top:12px">
           <div class="section-title" style="margin-bottom:6px">Anexos / Links</div>
           <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${anexosHtml}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <input id="anexo-nome-${e.id}" placeholder="Nome do arquivo" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px"/>
-            <input id="anexo-url-${e.id}" placeholder="URL (https://...)" style="flex:2;min-width:180px;font-size:13px;padding:7px 10px"/>
-            <button class="btn-sm" onclick="adicionarAnexo('${e.id}')">+ Anexar</button>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button id="anexo-tab-link-${e.id}" class="btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="toggleAnexoTab('${e.id}','link')">🔗 Link</button>
+              <button id="anexo-tab-img-${e.id}" class="btn-sm" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="toggleAnexoTab('${e.id}','imagem')">🖼️ Imagem</button>
+            </div>
+            <div id="anexo-panel-link-${e.id}">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <input id="anexo-nome-${e.id}" placeholder="Nome do link" style="flex:1;min-width:120px;font-size:13px;padding:7px 10px"/>
+                <input id="anexo-url-${e.id}" placeholder="URL (https://...)" style="flex:2;min-width:180px;font-size:13px;padding:7px 10px"/>
+                <button class="btn-sm" onclick="adicionarAnexo('${e.id}')">+ Anexar</button>
+              </div>
+            </div>
+            <div id="anexo-panel-img-${e.id}" style="display:none">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <input id="anexo-img-nome-${e.id}" placeholder="Nome da imagem" style="flex:1;min-width:140px;font-size:13px;padding:7px 10px"/>
+                <label style="cursor:pointer">
+                  <span class="btn-sm" style="display:inline-flex;align-items:center;gap:5px">📁 Escolher arquivo</span>
+                  <input type="file" id="anexo-img-file-${e.id}" accept="image/*" style="display:none" onchange="uploadImagemAnexo('${e.id}')"/>
+                </label>
+                <button class="btn-sm" style="background:var(--success);color:#fff;border:none" onclick="salvarImagemAnexo('${e.id}')">+ Salvar</button>
+              </div>
+              <div id="anexo-img-preview-${e.id}" style="margin-top:8px;display:none">
+                <img id="anexo-img-thumb-${e.id}" style="max-height:80px;max-width:180px;border-radius:var(--radius);border:1px solid var(--border);object-fit:cover"/>
+                <div id="anexo-img-status-${e.id}" style="font-size:11px;color:var(--text2);margin-top:4px"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -4897,9 +4928,17 @@ function renderEtapaCliente(e) {
     </div>
   `).join('');
 
-  const anexosHtml = (e.anexos||[]).map(a =>
-    `<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`
-  ).join('');
+  const anexosHtml = (e.anexos||[]).map(a => {
+    if(a.tipo === 'imagem'){
+      return `<div style="display:flex;flex-direction:column;gap:4px;align-items:center">
+        <a href="${jEsc(a.url)}" target="_blank">
+          <img src="${jEsc(a.url)}" alt="${jEsc(a.nome)}" style="max-height:100px;max-width:160px;border-radius:var(--radius);border:1px solid var(--border);object-fit:cover;display:block"/>
+        </a>
+        <span style="font-size:10px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${jEsc(a.nome)}</span>
+      </div>`;
+    }
+    return `<a class="anexo-tag" href="${jEsc(a.url)}" target="_blank">📎 ${jEsc(a.nome)}</a>`;
+  }).join('');
 
   const concluidas = (e.tarefas||[]).filter(t=>t.concluida).length;
   const totalT = (e.tarefas||[]).length;
@@ -5156,14 +5195,98 @@ async function excluirTarefa(id) {
 // ================================================================
 // ANEXOS
 // ================================================================
+
+// Toggle entre aba link e aba imagem
+function toggleAnexoTab(etapa_id, tab) {
+  const panelLink = document.getElementById('anexo-panel-link-' + etapa_id);
+  const panelImg  = document.getElementById('anexo-panel-img-' + etapa_id);
+  const btnLink   = document.getElementById('anexo-tab-link-' + etapa_id);
+  const btnImg    = document.getElementById('anexo-tab-img-' + etapa_id);
+  if (!panelLink || !panelImg) return;
+  if (tab === 'link') {
+    panelLink.style.display = '';
+    panelImg.style.display  = 'none';
+    btnLink.style.background = 'var(--blue)'; btnLink.style.color = '#fff'; btnLink.style.border = 'none';
+    btnImg.style.background  = 'var(--bg3)';  btnImg.style.color  = 'var(--text2)'; btnImg.style.border = '1px solid var(--border)';
+  } else {
+    panelLink.style.display = 'none';
+    panelImg.style.display  = '';
+    btnImg.style.background  = 'var(--blue)'; btnImg.style.color  = '#fff'; btnImg.style.border = 'none';
+    btnLink.style.background = 'var(--bg3)';  btnLink.style.color = 'var(--text2)'; btnLink.style.border = '1px solid var(--border)';
+  }
+}
+
+// Upload de imagem para o Supabase Storage
+async function uploadImagemAnexo(etapa_id) {
+  const fileInput = document.getElementById('anexo-img-file-' + etapa_id);
+  const preview   = document.getElementById('anexo-img-preview-' + etapa_id);
+  const thumb     = document.getElementById('anexo-img-thumb-' + etapa_id);
+  const status    = document.getElementById('anexo-img-status-' + etapa_id);
+  if (!fileInput?.files?.[0]) return;
+  const file = fileInput.files[0];
+
+  // Validar tamanho (max 5MB) e tipo
+  if (file.size > 5 * 1024 * 1024) { showToast('⚠️','Imagem muito grande','Máximo 5MB'); return; }
+  if (!file.type.startsWith('image/')) { showToast('⚠️','Arquivo inválido','Selecione uma imagem'); return; }
+
+  // Preview local imediato
+  const reader = new FileReader();
+  reader.onload = e => {
+    thumb.src = e.target.result;
+    preview.style.display = '';
+    status.textContent = 'Enviando...';
+  };
+  reader.readAsDataURL(file);
+
+  // Upload para Supabase Storage
+  const ext = file.name.split('.').pop();
+  const path = \`jornada/\${etapa_id}/\${Date.now()}.\${ext}\`;
+  const { data, error } = await sb.storage.from('jornada-anexos').upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type
+  });
+
+  if (error) {
+    status.textContent = 'Erro no upload: ' + error.message;
+    showToast('❌','Erro ao enviar imagem', error.message);
+    return;
+  }
+
+  // Obter URL pública
+  const { data: urlData } = sb.storage.from('jornada-anexos').getPublicUrl(path);
+  const publicUrl = urlData.publicUrl;
+  thumb.src = publicUrl;
+  status.textContent = '✅ Pronta para salvar';
+
+  // Guardar URL no input oculto para usar no salvar
+  fileInput.dataset.uploadedUrl = publicUrl;
+}
+
+// Salvar link simples
 async function adicionarAnexo(etapa_id) {
   const nome = document.getElementById('anexo-nome-' + etapa_id)?.value?.trim();
-  const url = document.getElementById('anexo-url-' + etapa_id)?.value?.trim();
+  const url  = document.getElementById('anexo-url-' + etapa_id)?.value?.trim();
   if (!nome || !url) { showToast('⚠️','Preencha nome e URL',''); return; }
   const tipo = url.toLowerCase().includes('.pdf') ? 'pdf' :
                url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)/) ? 'imagem' : 'link';
   const { error } = await sb.rpc('criar_anexo', {
     p_etapa_id: etapa_id, p_nome: nome, p_url: url, p_tipo: tipo
+  });
+  if (error) { showToast('❌','Erro',error.message); return; }
+  document.getElementById('anexo-nome-' + etapa_id).value = '';
+  document.getElementById('anexo-url-' + etapa_id).value  = '';
+  etapa_aberta_id = etapa_id;
+  renderJornada();
+}
+
+// Salvar imagem após upload
+async function salvarImagemAnexo(etapa_id) {
+  const fileInput = document.getElementById('anexo-img-file-' + etapa_id);
+  const nomeInput = document.getElementById('anexo-img-nome-' + etapa_id);
+  const url = fileInput?.dataset?.uploadedUrl;
+  const nome = nomeInput?.value?.trim() || (fileInput?.files?.[0]?.name || 'Imagem');
+  if (!url) { showToast('⚠️','Envie uma imagem primeiro',''); return; }
+  const { error } = await sb.rpc('criar_anexo', {
+    p_etapa_id: etapa_id, p_nome: nome, p_url: url, p_tipo: 'imagem'
   });
   if (error) { showToast('❌','Erro',error.message); return; }
   etapa_aberta_id = etapa_id;
