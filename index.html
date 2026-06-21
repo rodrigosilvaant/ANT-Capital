@@ -334,8 +334,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav button{
     width:auto!important;border-left:none!important;
     border-bottom:3px solid transparent!important;
-    padding:11px 10px!important;white-space:nowrap!important;
-    border-radius:0!important;font-size:12px!important;
+    padding:8px 10px 6px!important;white-space:nowrap!important;
+    border-radius:0!important;font-size:10px!important;
+    flex-direction:column!important;gap:3px!important;align-items:center!important;
   }
   .nav button.active{
     border-left-color:transparent!important;
@@ -345,6 +346,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .nav-label-sidebar{display:none!important}
   .nav-label-short{display:none!important}
   .nav-label-full{display:inline!important}
+  .nav button svg{width:20px!important;height:20px!important}
   .sidebar-brand{display:none!important}
   .app-header{margin-left:0!important}
   .app-header .lsm{display:flex!important}
@@ -369,11 +371,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .brand-sub{display:none}
   .header-user span{display:none}
   .logout-btn{padding:5px 8px;font-size:10px}
-  /* Nav — mostrar só ícone + label mínimo */
-  .nav button{padding:9px 8px!important;font-size:10px!important;gap:2px!important}
-  .nav button svg{width:13px!important;height:13px!important}
-  .nav-label-full{display:none!important}
-  .nav-label-short{display:inline!important}
+  /* Nav — ícone em cima, nome embaixo */
+  .nav button{padding:7px 8px 5px!important;font-size:9px!important;gap:3px!important;flex-direction:column!important;align-items:center!important}
+  .nav button svg{width:18px!important;height:18px!important}
+  .nav-label-full{display:inline!important}
+  .nav-label-short{display:none!important}
   /* Content */
   .content{padding:.875rem .875rem!important}
   /* Grids */
@@ -428,7 +430,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   .lsm{width:32px;height:32px}
   .lsm img{width:24px;height:24px}
   /* Nav */
-  .nav button{padding:8px 7px!important;font-size:10px!important}
+  .nav button{padding:6px 7px 4px!important;font-size:9px!important;flex-direction:column!important;align-items:center!important;gap:2px!important}
+  .nav button svg{width:17px!important;height:17px!important}
   /* Botões */
   .btn-sm{padding:6px 10px;font-size:11px}
   /* Charts */
@@ -449,8 +452,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 
 /* ===== MOBILE MÍNIMO: max-width:360px ===== */
 @media(max-width:360px){
-  .nav button{padding:7px 5px!important;font-size:9px!important}
-  .nav button svg{width:12px!important;height:12px!important}
+  .nav button{padding:5px 5px 3px!important;font-size:8px!important;flex-direction:column!important;align-items:center!important;gap:2px!important}
+  .nav button svg{width:16px!important;height:16px!important}
   .stat .val{font-size:14px}
   .conta-card{min-width:130px}
   .content{padding:.625rem .625rem!important}
@@ -788,17 +791,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
   <div class="nav-wrap">
     <div class="sidebar-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;flex-shrink:0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>ANT Capital</span></div>
     <nav class="nav">
-      <button id="tab-dashboard" class="active" onclick="setTab('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label-sidebar">Resumo</span><span class="nav-label-short">Res.</span></button>
-      <button id="tab-lancamentos" onclick="setTab('lancamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg><span class="nav-label-sidebar">Lançamentos</span><span class="nav-label-short">Lanç.</span></button>
-      <button id="tab-projecao" onclick="setTab('projecao')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label-sidebar">Projeção</span><span class="nav-label-short">Proj.</span></button>
-      <button id="tab-graficos" onclick="setTab('graficos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg><span class="nav-label-sidebar">Análise</span><span class="nav-label-short">Anál.</span></button>
-      <button id="tab-dividas" onclick="setTab('dividas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="nav-label-sidebar">Dívidas</span><span class="nav-label-short">Dívi.</span></button>
-      <button id="tab-metas" onclick="setTab('metas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="nav-label-sidebar">Metas</span><span class="nav-label-short">Metas</span></button>
-      <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-full">Aposentadoria</span><span class="nav-label-sidebar">Aposentadoria</span></button>
-      <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg><span class="nav-label-sidebar">Cadastros</span><span class="nav-label-short">Cad.</span></button>
-      <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label-sidebar">Relatórios</span><span class="nav-label-short">Rel.</span></button>
-      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-sidebar">Jornada</span><span class="nav-label-short">Jorn.</span></button>
-            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg><span class="nav-label-sidebar">Diagnóstico IA</span><span class="nav-label-short">Diag.</span></button>
+      <button id="tab-dashboard" class="active" onclick="setTab('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span class="nav-label-sidebar">Resumo</span><span class="nav-label-full">Resumo</span></button>
+      <button id="tab-lancamentos" onclick="setTab('lancamentos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg><span class="nav-label-sidebar">Lançamentos</span><span class="nav-label-full">Lançamentos</span></button>
+      <button id="tab-projecao" onclick="setTab('projecao')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label-sidebar">Projeção</span><span class="nav-label-full">Projeção</span></button>
+      <button id="tab-graficos" onclick="setTab('graficos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg><span class="nav-label-sidebar">Análise</span><span class="nav-label-full">Análise</span></button>
+      <button id="tab-dividas" onclick="setTab('dividas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span class="nav-label-sidebar">Dívidas</span><span class="nav-label-full">Dívidas</span></button>
+      <button id="tab-metas" onclick="setTab('metas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="nav-label-sidebar">Metas</span><span class="nav-label-full">Metas</span></button>
+      <button id="tab-aposentadoria" onclick="setTab('aposentadoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label-sidebar">Aposentadoria</span><span class="nav-label-full">Aposent.</span></button>
+      <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg><span class="nav-label-sidebar">Cadastros</span><span class="nav-label-full">Cadastros</span></button>
+      <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label-sidebar">Relatórios</span><span class="nav-label-full">Relatórios</span></button>
+      <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-sidebar">Jornada</span><span class="nav-label-full">Jornada</span></button>
+            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg><span class="nav-label-sidebar">Diagnóstico IA</span><span class="nav-label-full">Diagnóstico</span></button>
     </nav>
   </div>
   <div class="content">
