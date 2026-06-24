@@ -1732,7 +1732,7 @@ function renderLancamentos(){
           <p style="font-size:14px;font-weight:500;color:var(--text)">Clique ou arraste seu arquivo aqui</p>
           <p style="font-size:12px;color:var(--text2);margin-top:4px">Suporte: <strong>OFX</strong> (Itaú, Bradesco, BB, Nubank...) e <strong>CSV</strong></p>
         </div>
-        <input type="file" id="file-extrato" accept=".ofx,.csv" style="display:none" onchange="processarArquivo(this.files[0])"/>
+        <input type="file" id="file-extrato" accept=".ofx,.csv,text/plain,text/*,.txt,application/octet-stream" style="display:none" onchange="processarArquivo(this.files[0])"/>
         ${previewHtml}
       `:""}
     </div>`;
@@ -2731,27 +2731,43 @@ function parseCSV(content){
     cols.push(cur.trim());
     return cols;
   }
-  const headers=splitCSV(lines[0]).map(h=>h.replace(/"/g,"").toLowerCase().trim());
+  // Alguns bancos (Inter, C6) têm linhas de informação antes do cabeçalho real
+  // Detectar qual linha é o cabeçalho real (contém "data" ou "valor" ou "historico")
+  let headerLineIdx=0;
+  for(let hi=0;hi<Math.min(10,lines.length);hi++){
+    const l=lines[hi].toLowerCase();
+    if(l.includes("data")&&(l.includes("valor")||l.includes("hist")||l.includes("desc"))){
+      headerLineIdx=hi;break;
+    }
+  }
+  const headers=splitCSV(lines[headerLineIdx]).map(h=>h.replace(/"/g,"").toLowerCase().trim());
+  // Iniciar parsing a partir da linha seguinte ao cabeçalho
+  const dataStartIdx=headerLineIdx+1;
   // Tenta identificar colunas
   function findCol(...keys){for(const k of keys){const i=headers.findIndex(h=>h.includes(k));if(i>=0)return i}return -1}
-  const iData=findCol("data","date","dt","dia");
-  const iDesc=findCol("descricao","descrição","historico","histórico","memo","lançamento","lancamento","desc");
-  const iValor=findCol("valor","value","montante","quantia");
-  const iDebito=findCol("debito","débito","saida","saída","debit");
-  const iCredito=findCol("credito","crédito","entrada","credit");
-  const iTipo=findCol("tipo","type","natureza");
-  for(let i=1;i<lines.length;i++){
+  // Colunas padrão + Banco Inter + Nubank + Itaú + Bradesco + C6
+  const iData=findCol("data lan","data","date","dt","dia","competência","competencia");
+  const iDesc=findCol("descricao","descrição","historico","histórico","memo","lançamento","lancamento","desc","portador","estabelecimento","título","titulo","detalhe");
+  const iValor=findCol("valor","value","montante","quantia","amount");
+  const iDebito=findCol("debito","débito","saida","saída","debit","saídas");
+  const iCredito=findCol("credito","crédito","entrada","credit","entradas");
+  const iTipo=findCol("tipo lan","tipo","type","natureza","operação","operacao","categoria");
+  for(let i=dataStartIdx;i<lines.length;i++){
     const cols=splitCSV(lines[i]).map(c=>c.replace(/"/g,"").trim());
     if(cols.length<2)continue;
     // Data
     let dataRaw=iData>=0?cols[iData]:"";
     let data="";
     if(dataRaw){
-      // DD/MM/YYYY ou YYYY-MM-DD
-      const dd=dataRaw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      // DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY, D/M/YYYY
+      const dd=dataRaw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      const dd2=dataRaw.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
       const iso=dataRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if(dd)data=`${dd[3]}-${dd[2]}-${dd[1]}`;
+      const iso2=dataRaw.match(/^(\d{4})\/(\d{2})\/(\d{2})/);
+      if(dd)data=`${dd[3]}-${dd[2].padStart(2,"0")}-${dd[1].padStart(2,"0")}`;
+      else if(dd2)data=`${dd2[3]}-${dd2[2].padStart(2,"0")}-${dd2[1].padStart(2,"0")}`;
       else if(iso)data=`${iso[1]}-${iso[2]}-${iso[3]}`;
+      else if(iso2)data=`${iso2[1]}-${iso2[2]}-${iso2[3]}`;
     }
     if(!data)continue;
     // Valor
@@ -2768,7 +2784,10 @@ function parseCSV(content){
       valor=Math.abs(v);
       if(iTipo>=0){
         const t=(cols[iTipo]||"").toLowerCase();
-        tipo=t.includes("cred")||t.includes("entrada")||t.includes("receita")?"receita":"despesa";
+        // Banco Inter usa "C"=crédito "D"=débito
+        if(t==="c"||t==="cred"||t.includes("crédito")||t.includes("credito")||t.includes("entrada")||t.includes("receita")){tipo="receita";}
+        else if(t==="d"||t==="deb"||t.includes("débito")||t.includes("debito")||t.includes("saída")||t.includes("saida")){tipo="despesa";}
+        else{tipo=v>=0?"receita":"despesa";}
       } else {
         tipo=v>=0?"receita":"despesa";
       }
@@ -2782,19 +2801,47 @@ function parseCSV(content){
 
 function processarArquivo(file){
   if(!file)return;
-  const ext=file.name.split(".").pop().toLowerCase();
+  // Detectar extensão — no iOS o nome pode ter maiúsculas
+  const nameParts=file.name.split(".");
+  const ext=nameParts.pop().toLowerCase();
+  const isOFX=ext==="ofx"||file.type===""||file.type==="application/octet-stream";
+  const isCSV=ext==="csv"||ext==="txt"||file.type==="text/plain"||file.type==="text/csv";
+  if(!isOFX&&!isCSV&&ext!=="ofx"&&ext!=="csv"){
+    alert("Formato não suportado. Envie um arquivo .OFX ou .CSV.");return;
+  }
+  // Tentar UTF-8, fallback ISO-8859-1 para bancos brasileiros
+  function tentarParse(content,encoding){
+    let parsed=[];
+    if(isOFX||ext==="ofx")parsed=parseOFX(content);
+    else parsed=parseCSV(content);
+    return parsed;
+  }
+  // Primeira tentativa com UTF-8
   const reader=new FileReader();
   reader.onload=async function(e){
-    const content=e.target.result;
+    let content=e.target.result;
     let parsed=[];
     try{
-      if(ext==="ofx")parsed=parseOFX(content);
-      else if(ext==="csv")parsed=parseCSV(content);
-    }catch(err){alert("Erro ao ler o arquivo: "+err.message);return;}
-    if(parsed.length===0){alert("Nenhuma transação encontrada no arquivo. Verifique se é um arquivo OFX ou CSV válido.");return;}
+      parsed=tentarParse(content,"utf-8");
+    }catch(err){parsed=[];}
+    // Se não achou transações, tentar ISO-8859-1
+    if(parsed.length===0){
+      const reader2=new FileReader();
+      reader2.onload=async function(e2){
+        const content2=e2.target.result;
+        try{parsed=tentarParse(content2,"iso");}catch(err2){parsed=[];}
+        if(parsed.length===0){
+          alert("Nenhuma transação encontrada.\nVerifique se é um arquivo OFX ou CSV válido do seu banco.");return;
+        }
+        importPreview=(await marcarDuplicatas(parsed)).map(t=>({...t,conta_id:_importContaId||null}));
+        renderLancamentos();
+        setTimeout(()=>{const el=document.querySelector(".import-table");if(el)el.scrollIntoView({behavior:"smooth",block:"start"})},100);
+      };
+      reader2.readAsText(file,"ISO-8859-1");
+      return;
+    }
     importPreview=(await marcarDuplicatas(parsed)).map(t=>({...t,conta_id:_importContaId||null}));
     renderLancamentos();
-    // Scroll para o preview
     setTimeout(()=>{const el=document.querySelector(".import-table");if(el)el.scrollIntoView({behavior:"smooth",block:"start"})},100);
   };
   reader.readAsText(file,"UTF-8");
@@ -4154,10 +4201,74 @@ function fecharRelatorio(){document.getElementById("rel-modal").style.display="n
 function compartilharWpp(){
   const nome=getNomeUsuario();
   const periodo=mesNome(mes.y,mes.m);
-  const texto=`Olá! Segue meu relatório financeiro de ${periodo} gerado pelo sistema ANT Capital. 📊`;
-  const url=`https://wa.me/?text=${encodeURIComponent(texto)}`;
+
+  // Montar dados do mês atual
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m;});
+  const receitas=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
+  const despesas=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
+  const saldo=receitas-despesas;
+  const poupanca=receitas>0?((saldo/receitas)*100).toFixed(0):0;
+  const divPend=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
+  const {score,label}=calcScore(receitas,despesas,dividas);
+
+  // Top 3 categorias de despesa
+  const catMap={};
+  tm.filter(t=>t.tipo==="despesa").forEach(t=>{catMap[t.categoria]=(catMap[t.categoria]||0)+t.valor;});
+  const topCats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  // Metas ativas
+  const metasAtivas=metas.filter(m=>!m.concluida);
+
+  // Dívidas abertas
+  const dividasAtivas=dividas.filter(d=>!d.quitada);
+
+  // Montar texto
+  let txt="";
+  txt+="*ANT Capital — Relatório Financeiro*\n";
+  txt+="*"+nome+" | "+periodo+"*\n";
+  txt+="───────────────────\n\n";
+
+  txt+="💰 *Resumo do Mês*\n";
+  txt+="Receitas:  R$ "+fmt(receitas)+"\n";
+  txt+="Despesas: R$ "+fmt(despesas)+"\n";
+  txt+="Saldo:       "+( saldo>=0?"✅":"⚠️")+" R$ "+fmt(saldo)+"\n";
+  txt+="Taxa de poupança: "+poupanca+"%\n\n";
+
+  txt+="📊 *Saúde Financeira*\n";
+  txt+="Score: "+score+"/100 — "+label+"\n\n";
+
+  if(topCats.length>0){
+    txt+="📌 *Top Gastos*\n";
+    topCats.forEach(([cat,val],i)=>{
+      txt+=(i+1)+". "+cat+": R$ "+fmt(val)+"\n";
+    });
+    txt+="\n";
+  }
+
+  if(dividasAtivas.length>0){
+    txt+="💳 *Dívidas em Aberto*\n";
+    dividasAtivas.slice(0,3).forEach(d=>{
+      txt+="• "+d.credor+": R$ "+fmt(d.valorTotal||0)+"\n";
+    });
+    if(dividasAtivas.length>3)txt+="  + "+(dividasAtivas.length-3)+" outras\n";
+    txt+="\n";
+  }
+
+  if(metasAtivas.length>0){
+    txt+="🎯 *Metas Financeiras*\n";
+    metasAtivas.slice(0,3).forEach(m=>{
+      const pct=m.valor_alvo>0?Math.min(100,Math.round((m.valor_atual/m.valor_alvo)*100)):0;
+      txt+="• "+m.nome+": "+pct+"% (R$ "+fmt(m.valor_atual)+" / R$ "+fmt(m.valor_alvo)+")\n";
+    });
+    txt+="\n";
+  }
+
+  txt+="───────────────────\n";
+  txt+="_Gerado pelo sistema ANT Capital_\n";
+  txt+="_Constância constrói._ 🐜";
+
+  const url="https://wa.me/?text="+encodeURIComponent(txt);
   window.open(url,"_blank");
-  alert("Dica: tire um print do relatório antes de abrir o WhatsApp para enviar junto com a mensagem!");
 }
 
 function imprimirRelatorio(){window.print()}
