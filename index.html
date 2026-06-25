@@ -3725,6 +3725,7 @@ function html502030(tm){
 
 // ===== DIAGNÓSTICO IA =====
 let _diagResult=null;
+let _relMes=null; // {y,m} — mês selecionado para o relatório
 let _importContaId=null;
 let _diagClienteId=null;
 let _diagClienteNome=null;
@@ -4070,9 +4071,43 @@ function selecionarClienteDiag(id,nome){
 function renderRelatorios(){
   const el=document.getElementById("view-relatorios");
   if(!el)return;
+
+  // Inicializar mês do relatório com o mês atual se não definido
+  if(!_relMes)_relMes={y:mes.y,m:mes.m};
+
+  // Gerar opções dos últimos 12 meses com indicação de dados
+  const hoje=new Date();
+  const mesesOpts=[];
+  for(let i=0;i<12;i++){
+    let y=hoje.getFullYear(),m=hoje.getMonth()+1-i;
+    while(m<1){m+=12;y--;}
+    const temDados=trans.some(t=>{const[ty,tm]=t.data.split("-").map(Number);return ty===y&&tm===m;});
+    const label=new Date(y,m-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+    const selected=(_relMes.y===y&&_relMes.m===m);
+    mesesOpts.push({y,m,label,temDados,selected});
+  }
+
+  const optsHtml=mesesOpts.map(o=>
+    '<option value="'+o.y+'-'+o.m+'" '+(o.selected?'selected':'')+'>'+
+    o.label.charAt(0).toUpperCase()+o.label.slice(1)+
+    (o.temDados?' ✓':' —')+
+    '</option>'
+  ).join('');
+
   el.innerHTML=`
     <p class="section-title">Gerar relatório</p>
     <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">Escolha o tipo de relatório. Após gerado, você pode tirar um print para enviar pelo WhatsApp ou salvar como PDF.</p>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <label class="label-sm">Mês do relatório</label>
+        <select id="rel-mes-select" onchange="alterarMesRelatorio(this.value)" style="width:100%">${optsHtml}</select>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">
+        ✓ = meses com lançamentos registrados
+      </div>
+    </div>
+
     <div class="rel-type-grid">
       <button class="rel-card-btn" onclick="gerarRelatorio('consultor')">
         <span class="rel-badge" style="background:var(--bg3);color:var(--blue)">Consultor</span>
@@ -4101,11 +4136,17 @@ function renderRelatorios(){
     </div>`;
 }
 
+function alterarMesRelatorio(val){
+  const[y,m]=val.split("-").map(Number);
+  _relMes={y,m};
+}
+
 // ===== HELPERS DOS RELATÓRIOS =====
-function getUltimosMeses(n){
+function getUltimosMeses(n,mesRef){
+  const mr=mesRef||mes;
   const result=[];
   for(let i=n-1;i>=0;i--){
-    let y=mes.y,m=mes.m-i;
+    let y=mr.y,m=mr.m-i;
     while(m<1){m+=12;y--}
     const mt=trans.filter(t=>{const[ty,tm]=t.data.split("-").map(Number);return ty===y&&tm===m});
     const r=mt.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
@@ -4138,8 +4179,9 @@ function calcScore(receitas,despesas,dividas){
   return{score:Math.round(score),label,color};
 }
 
-function getTopCats(tipo,n){
-  const tm=trans.filter(t=>{const[ty,tm2]=t.data.split("-").map(Number);return ty===mes.y&&tm2===mes.m&&t.tipo===tipo});
+function getTopCats(tipo,n,mesRef){
+  const mr=mesRef||mes;
+  const tm=trans.filter(t=>{const[ty,tm2]=t.data.split("-").map(Number);return ty===mr.y&&tm2===mr.m&&t.tipo===tipo});
   const map={};tm.forEach(t=>{map[t.categoria]=(map[t.categoria]||0)+t.valor});
   return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,n);
 }
@@ -4184,13 +4226,15 @@ function dataHoje(){return new Date().toLocaleDateString("pt-BR",{day:"2-digit",
 
 // ===== GERAÇÃO DOS RELATÓRIOS =====
 function gerarRelatorio(tipo){
+  if(!_relMes)_relMes={y:mes.y,m:mes.m};
   const titles={consultor:"📊 Relatório do Consultor",semanal:"📅 Resumo Semanal",quinzenal:"📈 Resumo Quinzenal",conquistas:"🏆 Conquistas do Mês"};
-  document.getElementById("rel-modal-title").textContent=titles[tipo]||"Relatório";
+  const periodoLabel=mesNome(_relMes.y,_relMes.m);
+  document.getElementById("rel-modal-title").textContent=(titles[tipo]||"Relatório")+" — "+periodoLabel;
   let html="";
-  if(tipo==="consultor")html=buildConsultor();
-  else if(tipo==="semanal")html=buildSemanal();
-  else if(tipo==="quinzenal")html=buildQuinzenal();
-  else if(tipo==="conquistas")html=buildConquistas();
+  if(tipo==="consultor")html=buildConsultor(_relMes);
+  else if(tipo==="semanal")html=buildSemanal(_relMes);
+  else if(tipo==="quinzenal")html=buildQuinzenal(_relMes);
+  else if(tipo==="conquistas")html=buildConquistas(_relMes);
   document.getElementById("rel-modal-body").innerHTML=html;
   document.getElementById("rel-modal").style.display="block";
   document.getElementById("rel-modal").scrollTop=0;
@@ -4200,10 +4244,11 @@ function fecharRelatorio(){document.getElementById("rel-modal").style.display="n
 
 function compartilharWpp(){
   const nome=getNomeUsuario();
-  const periodo=mesNome(mes.y,mes.m);
+  const mr=_relMes||mes;
+  const periodo=mesNome(mr.y,mr.m);
 
-  // Montar dados do mês atual
-  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m;});
+  // Montar dados do mês selecionado
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mr.y&&m2===mr.m;});
   const receitas=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const despesas=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldo=receitas-despesas;
@@ -4274,8 +4319,9 @@ function compartilharWpp(){
 function imprimirRelatorio(){window.print()}
 
 // ===== RELATÓRIO DO CONSULTOR =====
-function buildConsultor(){
-  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m});
+function buildConsultor(mesRef){
+  const mr=mesRef||mes;
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mr.y&&m2===mr.m});
   const receitas=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const despesas=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldo=receitas-despesas;
@@ -4283,10 +4329,10 @@ function buildConsultor(){
   const comprometimento=receitas>0?((despesas/receitas)*100):0;
   const divPend=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
   const divTotal=dividas.reduce((s,d)=>s+(d.valorTotal||0),0);
-  const meses=getUltimosMeses(3);
+  const meses=getUltimosMeses(3,mr);
   const {score,label,color}=calcScore(receitas,despesas,dividas);
   const alerts=getAlerts(receitas,despesas,meses);
-  const topCats=getTopCats("despesa",5);
+  const topCats=getTopCats("despesa",5,mr);
   const nome=getNomeUsuario();
 
   // Score bar
@@ -4331,7 +4377,7 @@ function buildConsultor(){
     <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
       <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Relatório do Consultor — ANT Capital</div>
       <div style="font-size:15px;font-weight:500;margin-top:4px">${nome}</div>
-      <div style="font-size:12px;color:var(--text2)">${mesNome(mes.y,mes.m)} · Gerado em ${dataHoje()}</div>
+      <div style="font-size:12px;color:var(--text2)">${mesNome(mr.y,mr.m)} · Gerado em ${dataHoje()}</div>
     </div>
 
     <div class="rel-score">
@@ -4378,11 +4424,12 @@ function buildConsultor(){
 }
 
 // ===== RESUMO SEMANAL =====
-function buildSemanal(){
+function buildSemanal(mesRef){
+  const mr=mesRef||mes;
   const semana=getSemanaAtual();
   const gastSem=semana.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const recSem=semana.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
-  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m});
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mr.y&&m2===mr.m});
   const recMes=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const gastMes=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldoMes=recMes-gastMes;
@@ -4399,7 +4446,7 @@ function buildSemanal(){
   else if(pct<=90){emoji="⚡";msg="Atenção ao ritmo de gastos. Faltam ainda alguns dias no mês — vá com cuidado!"}
   else{emoji="💪";msg="É hora de apertar o cinto! Revise seus gastos e evite novas despesas até o fim do mês."}
 
-  const topSem=getTopCats("despesa",3);
+  const topSem=getTopCats("despesa",3,mr);
   const topHtml=topSem.length===0?`<p style="font-size:13px;color:var(--text2)">Nenhuma despesa registrada esta semana.</p>`
     :topSem.map(([cat,val])=>`<div class="rel-conquista"><span class="conq-icon">💸</span><span class="conq-text">${cat}</span><span class="conq-val" style="color:var(--danger)">-${fmt(val)}</span></div>`).join("");
 
@@ -4413,7 +4460,7 @@ function buildSemanal(){
     <div class="rel-hero">
       <span class="hero-emoji">${emoji}</span>
       <div class="hero-title">${msg}</div>
-      <div class="hero-sub">${mesNome(mes.y,mes.m)}</div>
+      <div class="hero-sub">${mesNome(mr.y,mr.m)}</div>
     </div>
 
     <div class="rel-section">
@@ -4452,13 +4499,14 @@ function buildSemanal(){
 }
 
 // ===== RESUMO QUINZENAL =====
-function buildQuinzenal(){
-  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m});
+function buildQuinzenal(mesRef){
+  const mr=mesRef||mes;
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mr.y&&m2===mr.m});
   const rec=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const gast=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldo=rec-gast;
   const hoje=new Date();
-  const diasNoMes=new Date(mes.y,mes.m,0).getDate();
+  const diasNoMes=new Date(mr.y,mr.m,0).getDate();
   const diaAtual=hoje.getDate();
   const percMes=(diaAtual/diasNoMes*100).toFixed(0);
   const percGasto=rec>0?(gast/rec*100).toFixed(0):0;
@@ -4478,7 +4526,7 @@ function buildQuinzenal(){
     <div style="text-align:center;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
       <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Resumo Quinzenal — ANT Capital</div>
       <div style="font-size:15px;font-weight:500;margin-top:4px">${nome}</div>
-      <div style="font-size:12px;color:var(--text2)">${mesNome(mes.y,mes.m)} · Gerado em ${dataHoje()}</div>
+      <div style="font-size:12px;color:var(--text2)">${mesNome(mr.y,mr.m)} · Gerado em ${dataHoje()}</div>
     </div>
 
     <div style="background:${corProj};border-radius:var(--radius-lg);padding:1.25rem;color:#fff;margin-bottom:1rem;display:flex;align-items:center;gap:14px">
@@ -4524,8 +4572,9 @@ function buildQuinzenal(){
 }
 
 // ===== CONQUISTAS DO MÊS =====
-function buildConquistas(){
-  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mes.y&&m2===mes.m});
+function buildConquistas(mesRef){
+  const mr=mesRef||mes;
+  const tm=trans.filter(t=>{const[ty,m2]=t.data.split("-").map(Number);return ty===mr.y&&m2===mr.m});
   const rec=tm.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
   const gast=tm.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
   const saldo=rec-gast;
@@ -4567,7 +4616,7 @@ function buildConquistas(){
   return `
     <div style="text-align:center;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
       <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Conquistas do Mês — ANT Capital</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:4px">${mesNome(mes.y,mes.m)} · ${dataHoje()}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">${mesNome(mr.y,mr.m)} · ${dataHoje()}</div>
     </div>
 
     <div class="rel-hero">
