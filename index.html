@@ -4207,7 +4207,8 @@ async function renderAssistente(){
   if(!el)return;
 
   // Verificar se tem assinatura ativa
-  const {data: temAcesso} = await sb.rpc('tem_assinatura_ativa').catch(()=>({data:false}));
+  let temAcesso=false;
+  try{const{data}=await sb.rpc('tem_assinatura_ativa');temAcesso=data??false;}catch(e){}
 
   // Consultor vê painel de configuração
   if(isConsultor){
