@@ -801,7 +801,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
       <button id="tab-cadastros" onclick="setTab('cadastros')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg><span class="nav-label-sidebar">Cadastros</span><span class="nav-label-full">Cadastros</span></button>
       <button id="tab-relatorios" onclick="setTab('relatorios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span class="nav-label-sidebar">Relatórios</span><span class="nav-label-full">Relatórios</span></button>
       <button id="tab-jornada" onclick="setTab('jornada')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="nav-label-sidebar">Jornada</span><span class="nav-label-full">Jornada</span></button>
-            <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg><span class="nav-label-sidebar">Diagnóstico IA</span><span class="nav-label-full">Diagnóstico</span></button>
+            <button id="tab-assistente" onclick="setTab('assistente')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="nav-label-sidebar">Assistente</span><span class="nav-label-full">Assistente</span></button>
+      <button id="tab-diagnostico" onclick="setTab('diagnostico')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0h10m-10 0H3m6 0v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4"/></svg><span class="nav-label-sidebar">Diagnóstico IA</span><span class="nav-label-full">Diagnóstico</span></button>
     </nav>
   </div>
   <div class="content">
@@ -814,6 +815,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     <div id="view-cadastros" style="display:none"></div>
     <div id="view-projecao" style="display:none"></div>
     <div id="view-relatorios" style="display:none"></div>
+    <div id="view-assistente" style="display:none"></div>
     <div id="view-diagnostico" style="display:none"></div>
     <div id="view-jornada" style="display:none"></div>
   </div>
@@ -1270,7 +1272,7 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico","jornada"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
+function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico","jornada","assistente"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -1291,6 +1293,7 @@ function render(){
   else if(currentTab==="relatorios")renderRelatorios();
   else if(currentTab==="diagnostico")renderDiagnostico();
   else if(currentTab==="jornada")renderJornada();
+  else if(currentTab==="assistente")renderAssistente();
 }
 
 // ===== ALERTAS AUTOMÁTICOS =====
@@ -3729,6 +3732,10 @@ let _relMes=null; // {y,m} — mês selecionado para o relatório
 let _importContaId=null;
 let _diagClienteId=null;
 let _diagClienteNome=null;
+// Assistente ANT
+let _chatMsgs=[];
+let _chatCarregado=false;
+let _chatEnviando=false;
 
 function montarContextoFinanceiro(dadosCliente){
   const _trans=dadosCliente?dadosCliente.trans:trans;
@@ -4004,6 +4011,402 @@ function exibirDiagnostico(r,ctx){
       <p style="font-size:11px;color:var(--text2);margin-top:0">Análise gerada em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
     </div>`;
 }
+
+
+// ===================================================================
+// ASSISTENTE ANT — PAINEL CONSULTOR + CHAT CLIENTE
+// ===================================================================
+
+// ── Gerar prompt personalizado a partir do diagnóstico ──────────────
+function gerarPromptCliente(diag, nome, dadosFinanceiros){
+  const perfis={
+    money_avoidance:'Evita falar de dinheiro e tende a se sabotar financeiramente',
+    money_worship:'Acredita que dinheiro resolve todos os problemas',
+    money_status:'Usa o dinheiro para demonstrar status social',
+    money_vigilance:'É muito controlado e ansioso com as finanças',
+    indefinido:'Perfil comportamental ainda não identificado'
+  };
+  const sobrenome=nome.split(' ').slice(-1)[0]||nome;
+  return `Você é o Assistente ANT — planejador financeiro pessoal de ${nome}, criado pela ANT Capital.
+
+SOBRE ${nome.toUpperCase()}:
+- Renda líquida mensal: R$ ${Number(diag.renda_liquida||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+- Gastos fixos mensais: R$ ${Number(diag.gastos_fixos||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+- Sobra mensal estimada: R$ ${Number((diag.renda_liquida||0)-(diag.gastos_fixos||0)).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+- Dívida principal: ${diag.divida_principal||'Não informada'} ${diag.divida_valor?'(R$ '+Number(diag.divida_valor).toLocaleString('pt-BR',{minimumFractionDigits:2})+')':''}
+- Perfil comportamental: ${perfis[diag.perfil_comportamental]||'Não identificado'}
+- Âncora emocional: ${diag.ancora_emocional||'Não informada'}
+- Objetivo de curto prazo: ${diag.objetivos_curto||'Não informado'}
+- Objetivo de médio prazo: ${diag.objetivos_medio||'Não informado'}
+- Objetivo de longo prazo: ${diag.objetivos_longo||'Não informado'}
+${diag.historico_resumo?'- Histórico/observações: '+diag.historico_resumo:''}
+${dadosFinanceiros||''}
+
+COMO VOCÊ DEVE AGIR:
+- Chame-o de ${sobrenome} (ou pelo primeiro nome se for mais natural)
+- Seja próximo, humano e encorajador — como um amigo que entende de finanças
+- Use linguagem simples, sem jargões desnecessários
+- Celebre pequenas vitórias e não julgue retrocessos
+- Oriente com base na realidade financeira real de ${nome}
+- Faça perguntas para entender o contexto antes de dar conselhos
+- Quando fizer perguntas, faça uma de cada vez
+- Nunca prometa retornos de investimento ou resultados garantidos
+- Se perceber situação de emergência financeira, sugira contato com Rodrigo (consultor)
+- Seja breve nas respostas — máximo 3 parágrafos por mensagem`;
+}
+
+// ── Painel do consultor: formulário de diagnóstico ──────────────────
+async function renderPainelDiagnostico(el, clienteId, clienteNome){
+  if(!clienteId){
+    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--text2)">Selecione um cliente para configurar o Assistente ANT.</div>';
+    return;
+  }
+  // Buscar diagnóstico existente
+  let diag={};
+  try{
+    const{data}=await sb.rpc('get_diagnostico',{p_client_id:clienteId});
+    if(data)diag=data;
+  }catch(e){}
+
+  const perfis=[
+    {v:'money_avoidance',l:'Money Avoidance — Evita falar de dinheiro'},
+    {v:'money_worship',l:'Money Worship — Acha que dinheiro resolve tudo'},
+    {v:'money_status',l:'Money Status — Usa dinheiro para demonstrar status'},
+    {v:'money_vigilance',l:'Money Vigilance — Muito controlado e ansioso'},
+    {v:'indefinido',l:'Indefinido — Ainda não identificado'}
+  ];
+
+  const statusAgente=diag.ativo
+    ?'<span style="color:var(--success);font-weight:600">● Agente ativo</span>'
+    :'<span style="color:var(--steel)">○ Agente inativo</span>';
+
+  el.innerHTML=`
+    <div class="diag-painel">
+      <div class="diag-cliente-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <div>
+          <div style="font-weight:600;font-size:14px">${jEsc(clienteNome)}</div>
+          <div style="font-size:11px;color:var(--steel);margin-top:2px">${statusAgente}</div>
+        </div>
+        <button onclick="liberarAcessoEssencial('${clienteId}','${jEsc(clienteNome)}')" style="margin-left:auto;background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px">Liberar acesso</button>
+      </div>
+      <div class="diag-form-card">
+        <div class="diag-section-title">Dados financeiros</div>
+        <div class="diag-grid2">
+          <div class="diag-field"><label>Renda líquida/mês (R$)</label><input id="de-renda" type="text" inputmode="numeric" placeholder="4.400,00" oninput="mascaraMoeda(this)" value="${diag.renda_liquida?Number(diag.renda_liquida).toLocaleString('pt-BR',{minimumFractionDigits:2}):''}"/></div>
+          <div class="diag-field"><label>Gastos fixos/mês (R$)</label><input id="de-fixos" type="text" inputmode="numeric" placeholder="3.950,00" oninput="mascaraMoeda(this)" value="${diag.gastos_fixos?Number(diag.gastos_fixos).toLocaleString('pt-BR',{minimumFractionDigits:2}):''}"/></div>
+        </div>
+        <div class="diag-grid2">
+          <div class="diag-field"><label>Dívida principal</label><input id="de-divida-desc" placeholder="Ex: Cartão Nubank" value="${jEsc(diag.divida_principal||'')}"/></div>
+          <div class="diag-field"><label>Valor da dívida (R$)</label><input id="de-divida-val" type="text" inputmode="numeric" placeholder="6.200,00" oninput="mascaraMoeda(this)" value="${diag.divida_valor?Number(diag.divida_valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):''}"/></div>
+        </div>
+
+        <div class="diag-section-title">Perfil comportamental</div>
+        <div class="diag-field"><label>Perfil (Klontz Money Scripts)</label>
+          <select id="de-perfil">
+            ${perfis.map(p=>`<option value="${p.v}"${diag.perfil_comportamental===p.v?' selected':''}>${p.l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="diag-field"><label>Âncora emocional</label><input id="de-ancora" placeholder="Ex: os filhos, a casa própria, segurança da família" value="${jEsc(diag.ancora_emocional||'')}"/></div>
+
+        <div class="diag-section-title">Objetivos</div>
+        <div class="diag-field"><label>Curto prazo (até 1 ano)</label><input id="de-obj-curto" placeholder="Ex: quitar cartão de crédito" value="${jEsc(diag.objetivos_curto||'')}"/></div>
+        <div class="diag-field"><label>Médio prazo (1–5 anos)</label><input id="de-obj-medio" placeholder="Ex: construir reserva de emergência" value="${jEsc(diag.objetivos_medio||'')}"/></div>
+        <div class="diag-field"><label>Longo prazo (acima de 5 anos)</label><input id="de-obj-longo" placeholder="Ex: aposentadoria tranquila" value="${jEsc(diag.objetivos_longo||'')}"/></div>
+
+        <div class="diag-section-title">Observações do consultor</div>
+        <div class="diag-field"><label>Histórico e notas livres</label><textarea id="de-historico" placeholder="Contexto adicional, comportamentos observados, resistências...">${jEsc(diag.historico_resumo||'')}</textarea></div>
+
+        <div class="diag-ativo-row">
+          <input type="checkbox" id="de-ativo" ${diag.ativo?'checked':''}/>
+          <label for="de-ativo">Agente ativo — cliente pode usar o chat</label>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn" style="background:var(--blue);color:#fff;border:none;flex:1;min-width:140px" onclick="salvarDiagnosticoEssencial('${clienteId}','${jEsc(clienteNome)}')">💾 Salvar e ativar</button>
+          <button class="btn-sm" style="border:1px solid var(--border2);background:transparent" onclick="previewPrompt('${clienteId}','${jEsc(clienteNome)}')">👁 Pré-visualizar prompt</button>
+        </div>
+        <div id="de-preview-area" style="display:none"></div>
+      </div>
+    </div>`;
+}
+
+async function salvarDiagnosticoEssencial(clienteId, clienteNome){
+  const parseMoeda=v=>parseFloat((v||'0').replace(/\./g,'').replace(',','.'))||0;
+  const renda=parseMoeda(document.getElementById('de-renda')?.value);
+  const fixos=parseMoeda(document.getElementById('de-fixos')?.value);
+  const dividaDesc=document.getElementById('de-divida-desc')?.value||'';
+  const dividaVal=parseMoeda(document.getElementById('de-divida-val')?.value);
+  const perfil=document.getElementById('de-perfil')?.value||'indefinido';
+  const ancora=document.getElementById('de-ancora')?.value||'';
+  const objCurto=document.getElementById('de-obj-curto')?.value||'';
+  const objMedio=document.getElementById('de-obj-medio')?.value||'';
+  const objLongo=document.getElementById('de-obj-longo')?.value||'';
+  const historico=document.getElementById('de-historico')?.value||'';
+  const ativo=document.getElementById('de-ativo')?.checked||false;
+
+  try{
+    await sb.rpc('salvar_diagnostico',{
+      p_client_id:clienteId, p_renda_liquida:renda, p_gastos_fixos:fixos,
+      p_divida_principal:dividaDesc, p_divida_valor:dividaVal, p_perfil:perfil,
+      p_ancora:ancora, p_obj_curto:objCurto, p_obj_medio:objMedio,
+      p_obj_longo:objLongo, p_historico:historico
+    });
+    // Gerar e salvar prompt
+    const diag={renda_liquida:renda,gastos_fixos:fixos,divida_principal:dividaDesc,
+      divida_valor:dividaVal,perfil_comportamental:perfil,ancora_emocional:ancora,
+      objetivos_curto:objCurto,objetivos_medio:objMedio,objetivos_longo:objLongo,
+      historico_resumo:historico};
+    const prompt=gerarPromptCliente(diag, clienteNome, '');
+    await sb.rpc('salvar_prompt_agente',{p_client_id:clienteId, p_prompt:prompt});
+    await sb.rpc('ativar_agente',{p_client_id:clienteId, p_ativo:ativo});
+    toast('Diagnóstico salvo e agente '+(ativo?'ativado':'desativado')+' com sucesso!','success');
+  }catch(e){
+    toast('Erro ao salvar: '+e.message,'error');
+  }
+}
+
+async function previewPrompt(clienteId, clienteNome){
+  const area=document.getElementById('de-preview-area');
+  if(!area)return;
+  const parseMoeda=v=>parseFloat((v||'0').replace(/\./g,'').replace(',','.'))||0;
+  const diag={
+    renda_liquida:parseMoeda(document.getElementById('de-renda')?.value),
+    gastos_fixos:parseMoeda(document.getElementById('de-fixos')?.value),
+    divida_principal:document.getElementById('de-divida-desc')?.value||'',
+    divida_valor:parseMoeda(document.getElementById('de-divida-val')?.value),
+    perfil_comportamental:document.getElementById('de-perfil')?.value||'indefinido',
+    ancora_emocional:document.getElementById('de-ancora')?.value||'',
+    objetivos_curto:document.getElementById('de-obj-curto')?.value||'',
+    objetivos_medio:document.getElementById('de-obj-medio')?.value||'',
+    objetivos_longo:document.getElementById('de-obj-longo')?.value||'',
+    historico_resumo:document.getElementById('de-historico')?.value||''
+  };
+  const prompt=gerarPromptCliente(diag, clienteNome, '');
+  if(area.style.display==='none'||!area.innerHTML){
+    area.style.display='block';
+    area.innerHTML='<div class="preview-prompt-box">'+jEsc(prompt)+'</div>';
+  } else {
+    area.style.display='none';
+  }
+}
+
+async function liberarAcessoEssencial(clienteId, clienteNome){
+  if(!confirm('Liberar acesso ANT Essencial para '+clienteNome+'?'))return;
+  try{
+    await sb.rpc('liberar_acesso_essencial',{p_client_id:clienteId});
+    toast('Acesso liberado para '+clienteNome,'success');
+  }catch(e){toast('Erro: '+e.message,'error');}
+}
+
+// ── Tela do chat (cliente) ──────────────────────────────────────────
+async function renderAssistente(){
+  if(_myRole===null)await carregarRole();
+  const isConsultor=_myRole==='consultor';
+  const el=document.getElementById('view-assistente');
+  if(!el)return;
+
+  // Verificar se tem assinatura ativa
+  const {data: temAcesso} = await sb.rpc('tem_assinatura_ativa').catch(()=>({data:false}));
+
+  // Consultor vê painel de configuração
+  if(isConsultor){
+    el.innerHTML=`<div style="padding:1rem 1.5rem">
+      <h2 style="margin-bottom:4px">Assistente ANT — Painel do Consultor</h2>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Configure o agente personalizado para cada cliente.</p>
+      <div style="margin-bottom:16px">
+        <label class="ret-label">Selecionar cliente</label>
+        <select id="ast-cliente-sel" onchange="onAstClienteChange(this)" style="width:100%;max-width:360px;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text)">
+          <option value="">— selecione —</option>
+        </select>
+      </div>
+      <div id="ast-painel-area"></div>
+    </div>`;
+
+    // Carregar clientes
+    try{
+      const{data:clientes}=await sb.rpc('listar_clientes');
+      const sel=document.getElementById('ast-cliente-sel');
+      if(sel&&clientes){
+        clientes.forEach(c=>{
+          const opt=document.createElement('option');
+          opt.value=c.id;
+          opt.textContent=(c.nome||c.email||c.id)+(c.has_jornada?' ✓':'');
+          sel.appendChild(opt);
+        });
+      }
+    }catch(e){}
+    return;
+  }
+
+  // Cliente sem acesso → tela de assinatura
+  if(!temAcesso){
+    el.innerHTML=`<div style="max-width:480px;margin:60px auto;text-align:center;padding:0 1rem">
+      <div style="font-size:52px;margin-bottom:20px">🤖</div>
+      <h2 style="font-size:22px;margin-bottom:10px">Assistente ANT</h2>
+      <p style="color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:24px">Tenha um planejador financeiro pessoal sempre disponível. O Assistente ANT conhece sua situação real e te orienta no dia a dia.</p>
+      <div style="background:#fff;border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px;margin-bottom:20px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:6px">Plano ANT Essencial</div>
+        <div style="font-size:36px;font-weight:700;color:var(--navy);margin-bottom:4px">R$ 127<span style="font-size:16px;font-weight:400">/mês</span></div>
+        <div style="font-size:12px;color:var(--text3)">Cancele quando quiser, sem fidelidade</div>
+      </div>
+      <button class="btn" style="width:100%;background:var(--blue);color:#fff;border:none;font-size:15px;padding:14px" onclick="window.open('https://www.asaas.com','_blank')">Assinar agora →</button>
+      <p style="font-size:11px;color:var(--text3);margin-top:12px">Já assinou? Aguarde a confirmação do pagamento ou fale com Rodrigo.</p>
+    </div>`;
+    return;
+  }
+
+  // Cliente com acesso → chat
+  el.innerHTML=`<div style="padding:1rem 1.5rem">
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div class="chat-avatar">🤖</div>
+        <div>
+          <div class="chat-title">Assistente ANT</div>
+          <div class="chat-subtitle">Seu planejador financeiro pessoal</div>
+        </div>
+        <div class="chat-usage" id="chat-usage-counter"></div>
+      </div>
+      <div class="chat-messages" id="chat-messages-area">
+        <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Carregando conversa...</div>
+      </div>
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <textarea id="chat-input-text" placeholder="Digite sua mensagem..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagemChat()}"
+            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+          <button class="chat-send-btn" id="chat-send-btn" onclick="enviarMensagemChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">Enter para enviar · Shift+Enter para nova linha</div>
+      </div>
+    </div>
+  </div>`;
+
+  await carregarHistoricoChat();
+}
+
+async function onAstClienteChange(sel){
+  const clienteId=sel.value;
+  const clienteNome=sel.options[sel.selectedIndex]?.textContent?.replace(' ✓','').trim()||'';
+  const area=document.getElementById('ast-painel-area');
+  if(!area)return;
+  if(!clienteId){area.innerHTML='';return;}
+  area.innerHTML='<div style="padding:20px;color:var(--text2)">Carregando...</div>';
+  await renderPainelDiagnostico(area, clienteId, clienteNome);
+}
+
+async function carregarHistoricoChat(){
+  const area=document.getElementById('chat-messages-area');
+  if(!area)return;
+  try{
+    const{data}=await sb.rpc('get_historico_chat',{p_limit:20});
+    _chatMsgs=data||[];
+    _chatCarregado=true;
+    renderMensagensChat();
+    // Mensagem de boas-vindas se histórico vazio
+    if(_chatMsgs.length===0){
+      const saudacao=obterSaudacao();
+      adicionarMensagemChat('assistant','Olá! '+saudacao+' Sou o Assistente ANT, seu planejador financeiro pessoal. Como posso te ajudar hoje?');
+    }
+  }catch(e){
+    if(area)area.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">Erro ao carregar histórico.</div>';
+  }
+}
+
+function obterSaudacao(){
+  const h=new Date().getHours();
+  if(h<12)return'Bom dia!';
+  if(h<18)return'Boa tarde!';
+  return'Boa noite!';
+}
+
+function renderMensagensChat(){
+  const area=document.getElementById('chat-messages-area');
+  if(!area)return;
+  if(_chatMsgs.length===0){area.innerHTML='';return;}
+  area.innerHTML=_chatMsgs.map(m=>{
+    const time=new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="chat-bubble-wrap ${m.role}">
+      <div class="chat-bubble ${m.role}">${m.content.replace(/\n/g,'<br>')}</div>
+      <div class="chat-time">${time}</div>
+    </div>`;
+  }).join('');
+  area.scrollTop=area.scrollHeight;
+}
+
+function adicionarMensagemChat(role, content){
+  _chatMsgs.push({role, content, created_at:new Date().toISOString()});
+  renderMensagensChat();
+}
+
+async function enviarMensagemChat(){
+  if(_chatEnviando)return;
+  const input=document.getElementById('chat-input-text');
+  const btn=document.getElementById('chat-send-btn');
+  const area=document.getElementById('chat-messages-area');
+  if(!input||!area)return;
+  const texto=input.value.trim();
+  if(!texto)return;
+
+  // Verificar limite diário
+  const{data:podeEnviar}=await sb.rpc('verificar_uso_diario',{p_limite:30}).catch(()=>({data:false}));
+  if(!podeEnviar){
+    toast('Você atingiu o limite de 30 mensagens por dia. Volte amanhã!','error');
+    return;
+  }
+
+  _chatEnviando=true;
+  if(btn)btn.disabled=true;
+  input.value='';
+  input.style.height='auto';
+
+  // Adicionar mensagem do usuário na tela
+  adicionarMensagemChat('user', texto);
+  // Salvar no banco
+  await sb.rpc('salvar_mensagem_chat',{p_role:'user',p_content:texto}).catch(()=>{});
+
+  // Indicador de digitação
+  const typingId='chat-typing-'+Date.now();
+  area.insertAdjacentHTML('beforeend',`<div id="${typingId}" class="chat-bubble-wrap assistant">
+    <div class="chat-bubble assistant">
+      <div class="chat-typing"><div class="chat-typing-dots">
+        <div class="chat-typing-dot"></div><div class="chat-typing-dot"></div><div class="chat-typing-dot"></div>
+      </div><span>digitando...</span></div>
+    </div>
+  </div>`);
+  area.scrollTop=area.scrollHeight;
+
+  try{
+    // Chamar API do chat
+    const {data:{session}}=await sb.auth.getSession();
+    const token=session?.access_token||'';
+    const resp=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({mensagem:texto, historico:_chatMsgs.slice(-10)})
+    });
+    const typing=document.getElementById(typingId);
+    if(typing)typing.remove();
+
+    if(!resp.ok)throw new Error('Erro na API: '+resp.status);
+    const result=await resp.json();
+    const resposta=result.resposta||result.content||'Desculpe, não consegui processar sua mensagem.';
+
+    adicionarMensagemChat('assistant', resposta);
+    await sb.rpc('salvar_mensagem_chat',{p_role:'assistant',p_content:resposta}).catch(()=>{});
+  }catch(e){
+    const typing=document.getElementById(typingId);
+    if(typing)typing.remove();
+    adicionarMensagemChat('assistant','Desculpe, ocorreu um erro. Tente novamente em instantes.');
+  }finally{
+    _chatEnviando=false;
+    if(btn)btn.disabled=false;
+    if(input)input.focus();
+  }
+}
+
 
 async function renderDiagnostico(){
   if(_myRole===null)await carregarRole();
