@@ -4352,7 +4352,8 @@ async function enviarMensagemChat(){
   if(!texto)return;
 
   // Verificar limite diário
-  const{data:podeEnviar}=await sb.rpc('verificar_uso_diario',{p_limite:30}).catch(()=>({data:false}));
+  let podeEnviar=false;
+  try{const{data}=await sb.rpc('verificar_uso_diario',{p_limite:30});podeEnviar=data??false;}catch(e){}
   if(!podeEnviar){
     toast('Você atingiu o limite de 30 mensagens por dia. Volte amanhã!','error');
     return;
@@ -4366,7 +4367,7 @@ async function enviarMensagemChat(){
   // Adicionar mensagem do usuário na tela
   adicionarMensagemChat('user', texto);
   // Salvar no banco
-  await sb.rpc('salvar_mensagem_chat',{p_role:'user',p_content:texto}).catch(()=>{});
+  try{await sb.rpc('salvar_mensagem_chat',{p_role:'user',p_content:texto});}catch(e){}
 
   // Indicador de digitação
   const typingId='chat-typing-'+Date.now();
@@ -4396,7 +4397,7 @@ async function enviarMensagemChat(){
     const resposta=result.resposta||result.content||'Desculpe, não consegui processar sua mensagem.';
 
     adicionarMensagemChat('assistant', resposta);
-    await sb.rpc('salvar_mensagem_chat',{p_role:'assistant',p_content:resposta}).catch(()=>{});
+    try{await sb.rpc('salvar_mensagem_chat',{p_role:'assistant',p_content:resposta});}catch(e){}
   }catch(e){
     const typing=document.getElementById(typingId);
     if(typing)typing.remove();
