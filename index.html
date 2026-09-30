@@ -4391,8 +4391,8 @@ async function enviarMensagemChat(){
         sb.rpc('get_metas')
       ]);
       const transMes=(trans||[]).filter(t=>t.data?.startsWith(mesAtual));
-      const receitas=transMes.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+Number(t.valor||0),0);
-      const despesas=transMes.filter(t=>t.tipo==='saida').reduce((s,t)=>s+Number(t.valor||0),0);
+      const receitas=transMes.filter(t=>t.tipo==='receita').reduce((s,t)=>s+Number(t.valor||0),0);
+      const despesas=transMes.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+Number(t.valor||0),0);
       const divAbertas=(dividas||[]).filter(d=>!d.quitada&&d.status!=='quitada');
       const metasAtivas=(metas||[]).filter(m=>!m.concluida);
       const partes=[];
