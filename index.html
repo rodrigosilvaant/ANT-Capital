@@ -4160,9 +4160,9 @@ async function salvarDiagnosticoEssencial(clienteId, clienteNome){
     const prompt=gerarPromptCliente(diag, clienteNome, '');
     await sb.rpc('salvar_prompt_agente',{p_client_id:clienteId, p_prompt:prompt});
     await sb.rpc('ativar_agente',{p_client_id:clienteId, p_ativo:ativo});
-    toast('Diagnóstico salvo e agente '+(ativo?'ativado':'desativado')+' com sucesso!','success');
+    showToast('✅','Diagnóstico salvo!','Agente '+(ativo?'ativado':'desativado')+' com sucesso');
   }catch(e){
-    toast('Erro ao salvar: '+e.message,'error');
+    showToast('❌','Erro ao salvar',e.message);
   }
 }
 
@@ -4195,8 +4195,8 @@ async function liberarAcessoEssencial(clienteId, clienteNome){
   if(!confirm('Liberar acesso ANT Essencial para '+clienteNome+'?'))return;
   try{
     await sb.rpc('liberar_acesso_essencial',{p_client_id:clienteId});
-    toast('Acesso liberado para '+clienteNome,'success');
-  }catch(e){toast('Erro: '+e.message,'error');}
+    showToast('✅','Acesso liberado!',clienteNome);
+  }catch(e){showToast('❌','Erro',e.message);}
 }
 
 // ── Tela do chat (cliente) ──────────────────────────────────────────
@@ -4355,7 +4355,7 @@ async function enviarMensagemChat(){
   let podeEnviar=false;
   try{const{data}=await sb.rpc('verificar_uso_diario',{p_limite:30});podeEnviar=data??false;}catch(e){}
   if(!podeEnviar){
-    toast('Você atingiu o limite de 30 mensagens por dia. Volte amanhã!','error');
+    showToast('⚠️','Limite diário atingido','Você pode enviar mais mensagens amanhã');
     return;
   }
 
