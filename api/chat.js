@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
 
   try {
-    const { mensagem, historico = [] } = req.body;
+    const { mensagem, historico = [], dadosFinanceiros = '' } = req.body;
     if (!mensagem) return res.status(400).json({ erro: 'Mensagem obrigatória' });
 
     // Identificar cliente pelo token JWT do Supabase
@@ -53,8 +53,12 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ erro: 'Agente não ativado para este cliente' });
     }
 
-    const systemPrompt = promptRow?.prompt_text ||
+    // Montar system prompt: base do consultor + dados financeiros reais do cliente
+    const basePrompt = promptRow?.prompt_text ||
       'Você é o Assistente ANT, planejador financeiro pessoal da ANT Capital. Seja próximo, humano e encorajador. Use linguagem simples e seja breve.';
+    const systemPrompt = dadosFinanceiros
+      ? basePrompt + dadosFinanceiros
+      : basePrompt;
 
     // Montar histórico para a API (últimas 10 trocas)
     const messages = [
