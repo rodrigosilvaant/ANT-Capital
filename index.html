@@ -4390,16 +4390,21 @@ async function enviarMensagemChat(){
         sb.rpc('get_dividas'),
         sb.rpc('get_metas')
       ]);
-      const transMes=(trans||[]).filter(t=>t.data?.startsWith(mesAtual));
+      // normaliza data para "YYYY-MM" independente se vier como date ou timestamp
+      const normData=d=>(d||'').toString().slice(0,7);
+      const transMes=(trans||[]).filter(t=>normData(t.data)===mesAtual);
       const receitas=transMes.filter(t=>t.tipo==='receita').reduce((s,t)=>s+Number(t.valor||0),0);
       const despesas=transMes.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+Number(t.valor||0),0);
       const divAbertas=(dividas||[]).filter(d=>!d.quitada&&d.status!=='quitada');
       const metasAtivas=(metas||[]).filter(m=>!m.concluida);
       const partes=[];
-      if(transMes.length>0)partes.push(`Lançamentos este mês: ${transMes.length} | Receitas: R$ ${receitas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Despesas: R$ ${despesas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Saldo: R$ ${(receitas-despesas).toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
+      // envia dados mesmo se zero para o agente saber que está conectado
+      partes.push(`Lançamentos este mês (${mesAtual}): ${transMes.length} registros | Receitas: R$ ${receitas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Despesas: R$ ${despesas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Saldo: R$ ${(receitas-despesas).toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
       if(divAbertas.length>0)partes.push('Dívidas ativas: '+divAbertas.map(d=>`${d.credor||'Dívida'}: R$ ${Number(d.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} (${d.parcelas||0} parcelas, ${d.pagas||0} pagas)`).join(' | '));
+      else partes.push('Dívidas ativas: nenhuma registrada');
       if(metasAtivas.length>0)partes.push('Metas: '+metasAtivas.map(m=>`${m.nome}: R$ ${Number(m.valor_atual||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} de R$ ${Number(m.valor_alvo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join(' | '));
-      if(partes.length>0)dadosFinanceiros='\n\nDADOS FINANCEIROS REAIS (mês atual — use para personalizar as respostas):\n'+partes.join('\n');
+      else partes.push('Metas: nenhuma registrada');
+      dadosFinanceiros='\n\nDADOS FINANCEIROS REAIS (conectado ao sistema — use estes dados nas respostas, não diga que não tem acesso):\n'+partes.join('\n');
     }catch(ef){}
 
     // Chamar API do chat
