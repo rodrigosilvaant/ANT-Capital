@@ -4026,10 +4026,10 @@ function gerarPromptCliente(diag, nome, dadosFinanceiros){
     money_vigilance:'É muito controlado e ansioso com as finanças',
     indefinido:'Perfil comportamental ainda não identificado'
   };
-  const sobrenome=nome.split(' ').slice(-1)[0]||nome;
-  return `Você é o Assistente ANT — planejador financeiro pessoal de ${nome}, criado pela ANT Capital.
+  const primeiroNome=nome.split(' ')[0]||nome;
+  return `Você é o Assistente ANT — planejador financeiro pessoal de ${primeiroNome}, criado pela ANT Capital.
 
-SOBRE ${nome.toUpperCase()}:
+SOBRE ${primeiroNome.toUpperCase()}:
 - Renda líquida mensal: R$ ${Number(diag.renda_liquida||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
 - Gastos fixos mensais: R$ ${Number(diag.gastos_fixos||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
 - Sobra mensal estimada: R$ ${Number((diag.renda_liquida||0)-(diag.gastos_fixos||0)).toLocaleString('pt-BR',{minimumFractionDigits:2})}
@@ -4043,7 +4043,7 @@ ${diag.historico_resumo?'- Histórico/observações: '+diag.historico_resumo:''}
 ${dadosFinanceiros||''}
 
 COMO VOCÊ DEVE AGIR:
-- Chame-o de ${sobrenome} (ou pelo primeiro nome se for mais natural)
+- Chame-o sempre pelo primeiro nome: ${primeiroNome}
 - Seja próximo, humano e encorajador — como um amigo que entende de finanças
 - Use linguagem simples, sem jargões desnecessários
 - Celebre pequenas vitórias e não julgue retrocessos
@@ -4381,13 +4381,34 @@ async function enviarMensagemChat(){
   area.scrollTop=area.scrollHeight;
 
   try{
+    // Buscar dados financeiros do cliente para enriquecer contexto
+    let dadosFinanceiros='';
+    try{
+      const mesAtual=new Date().toISOString().slice(0,7);
+      const[{data:trans},{data:dividas},{data:metas}]=await Promise.all([
+        sb.rpc('get_transacoes_cliente',{p_user_id:(await sb.auth.getUser()).data.user?.id}),
+        sb.rpc('get_dividas_cliente',{p_user_id:(await sb.auth.getUser()).data.user?.id}),
+        sb.rpc('get_metas_cliente',{p_user_id:(await sb.auth.getUser()).data.user?.id})
+      ]);
+      const transMes=(trans||[]).filter(t=>t.data?.startsWith(mesAtual));
+      const receitas=transMes.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+Number(t.valor||0),0);
+      const despesas=transMes.filter(t=>t.tipo==='saida').reduce((s,t)=>s+Number(t.valor||0),0);
+      const divAbertas=(dividas||[]).filter(d=>d.status!=='quitada');
+      const metasAtivas=(metas||[]).filter(m=>m.status!=='concluida');
+      const partes=[];
+      if(transMes.length>0)partes.push(`Lançamentos este mês: ${transMes.length} | Receitas: R$ ${receitas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Despesas: R$ ${despesas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Saldo: R$ ${(receitas-despesas).toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
+      if(divAbertas.length>0)partes.push('Dívidas ativas: '+divAbertas.map(d=>`${d.credor||d.descricao}: R$ ${Number(d.valor_total||d.saldo_devedor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join(' | '));
+      if(metasAtivas.length>0)partes.push('Metas: '+metasAtivas.map(m=>`${m.nome}: R$ ${Number(m.valor_atual||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} de R$ ${Number(m.valor_alvo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join(' | '));
+      if(partes.length>0)dadosFinanceiros='\n\nDADOS FINANCEIROS REAIS (mês atual — use para personalizar as respostas):\n'+partes.join('\n');
+    }catch(ef){}
+
     // Chamar API do chat
     const {data:{session}}=await sb.auth.getSession();
     const token=session?.access_token||'';
     const resp=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({mensagem:texto, historico:_chatMsgs.slice(-10)})
+      body:JSON.stringify({mensagem:texto, historico:_chatMsgs.slice(-10), dadosFinanceiros})
     });
     const typing=document.getElementById(typingId);
     if(typing)typing.remove();
