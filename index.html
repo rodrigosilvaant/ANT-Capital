@@ -4385,26 +4385,35 @@ async function enviarMensagemChat(){
     let dadosFinanceiros='';
     try{
       const mesAtual=new Date().toISOString().slice(0,7);
-      const[{data:trans},{data:dividas},{data:metas}]=await Promise.all([
+      const[resT,resD,resM]=await Promise.all([
         sb.rpc('get_transacoes'),
         sb.rpc('get_dividas'),
-        sb.rpc('get_metas')
+        sb.from('metas').select('nome,valor_atual,valor_alvo,concluida').eq('concluida',false)
       ]);
-      // normaliza data para "YYYY-MM" independente se vier como date ou timestamp
+      const trans=resT.data||[], dividas=resD.data||[], metas=resM.data||[];
       const normData=d=>(d||'').toString().slice(0,7);
-      const transMes=(trans||[]).filter(t=>normData(t.data)===mesAtual);
-      const receitas=transMes.filter(t=>t.tipo==='receita').reduce((s,t)=>s+Number(t.valor||0),0);
-      const despesas=transMes.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+Number(t.valor||0),0);
-      const divAbertas=(dividas||[]).filter(d=>!d.quitada&&d.status!=='quitada');
-      const metasAtivas=(metas||[]).filter(m=>!m.concluida);
-      const partes=[];
-      // envia dados mesmo se zero para o agente saber que está conectado
-      partes.push(`Lançamentos este mês (${mesAtual}): ${transMes.length} registros | Receitas: R$ ${receitas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Despesas: R$ ${despesas.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Saldo: R$ ${(receitas-despesas).toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
+
+      // últimos 3 meses
+      const meses=[];
+      for(let i=0;i<3;i++){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);meses.push(d.toISOString().slice(0,7));}
+
+      const resumoMeses=meses.map(ym=>{
+        const tm=trans.filter(t=>normData(t.data)===ym);
+        const rec=tm.filter(t=>t.tipo==='receita').reduce((s,t)=>s+Number(t.valor||0),0);
+        const desp=tm.filter(t=>t.tipo==='despesa').reduce((s,t)=>s+Number(t.valor||0),0);
+        const cats={};tm.filter(t=>t.tipo==='despesa').forEach(t=>{cats[t.categoria||'Outros']=(cats[t.categoria||'Outros']||0)+Number(t.valor||0);});
+        const topCats=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c,v])=>`${c}: R$${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join(', ');
+        return`  ${ym}: ${tm.length} lançamentos | Receitas R$ ${rec.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Despesas R$ ${desp.toLocaleString('pt-BR',{minimumFractionDigits:2})} | Saldo R$ ${(rec-desp).toLocaleString('pt-BR',{minimumFractionDigits:2})}${topCats?' | Top categorias: '+topCats:''}`;
+      }).join('\n');
+
+      const divAbertas=dividas.filter(d=>!d.quitada&&d.status!=='quitada');
+      const metasAtivas=metas.filter(m=>!m.concluida);
+      const partes=['Histórico financeiro (últimos 3 meses):\n'+resumoMeses];
       if(divAbertas.length>0)partes.push('Dívidas ativas: '+divAbertas.map(d=>`${d.credor||'Dívida'}: R$ ${Number(d.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} (${d.parcelas||0} parcelas, ${d.pagas||0} pagas)`).join(' | '));
       else partes.push('Dívidas ativas: nenhuma registrada');
       if(metasAtivas.length>0)partes.push('Metas: '+metasAtivas.map(m=>`${m.nome}: R$ ${Number(m.valor_atual||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} de R$ ${Number(m.valor_alvo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join(' | '));
       else partes.push('Metas: nenhuma registrada');
-      dadosFinanceiros='\n\nDADOS FINANCEIROS REAIS (conectado ao sistema — use estes dados nas respostas, não diga que não tem acesso):\n'+partes.join('\n');
+      dadosFinanceiros='\n\nDADOS FINANCEIROS REAIS DO CLIENTE (use estes dados — nunca diga que não tem acesso aos lançamentos):\n'+partes.join('\n');
     }catch(ef){}
 
     // Chamar API do chat
