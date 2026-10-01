@@ -1220,23 +1220,6 @@ async function carregarApp(nome){
   document.getElementById("login-screen").style.display="none";
   document.getElementById("welcome").style.display="none";
 
-  // ── Verificar assinatura antes de carregar o app ──────────────────────
-  if(_user?.id){
-    try{
-      const sr=await fetch('/api/asaas-status?user_id='+_user.id);
-      const sd=await sr.json();
-      if(!sd.ativo && !sd.isento){
-        // Sem assinatura ativa — mostrar tela de pagamento
-        mostrarTelaAssinatura(sd.status);
-        return;
-      }
-    }catch(e){
-      // Erro de rede → libera acesso (fail-open) para não travar usuário
-      console.warn('[asaas-status] falha na verificação, liberando acesso:', e.message);
-    }
-  }
-  // ──────────────────────────────────────────────────────────────────────
-
   document.getElementById("header-nome").textContent=nome;
   showLoading(true);
   await loadData();
@@ -1275,13 +1258,13 @@ function mostrarTelaAssinatura(statusAtual){
         <div style="color:var(--steel);font-size:13px;margin-bottom:24px;line-height:1.6">${msg}</div>
 
         <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:24px;text-align:left">
-          <div style="color:#fff;font-size:14px;font-weight:600;margin-bottom:12px">✅ Plano Mensal — R$ 47,90/mês</div>
+          <div style="color:#fff;font-size:14px;font-weight:600;margin-bottom:12px">✅ O que você desbloqueia</div>
           <div style="color:var(--steel);font-size:12px;line-height:2">
-            📊 Dashboard financeiro completo<br>
-            🤖 Assistente com IA<br>
-            🎯 Metas e jornada de conquistas<br>
-            📈 Projeções e diagnóstico<br>
-            📱 Acesso pelo celular (PWA)
+            🤖 Assistente financeiro com IA — sem limite de análises<br>
+            💬 Diagnóstico personalizado da sua situação<br>
+            📊 Respostas baseadas nos seus próprios dados<br>
+            🎯 Orientação para metas, dívidas e investimentos<br>
+            📱 Acesso completo pelo celular (PWA)
           </div>
         </div>
 
@@ -1309,7 +1292,7 @@ function abrirModalCheckout(){
       <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(21,35,54,.3)">
         <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.5rem;text-align:center;color:#fff">
           <div style="font-size:32px;margin-bottom:8px">🐜</div>
-          <div style="font-size:17px;font-weight:600;margin-bottom:4px">Assinar ANT Capital</div>
+          <div style="font-size:17px;font-weight:600;margin-bottom:4px">Desbloquear Assistente IA</div>
           <div style="font-size:13px;opacity:.8">R$ 47,90/mês — Cancele quando quiser</div>
         </div>
         <div style="padding:1.5rem">
@@ -4802,6 +4785,26 @@ async function enviarMensagemChat(){
   if(!input||!area)return;
   const texto=input.value.trim();
   if(!texto)return;
+
+  // ── Verificar assinatura antes de enviar ─────────────────────────────
+  const ISENTO='c52e0d58-27f5-46f3-bbae-06fb9a47171f'; // Rodrigo — consultor
+  if(_user?.id && _user.id!==ISENTO){
+    // Usa cache em memória para não chamar a API a cada mensagem
+    if(window._asaasStatus===undefined){
+      try{
+        const sr=await fetch('/api/asaas-status?user_id='+_user.id);
+        window._asaasStatus=await sr.json();
+      }catch(e){
+        window._asaasStatus={ativo:true}; // fail-open
+      }
+    }
+    if(!window._asaasStatus?.ativo){
+      // Mostra prompt de assinatura inline no chat — não bloqueia o app
+      abrirModalCheckout();
+      return;
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────
 
   // Verificar limite diário
   let podeEnviar=false;
