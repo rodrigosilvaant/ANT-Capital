@@ -291,6 +291,33 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 .chart-wrap{position:relative;min-height:160px}
 
 /* ===== CHAT ASSISTENTE ===== */
+/* ===== ONBOARDING MODAL ===== */
+#onboarding-modal{position:fixed;inset:0;background:rgba(21,35,54,.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+#onboarding-modal.hidden{display:none}
+.onb-box{background:#fff;border-radius:var(--radius-xl);width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(21,35,54,.25)}
+.onb-header{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.5rem;text-align:center;color:#fff}
+.onb-icon{font-size:40px;margin-bottom:8px}
+.onb-title{font-size:18px;font-weight:600;margin-bottom:4px}
+.onb-sub{font-size:13px;opacity:.8}
+.onb-steps{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.onb-step-btn{flex:1;padding:12px 8px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.onb-step-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.onb-step-num{width:22px;height:22px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.onb-step-btn.active .onb-step-num{background:var(--blue);color:#fff}
+.onb-step-btn.done .onb-step-num{background:var(--success);color:#fff}
+.onb-content{padding:1.25rem}
+.onb-slide{display:none}.onb-slide.active{display:block}
+.onb-slide h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--navy)}
+.onb-slide p{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.onb-action-row{display:flex;gap:8px;margin-top:1rem}
+.onb-skip{flex:1;padding:10px;background:none;border:1px solid var(--border2);border-radius:var(--radius);font-size:13px;color:var(--text2);cursor:pointer}
+.onb-next{flex:2;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer}
+/* ===== DASHBOARD EMPTY STATE / HIGHLIGHT CARDS ===== */
+.dash-action-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:12px;cursor:pointer;transition:box-shadow .15s}
+.dash-action-card:hover{box-shadow:0 2px 12px rgba(21,35,54,.08)}
+.dash-action-icon{width:42px;height:42px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dash-highlight{background:linear-gradient(135deg,#f0f7ff 0%,#e8f3ff 100%);border:1px solid rgba(58,111,168,.2);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem}
+/* ===== CHAT ASSISTENTE ===== */
 .chat-wrap{background:#fff;border:1px solid var(--border);border-radius:var(--radius-xl);display:flex;flex-direction:column;overflow:hidden;height:calc(100vh - 200px);min-height:480px;max-height:760px}
 .chat-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--navy);flex-shrink:0}
 .chat-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
@@ -1198,6 +1225,54 @@ async function carregarApp(nome){
   showLoading(false);
   render();
   resetInatividadeTimer();
+
+  // Detectar primeiro acesso — mostrar onboarding se nunca viu
+  const onbKey='ant_onb_done_'+(_user?.id||'x');
+  const jaViu=localStorage.getItem(onbKey);
+  if(!jaViu){
+    // Pequeno delay para a tela carregar antes de abrir o modal
+    setTimeout(()=>mostrarOnboarding(onbKey), 800);
+  }
+}
+
+let _onbKey='';
+let _onbStep=1;
+
+function mostrarOnboarding(key){
+  _onbKey=key;
+  _onbStep=1;
+  const m=document.getElementById('onboarding-modal');
+  if(m){m.classList.remove('hidden');renderOnbStep();}
+}
+
+function renderOnbStep(){
+  const slides=['onb-s1','onb-s2','onb-s3'];
+  slides.forEach((s,i)=>{
+    const el=document.getElementById(s);
+    if(el)el.classList.toggle('active',i===_onbStep-1);
+  });
+  const btns=document.querySelectorAll('.onb-step-btn');
+  btns.forEach((b,i)=>{
+    b.classList.remove('active','done');
+    if(i+1===_onbStep)b.classList.add('active');
+    else if(i+1<_onbStep)b.classList.add('done');
+  });
+}
+
+function onbNext(){
+  if(_onbStep<3){_onbStep++;renderOnbStep();}
+  else{fecharOnboarding();}
+}
+
+function fecharOnboarding(){
+  const m=document.getElementById('onboarding-modal');
+  if(m)m.classList.add('hidden');
+  if(_onbKey)localStorage.setItem(_onbKey,'1');
+}
+
+function onbIrPara(tab){
+  fecharOnboarding();
+  setTab(tab);
 }
 
 function showLoading(show){
@@ -1307,7 +1382,28 @@ let editingTransId=null,editingContaId=null; // IDs dos itens em edição
 const now=new Date();
 let mes={y:now.getFullYear(),m:now.getMonth()+1};
 
-function setTab(t){currentTab=t;["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico","jornada","assistente"].forEach(id=>{document.getElementById("view-"+id).style.display=id===t?"block":"none";document.getElementById("tab-"+id).classList.toggle("active",id===t)});render()}
+function _temDadosSuficientes(){
+  // Considera "suficiente" ter ao menos 5 lançamentos registrados
+  return trans.length>=5;
+}
+
+function setTab(t){
+  currentTab=t;
+  // Abas avançadas — só mostrar se tem dados suficientes
+  const abasAvancadas=["projecao","aposentadoria","diagnostico"];
+  const temDados=_temDadosSuficientes();
+  ["dashboard","lancamentos","graficos","dividas","metas","aposentadoria","cadastros","projecao","relatorios","diagnostico","jornada","assistente"].forEach(id=>{
+    document.getElementById("view-"+id).style.display=id===t?"block":"none";
+    document.getElementById("tab-"+id).classList.toggle("active",id===t);
+    // Esconder abas avançadas do nav se sem dados (mas ainda permitir acesso direto)
+    const tabEl=document.getElementById("tab-"+id);
+    if(tabEl&&abasAvancadas.includes(id)){
+      tabEl.style.opacity=temDados?"1":"0.4";
+      tabEl.title=temDados?"":("Disponível após registrar mais lançamentos");
+    }
+  });
+  render();
+}
 function navMes(dir){mes.m+=dir;if(mes.m>12){mes.m=1;mes.y++}if(mes.m<1){mes.m=12;mes.y--}render()}
 function setCadTab(t){cadTab=t;renderCadastros()}
 function setTipoLanc(t){tipoLanc=t;render()}
@@ -1605,6 +1701,54 @@ function renderDashboard(){
   const totalPassivosPatr=dividas.filter(d=>!d.quitada).reduce((s,d)=>s+(d.valorTotal||0),0);
   const patrimonioLiquidoDash=totalAtivosPatr-totalPassivosPatr;
 
+  // === EMPTY STATE (sem lançamentos no app inteiro) ===
+  const totalTrans=trans.length;
+  const isNewUser=totalTrans===0;
+  const isFirstMonth=totalTrans>0&&totalTrans<5;
+
+  if(isNewUser){
+    document.getElementById('view-dashboard').innerHTML=`
+      ${mesPicker()}
+      <!-- BOAS VINDAS NOVO USUÁRIO -->
+      <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);border-radius:var(--radius-xl);padding:1.5rem;color:#fff;margin-bottom:1.25rem;text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">👋</div>
+        <div style="font-size:18px;font-weight:600;margin-bottom:6px">Bem-vindo à ANT Capital!</div>
+        <div style="font-size:13px;opacity:.85;line-height:1.6;max-width:280px;margin:0 auto">Seu painel financeiro está pronto. Siga os 3 passos abaixo para ver sua saúde financeira.</div>
+      </div>
+      <!-- PASSOS PARA COMEÇAR -->
+      <div style="margin-bottom:1.25rem">
+        <p class="section-title" style="margin-bottom:.75rem">🚀 Por onde começar</p>
+        <div class="dash-action-card" onclick="setTab('cadastros')">
+          <div class="dash-action-icon" style="background:#e8f3ff">🏦</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:2px">1. Cadastre suas contas</div><div style="font-size:12px;color:var(--text2)">Adicione conta corrente, poupança ou carteira</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="2" width="18"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="dash-action-card" onclick="setTab('lancamentos')">
+          <div class="dash-action-icon" style="background:#e8f8ee">💸</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:2px">2. Lance uma despesa ou receita</div><div style="font-size:12px;color:var(--text2)">Registre seus gastos e rendimentos do mês</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="2" width="18"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <div class="dash-action-card" onclick="setTab('metas')">
+          <div class="dash-action-icon" style="background:#fff8e8">🎯</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:2px">3. Defina uma meta financeira</div><div style="font-size:12px;color:var(--text2)">Reserve um objetivo: viagem, reserva, imóvel</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="2" width="18"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+      <!-- JORNADA EM DESTAQUE -->
+      <div class="dash-highlight" onclick="setTab('jornada')" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:30px">🗺️</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:3px">Sua Jornada Financeira</div>
+            <div style="font-size:12px;color:var(--text2)">Um plano passo a passo adaptado à sua situação real</div>
+          </div>
+          <button class="btn-outline" style="font-size:12px;white-space:nowrap" onclick="event.stopPropagation();setTab('jornada')">Ver plano →</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   document.getElementById('view-dashboard').innerHTML=`
     ${mesPicker()}
 
@@ -1695,6 +1839,40 @@ function renderDashboard(){
         <button class="btn-outline" style="font-size:11px" onclick="setTab('lancamentos')">Ver todas</button>
       </div>
       ${listHtml}
+    </div>
+
+    <!-- DÍVIDAS INTEGRADAS COM % DA RENDA -->
+    ${divPend>0&&entradas>0?`<div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
+      <div style="font-size:12px;color:var(--warning);font-weight:600;margin-bottom:6px">💳 Impacto das dívidas na sua renda</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Total em dívidas</div><div style="font-size:18px;font-weight:600;color:var(--warning)">${fmt(divPend)}</div></div>
+        <div style="flex:1;min-width:120px"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Comprometimento da renda</div><div style="font-size:18px;font-weight:600;color:${(divPend/entradas)>0.3?'var(--danger)':'var(--text)'}">${((divPend/entradas)*100).toFixed(0)}%</div></div>
+        <button class="btn-outline" style="font-size:11px;align-self:flex-end" onclick="setTab('dividas')">Ver plano →</button>
+      </div>
+    </div>`:''}
+
+    <!-- DIAGNÓSTICO IA — CARD DE DESTAQUE NO RESUMO -->
+    <div class="dash-highlight" onclick="setTab('diagnostico')" style="cursor:pointer;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:28px">🤖</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:3px">Diagnóstico Financeiro com IA</div>
+          <div style="font-size:12px;color:var(--text2)">Análise completa da sua situação com plano de ação personalizado</div>
+        </div>
+        <button class="btn-outline" style="font-size:12px;white-space:nowrap" onclick="event.stopPropagation();setTab('diagnostico')">Analisar →</button>
+      </div>
+    </div>
+
+    <!-- JORNADA FINANCEIRA — CARD DE DESTAQUE -->
+    <div style="background:linear-gradient(135deg,#f8f6ff 0%,#ede9ff 100%);border:1px solid rgba(107,83,196,.2);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;cursor:pointer" onclick="setTab('jornada')">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:28px">🗺️</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600;color:var(--navy);margin-bottom:3px">Sua Jornada Financeira</div>
+          <div style="font-size:12px;color:var(--text2)">Plano personalizado com metas e marcos para organizar sua vida financeira</div>
+        </div>
+        <button class="btn-outline" style="font-size:12px;white-space:nowrap" onclick="event.stopPropagation();setTab('jornada')">Ver →</button>
+      </div>
     </div>
   `;
 
@@ -3218,9 +3396,44 @@ function renderProjecao(){
     var opD='<option value="">Categoria</option>';for(var i=0;i<cD.length;i++)opD+='<option>'+cD[i].nome+'</option>';
     var btnL=(projecao.receitas.length>0||projecao.despesas.length>0)?'<div style="text-align:right;margin-top:1.25rem"><button class="btn-danger" onclick="limparProjecao()">Limpar simulacao</button></div>':"";
 
+    // === COMPARATIVO PROJETADO VS REALIZADO (mês atual) ===
+    var hoje2=new Date();
+    var isMesAtualProj=(nm.y===hoje2.getFullYear()&&nm.m===hoje2.getMonth()+1);
+    // Usar mês anterior para comparação (que já foi concluído)
+    var mesAntY=mes.y,mesAntM=mes.m;
+    mesAntM--;if(mesAntM<1){mesAntM=12;mesAntY--;}
+    var transAnt=trans.filter(function(t){var p=t.data.split("-");return Number(p[0])===mesAntY&&Number(p[1])===mesAntM;});
+    var recAnt=transAnt.filter(function(t){return t.tipo==="receita"}).reduce(function(s,t){return s+t.valor},0);
+    var despAnt=transAnt.filter(function(t){return t.tipo==="despesa"}).reduce(function(s,t){return s+t.valor},0);
+    var comparHtml='';
+    if((projecao.receitas.length>0||projecao.despesas.length>0)&&(recAnt>0||despAnt>0)){
+      var mesAntNome=new Date(mesAntY,mesAntM-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+      var difR=recAnt-totalR,difD=despAnt-totalD;
+      comparHtml='<div class="card" style="margin-bottom:1.25rem">'
+        +'<p class="section-title" style="margin-bottom:.75rem">📊 Comparativo: Projetado vs Realizado</p>'
+        +'<p style="font-size:12px;color:var(--text2);margin-bottom:1rem">Comparando sua projeção para '+nomeMes+' com o realizado em '+mesAntNome+'</p>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        +'<div style="background:var(--success-bg);border-radius:var(--radius);padding:12px">'
+        +'<div style="font-size:11px;color:var(--success);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Receitas</div>'
+        +'<div style="font-size:13px;color:var(--text2);margin-bottom:2px">Projetado: <strong style="color:var(--success)">'+fmt(totalR)+'</strong></div>'
+        +'<div style="font-size:13px;color:var(--text2);margin-bottom:6px">Realizado: <strong>'+fmt(recAnt)+'</strong></div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+(difR>=0?'var(--danger)':'var(--success)')+'">'+
+        (difR>=0?'▼ '+fmt(difR)+' abaixo do projetado':'▲ '+fmt(Math.abs(difR))+' acima do projetado')
+        +'</div></div>'
+        +'<div style="background:var(--danger-bg);border-radius:var(--radius);padding:12px">'
+        +'<div style="font-size:11px;color:var(--danger);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Despesas</div>'
+        +'<div style="font-size:13px;color:var(--text2);margin-bottom:2px">Projetado: <strong style="color:var(--danger)">'+fmt(totalD)+'</strong></div>'
+        +'<div style="font-size:13px;color:var(--text2);margin-bottom:6px">Realizado: <strong>'+fmt(despAnt)+'</strong></div>'
+        +'<div style="font-size:12px;font-weight:600;color:'+(difD<=0?'var(--danger)':'var(--success)')+'">'+
+        (difD<=0?'▲ '+fmt(Math.abs(difD))+' acima do projetado':'▼ '+fmt(difD)+' economizado')
+        +'</div></div>'
+        +'</div></div>';
+    }
+
     var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">'
       +'<div><p class="section-title" style="margin:0 0 2px">Simulacao do proximo mes</p><p style="font-size:16px;font-weight:500;color:var(--navy)">'+nomeMes+'</p></div>'
       +'<button class="btn-outline" onclick="importarMesAtual()">Importar mes atual</button></div>'
+      +comparHtml
       +'<div style="background:'+corSaldo+';border-radius:var(--radius-lg);padding:1.25rem;color:#fff;margin-bottom:1.25rem">'
       +'<p style="font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Saldo projetado</p>'
       +'<p style="font-size:30px;font-weight:300;margin-bottom:12px">'+saldoStr+'</p>'
@@ -4345,7 +4558,27 @@ async function carregarHistoricoChat(){
     // Mensagem de boas-vindas se histórico vazio
     if(_chatMsgs.length===0){
       const saudacao=obterSaudacao();
-      adicionarMensagemChat('assistant','Olá! '+saudacao+' Sou o Assistente ANT, seu planejador financeiro pessoal. Como posso te ajudar hoje?');
+      // Mensagem proativa contextual com base na situação financeira do usuário
+      const hoje=new Date();
+      const mesAtual=trans.filter(t=>{const[y,m]=t.data.split("-").map(Number);return y===hoje.getFullYear()&&m===hoje.getMonth()+1});
+      const totalGastos=mesAtual.filter(t=>t.tipo==="despesa").reduce((s,t)=>s+t.valor,0);
+      const totalRec=mesAtual.filter(t=>t.tipo==="receita").reduce((s,t)=>s+t.valor,0);
+      const divAberta=dividas.filter(d=>!d.quitada).length;
+      const metaAberta=metas.filter(m=>!m.concluida).length;
+
+      let msgProativa;
+      if(trans.length===0){
+        msgProativa=`${saudacao} Bem-vindo ao Assistente ANT! 🎉\n\nSou seu planejador financeiro pessoal. Vejo que você está começando agora — ótimo momento para dar um passo importante!\n\nPor onde quer começar? Posso te ajudar a:\n• Entender como organizar seu orçamento\n• Planejar como sair de dívidas\n• Definir metas realistas\n\nBasta me contar sua situação atual.`;
+      } else if(totalRec===0&&hoje.getDate()>5){
+        msgProativa=`${saudacao}! 👋\n\nPercebi que ainda não há receitas registradas este mês. Não se esqueça de lançar seus rendimentos para eu poder analisar sua situação real e te dar orientações precisas.\n\nPrecisa de ajuda com alguma coisa?`;
+      } else if(divAberta>0&&metaAberta>0){
+        msgProativa=`${saudacao}! 💪\n\nVocê tem ${divAberta} ${divAberta===1?'dívida':'dívidas'} em aberto e ${metaAberta} ${metaAberta===1?'meta':'metas'} ativas. Isso é um ponto importante a trabalhar!\n\nQuer que eu monte uma estratégia para pagar as dívidas sem abrir mão das suas metas?`;
+      } else if(totalGastos>0&&totalRec>0&&totalGastos>totalRec){
+        msgProativa=`${saudacao}! ⚠️\n\nEste mês seus gastos (${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalGastos)}) estão acima das receitas (${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(totalRec)}). Isso pode virar um problema.\n\nMe conta: existe algum gasto pontual que explica isso, ou é um padrão recorrente?`;
+      } else {
+        msgProativa=`${saudacao}! 😊\n\nSou o Assistente ANT, seu planejador financeiro pessoal. Estou aqui para te ajudar a tomar decisões financeiras mais inteligentes.\n\nO que você gostaria de conversar hoje? Posso analisar seu orçamento, ajudar a definir metas ou orientar sobre investimentos.`;
+      }
+      adicionarMensagemChat('assistant', msgProativa);
     }
   }catch(e){
     if(area)area.innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">Erro ao carregar histórico.</div>';
@@ -4574,13 +4807,23 @@ function renderRelatorios(){
     <p class="section-title">Gerar relatório</p>
     <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">Escolha o tipo de relatório. Após gerado, você pode tirar um print para enviar pelo WhatsApp ou salvar como PDF.</p>
 
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:180px">
-        <label class="label-sm">Mês do relatório</label>
-        <select id="rel-mes-select" onchange="alterarMesRelatorio(this.value)" style="width:100%">${optsHtml}</select>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <label class="label-sm">Mês do relatório</label>
+          <select id="rel-mes-select" onchange="alterarMesRelatorio(this.value)" style="width:100%">${optsHtml}</select>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <label class="label-sm">De</label>
+          <input type="date" id="rel-data-ini" style="width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;font-size:13px" onchange="aplicarFiltroPersonalizado()"/>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <label class="label-sm">Até</label>
+          <input type="date" id="rel-data-fim" style="width:100%;border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;font-size:13px" onchange="aplicarFiltroPersonalizado()"/>
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--text2)">
-        ✓ = meses com lançamentos registrados
+      <div style="font-size:11px;color:var(--text2);margin-top:8px">
+        ✓ = meses com lançamentos · Use "De / Até" para um período específico ou deixe em branco para usar o mês selecionado
       </div>
     </div>
 
@@ -4615,6 +4858,34 @@ function renderRelatorios(){
 function alterarMesRelatorio(val){
   const[y,m]=val.split("-").map(Number);
   _relMes={y,m};
+  // Limpar filtro personalizado ao trocar o mês
+  _relFiltroInicio=null;_relFiltroFim=null;
+  const ini=document.getElementById('rel-data-ini');
+  const fim=document.getElementById('rel-data-fim');
+  if(ini)ini.value='';
+  if(fim)fim.value='';
+}
+
+let _relFiltroInicio=null,_relFiltroFim=null;
+
+function aplicarFiltroPersonalizado(){
+  const ini=document.getElementById('rel-data-ini')?.value;
+  const fim=document.getElementById('rel-data-fim')?.value;
+  if(ini&&fim&&ini<=fim){
+    _relFiltroInicio=ini;
+    _relFiltroFim=fim;
+    showToast('📅','Filtro de período','Ao gerar o relatório, os dados de '+fmtData(ini)+' a '+fmtData(fim)+' serão usados.');
+  } else if(!ini&&!fim){
+    _relFiltroInicio=null;_relFiltroFim=null;
+  }
+}
+
+function getTransFiltradas(mesRef){
+  if(_relFiltroInicio&&_relFiltroFim){
+    return trans.filter(t=>t.data>=_relFiltroInicio&&t.data<=_relFiltroFim);
+  }
+  const mr=mesRef||_relMes||mes;
+  return trans.filter(t=>{const[y,m]=t.data.split('-').map(Number);return y===mr.y&&m===mr.m});
 }
 
 // ===== HELPERS DOS RELATÓRIOS =====
@@ -5180,6 +5451,71 @@ window.addEventListener('appinstalled', ()=>{
   if(b)b.style.display='none';
 });
 </script>
+<!-- ===== ONBOARDING MODAL ===== -->
+<div id="onboarding-modal" class="hidden">
+  <div class="onb-box">
+    <div class="onb-header">
+      <div class="onb-icon">🐜</div>
+      <div class="onb-title">Bem-vindo à ANT Capital!</div>
+      <div class="onb-sub">Seu planejador financeiro pessoal</div>
+    </div>
+    <!-- Steps nav -->
+    <div class="onb-steps">
+      <button class="onb-step-btn active" onclick="_onbStep=1;renderOnbStep()">
+        <div class="onb-step-num">1</div>
+        <span>Contas</span>
+      </button>
+      <button class="onb-step-btn" onclick="_onbStep=2;renderOnbStep()">
+        <div class="onb-step-num">2</div>
+        <span>Lançamentos</span>
+      </button>
+      <button class="onb-step-btn" onclick="_onbStep=3;renderOnbStep()">
+        <div class="onb-step-num">3</div>
+        <span>Metas</span>
+      </button>
+    </div>
+    <!-- Slides -->
+    <div class="onb-content">
+      <div class="onb-slide active" id="onb-s1">
+        <div style="font-size:36px;text-align:center;margin-bottom:10px">🏦</div>
+        <h3>1. Cadastre suas contas</h3>
+        <p>Adicione sua conta corrente, poupança, carteira de dinheiro ou cartão. Isso permite acompanhar seu saldo real em tempo real.</p>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">
+          💡 <strong>Dica:</strong> Comece com o saldo atual de cada conta para ter um ponto de partida preciso.
+        </div>
+        <div class="onb-action-row">
+          <button class="onb-skip" onclick="fecharOnboarding()">Pular tutorial</button>
+          <button class="onb-next" onclick="onbNext()">Próximo →</button>
+        </div>
+      </div>
+      <div class="onb-slide" id="onb-s2">
+        <div style="font-size:36px;text-align:center;margin-bottom:10px">💸</div>
+        <h3>2. Lance seus gastos e receitas</h3>
+        <p>Registre despesas (aluguel, mercado, lazer) e receitas (salário, freelance) para ver para onde vai seu dinheiro.</p>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">
+          💡 <strong>Dica:</strong> Você também pode importar o extrato bancário em CSV para economizar tempo!
+        </div>
+        <div class="onb-action-row">
+          <button class="onb-skip" onclick="fecharOnboarding()">Pular</button>
+          <button class="onb-next" onclick="onbNext()">Próximo →</button>
+        </div>
+      </div>
+      <div class="onb-slide" id="onb-s3">
+        <div style="font-size:36px;text-align:center;margin-bottom:10px">🎯</div>
+        <h3>3. Defina uma meta financeira</h3>
+        <p>Sonha com uma viagem, reserva de emergência ou imóvel? Crie metas com valor e prazo para o app calcular quanto poupar por mês.</p>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text2)">
+          💡 <strong>Dica:</strong> Use o Assistente ANT para tirar dúvidas a qualquer momento!
+        </div>
+        <div class="onb-action-row">
+          <button class="onb-skip" onclick="fecharOnboarding()">Fazer depois</button>
+          <button class="onb-next" onclick="fecharOnboarding();setTab('cadastros')">Começar agora →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL RELATÓRIO ===== -->
 <div id="rel-modal">
   <div id="rel-modal-content">
