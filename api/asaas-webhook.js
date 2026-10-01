@@ -6,15 +6,16 @@
 const SUPA_URL  = process.env.SUPABASE_URL;
 const SUPA_KEY  = process.env.SUPABASE_SERVICE_KEY;
 // Opcional mas recomendado: valide o token secreto do webhook
-const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || null;
+const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || 'whsec_EABcJNTrDu1AMTL6CNQ15aEmTCt_B_zCbT257JPtIt0';
 
 // Mapeamento de eventos Asaas → status interno
 const MAPA_STATUS = {
   // Assinatura
   'SUBSCRIPTION_CREATED':   'PENDING',
   'SUBSCRIPTION_RENEWED':   'ACTIVE',
-  'SUBSCRIPTION_CANCELLED': 'CANCELLED',
-  'SUBSCRIPTION_DELETED':   'CANCELLED',
+  'SUBSCRIPTION_CANCELLED':   'CANCELLED',
+  'SUBSCRIPTION_DELETED':     'CANCELLED',
+  'SUBSCRIPTION_INACTIVATED': 'CANCELLED',
   // Cobranças
   'PAYMENT_CONFIRMED':      'ACTIVE',
   'PAYMENT_RECEIVED':       'ACTIVE',
