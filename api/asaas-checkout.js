@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  const { user_id, nome, email, cpf, valor = 47.90, ciclo = 'MONTHLY' } = req.body;
+  const { user_id, nome, email, cpf, valor = 79.90, ciclo = 'MONTHLY' } = req.body;
 
   if (!user_id || !nome || !email || !cpf) {
     return res.status(400).json({ error: 'Campos obrigatórios: user_id, nome, email, cpf' });
