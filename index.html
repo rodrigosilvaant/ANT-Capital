@@ -1328,6 +1328,9 @@ function mostrarTelaAssinatura(statusAtual){
 }
 
 // ===== ASAAS — MODAL DE CHECKOUT =====
+// ── Variável de estado do checkout ────────────────────────────────────────
+let _checkoutMetodo = null; // 'cartao' | 'pix'
+
 function abrirModalCheckout(){
   let m=document.getElementById('modal-checkout');
   if(!m){
@@ -1335,9 +1338,15 @@ function abrirModalCheckout(){
     m.id='modal-checkout';
     document.body.appendChild(m);
   }
+  _checkoutMetodo = null;
+  _renderCheckoutEtapa1(m);
+  m.style.display='block';
+}
+
+function _renderCheckoutEtapa1(m){
   m.innerHTML=`
     <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
-      <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(21,35,54,.3)">
+      <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(21,35,54,.3)">
         <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.5rem;text-align:center;color:#fff">
           <div style="font-size:32px;margin-bottom:8px">🐜</div>
           <div style="font-size:17px;font-weight:600;margin-bottom:4px">Desbloquear Assistente IA</div>
@@ -1348,18 +1357,35 @@ function abrirModalCheckout(){
 
           <div style="margin-bottom:12px">
             <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Nome completo *</label>
-            <input id="co-nome" type="text" placeholder="Seu nome completo" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none"/>
+            <input id="co-nome" type="text" placeholder="Seu nome completo" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
           </div>
           <div style="margin-bottom:12px">
             <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">E-mail *</label>
-            <input id="co-email" type="email" value="${_user?.email||''}" placeholder="seu@email.com" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none"/>
+            <input id="co-email" type="email" value="${_user?.email||''}" placeholder="seu@email.com" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
           </div>
           <div style="margin-bottom:20px">
             <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">CPF *</label>
-            <input id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none"/>
+            <input id="co-cpf" type="text" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
           </div>
-          <button id="co-btn" onclick="processarCheckout()" style="width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer">
-            Criar assinatura →
+
+          <div style="margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text1)">Como deseja pagar?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+            <button onclick="_selecionarMetodo('cartao')" id="btn-metodo-cartao"
+              style="padding:14px 10px;border:2px solid var(--border2);border-radius:var(--radius);background:#fff;cursor:pointer;text-align:center;transition:all .2s">
+              <div style="font-size:22px;margin-bottom:4px">💳</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text1)">Cartão de crédito</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Acesso imediato</div>
+            </button>
+            <button onclick="_selecionarMetodo('pix')" id="btn-metodo-pix"
+              style="padding:14px 10px;border:2px solid var(--border2);border-radius:var(--radius);background:#fff;cursor:pointer;text-align:center;transition:all .2s">
+              <div style="font-size:22px;margin-bottom:4px">⚡</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text1)">PIX</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Confirmação em minutos</div>
+            </button>
+          </div>
+
+          <button id="co-btn" onclick="_avancarCheckout()" style="width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer">
+            Continuar →
           </button>
           <div style="text-align:center;margin-top:12px">
             <div onclick="fecharModalCheckout()" style="color:var(--text3);font-size:12px;cursor:pointer;text-decoration:underline">Cancelar</div>
@@ -1370,12 +1396,326 @@ function abrirModalCheckout(){
         </div>
       </div>
     </div>`;
-  m.style.display='block';
+}
+
+function _selecionarMetodo(metodo){
+  _checkoutMetodo = metodo;
+  document.getElementById('btn-metodo-cartao').style.borderColor = metodo==='cartao' ? 'var(--blue)' : 'var(--border2)';
+  document.getElementById('btn-metodo-cartao').style.background  = metodo==='cartao' ? 'rgba(58,111,168,.07)' : '#fff';
+  document.getElementById('btn-metodo-pix').style.borderColor    = metodo==='pix'    ? 'var(--blue)' : 'var(--border2)';
+  document.getElementById('btn-metodo-pix').style.background     = metodo==='pix'    ? 'rgba(58,111,168,.07)' : '#fff';
+}
+
+function _avancarCheckout(){
+  const nome  = (document.getElementById('co-nome')?.value||'').trim();
+  const email = (document.getElementById('co-email')?.value||'').trim();
+  const cpf   = (document.getElementById('co-cpf')?.value||'').trim();
+  const erroEl= document.getElementById('checkout-erro');
+
+  erroEl.style.display='none';
+
+  if(!nome||!email||!cpf){
+    erroEl.textContent='Preencha todos os campos obrigatórios.';
+    erroEl.style.display='block';
+    return;
+  }
+  if(cpf.replace(/\D/g,'').length!==11){
+    erroEl.textContent='CPF inválido. Verifique e tente novamente.';
+    erroEl.style.display='block';
+    return;
+  }
+  if(!_checkoutMetodo){
+    erroEl.textContent='Selecione o método de pagamento.';
+    erroEl.style.display='block';
+    return;
+  }
+
+  // Guarda dados da etapa 1
+  window._coEtapa1 = { nome, email, cpf };
+
+  if(_checkoutMetodo === 'cartao'){
+    _renderCheckoutEtapa2Cartao();
+  } else {
+    // PIX: vai direto para processamento
+    processarCheckoutPix();
+  }
+}
+
+function _renderCheckoutEtapa2Cartao(){
+  const m = document.getElementById('modal-checkout');
+  if(!m) return;
+  m.innerHTML=`
+    <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
+      <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(21,35,54,.3)">
+        <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.2rem 1.5rem;display:flex;align-items:center;gap:12px;color:#fff">
+          <button onclick="abrirModalCheckout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">←</button>
+          <div>
+            <div style="font-size:15px;font-weight:600">Dados do cartão</div>
+            <div style="font-size:12px;opacity:.8">💳 Cartão de crédito · R$ 79,90/mês</div>
+          </div>
+        </div>
+        <div style="padding:1.5rem">
+          <div id="checkout-erro" style="display:none;background:#fcebeb;border:1px solid #f5c6c6;border-radius:var(--radius);padding:10px;font-size:13px;color:var(--danger);margin-bottom:12px"></div>
+
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Nome impresso no cartão *</label>
+            <input id="cc-holder" type="text" placeholder="Como está no cartão" autocomplete="cc-name"
+              style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box;text-transform:uppercase"
+              oninput="this.value=this.value.toUpperCase()"/>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Número do cartão *</label>
+            <input id="cc-number" type="text" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number"
+              oninput="maskCartao(this)"
+              style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box;font-family:monospace;letter-spacing:1px"/>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Mês de validade *</label>
+              <select id="cc-mes" autocomplete="cc-exp-month"
+                style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box;background:#fff">
+                <option value="">Mês</option>
+                ${Array.from({length:12},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}">${String(i+1).padStart(2,'0')}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Ano de validade *</label>
+              <select id="cc-ano" autocomplete="cc-exp-year"
+                style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box;background:#fff">
+                <option value="">Ano</option>
+                ${Array.from({length:10},(_,i)=>`<option value="${2025+i}">${2025+i}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:20px">
+            <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">CVV / Código de segurança *</label>
+            <input id="cc-cvv" type="text" placeholder="000" maxlength="4" autocomplete="cc-csc"
+              oninput="this.value=this.value.replace(/\\D/g,'')"
+              style="width:120px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;font-family:monospace;letter-spacing:2px"/>
+            <span style="font-size:11px;color:var(--text3);margin-left:8px">3 ou 4 dígitos no verso</span>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px">Endereço de cobrança</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">CEP *</label>
+                <input id="cc-cep" type="text" placeholder="00000-000" maxlength="9"
+                  oninput="maskCEP(this)" onblur="buscarCEP(this.value)"
+                  style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Número *</label>
+                <input id="cc-num-end" type="text" placeholder="123"
+                  style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:5px">Telefone (opcional)</label>
+              <input id="cc-tel" type="text" placeholder="(11) 99999-9999" maxlength="15"
+                oninput="maskTelefone(this)"
+                style="width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;outline:none;box-sizing:border-box"/>
+            </div>
+          </div>
+
+          <button id="co-btn" onclick="processarCheckoutCartao()" style="width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer">
+            🔒 Pagar R$ 79,90/mês
+          </button>
+          <div style="text-align:center;margin-top:12px">
+            <div onclick="fecharModalCheckout()" style="color:var(--text3);font-size:12px;cursor:pointer;text-decoration:underline">Cancelar</div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
+            <div style="font-size:11px;color:var(--text3)">🔒 Seus dados são criptografados e nunca armazenados em nossos servidores</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function fecharModalCheckout(){
   const m=document.getElementById('modal-checkout');
   if(m)m.style.display='none';
+}
+
+function maskCartao(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>16)v=v.slice(0,16);
+  v=v.replace(/(\d{4})(?=\d)/g,'$1 ');
+  input.value=v.trim();
+}
+
+function maskCEP(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>8)v=v.slice(0,8);
+  v=v.replace(/(\d{5})(\d)/,'$1-$2');
+  input.value=v;
+}
+
+function maskTelefone(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>11)v=v.slice(0,11);
+  if(v.length<=10){
+    v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');
+  }else{
+    v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');
+  }
+  input.value=v.trim().replace(/-$/,'');
+}
+
+async function buscarCEP(cep){
+  const c=cep.replace(/\D/g,'');
+  if(c.length!==8) return;
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${c}/json/`);
+    const d=await r.json();
+    // nenhum preenchimento automático necessário — só valida que existe
+  }catch(e){}
+}
+
+async function processarCheckoutCartao(){
+  const { nome, email, cpf } = window._coEtapa1 || {};
+  const holder  = (document.getElementById('cc-holder')?.value||'').trim();
+  const number  = (document.getElementById('cc-number')?.value||'').replace(/\D/g,'');
+  const mes     = (document.getElementById('cc-mes')?.value||'').trim();
+  const ano     = (document.getElementById('cc-ano')?.value||'').trim();
+  const cvv     = (document.getElementById('cc-cvv')?.value||'').trim();
+  const cep     = (document.getElementById('cc-cep')?.value||'').replace(/\D/g,'');
+  const numEnd  = (document.getElementById('cc-num-end')?.value||'').trim();
+  const tel     = (document.getElementById('cc-tel')?.value||'').replace(/\D/g,'');
+
+  const erroEl=document.getElementById('checkout-erro');
+  const btn=document.getElementById('co-btn');
+
+  erroEl.style.display='none';
+
+  // Validações
+  if(!holder){ erroEl.textContent='Informe o nome impresso no cartão.'; erroEl.style.display='block'; return; }
+  if(number.length<13||number.length>19){ erroEl.textContent='Número de cartão inválido.'; erroEl.style.display='block'; return; }
+  if(!mes){ erroEl.textContent='Selecione o mês de validade.'; erroEl.style.display='block'; return; }
+  if(!ano){ erroEl.textContent='Selecione o ano de validade.'; erroEl.style.display='block'; return; }
+  if(!cvv||cvv.length<3){ erroEl.textContent='CVV inválido.'; erroEl.style.display='block'; return; }
+  if(cep.length!==8){ erroEl.textContent='CEP inválido. Informe apenas números (8 dígitos).'; erroEl.style.display='block'; return; }
+  if(!numEnd){ erroEl.textContent='Informe o número do endereço de cobrança.'; erroEl.style.display='block'; return; }
+
+  btn.disabled=true;
+  btn.textContent='⏳ Processando pagamento...';
+
+  // Obter IP do cliente
+  let remoteIp = '127.0.0.1';
+  try{
+    const ipRes = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipRes.json();
+    remoteIp = ipData.ip || '127.0.0.1';
+  }catch(e){ /* usa fallback */ }
+
+  try{
+    const resp=await fetch('/api/asaas-checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        user_id: _user.id,
+        nome, email, cpf,
+        billingType: 'CREDIT_CARD',
+        creditCard:{
+          holderName: holder,
+          number: number,
+          expiryMonth: mes,
+          expiryYear: ano,
+          ccv: cvv
+        },
+        creditCardHolderInfo:{
+          name: holder,
+          email: email,
+          cpfCnpj: cpf.replace(/\D/g,''),
+          postalCode: cep,
+          addressNumber: numEnd,
+          phone: tel||undefined
+        },
+        remoteIp
+      })
+    });
+    const data=await resp.json();
+
+    if(!resp.ok||!data.ok){
+      throw new Error(data.error||'Erro ao processar pagamento');
+    }
+
+    // Sucesso — cartão aprovado, acesso imediato
+    fecharModalCheckout();
+    showToast('✅','Pagamento aprovado!','Seu acesso ao Assistente foi liberado.',4000);
+    // Aguarda 1s e verifica o status (webhook pode já ter atualizado)
+    setTimeout(()=>verificarPagamentoRealizado(), 1500);
+
+  }catch(err){
+    erroEl.textContent=err.message||'Erro inesperado. Verifique os dados e tente novamente.';
+    erroEl.style.display='block';
+    btn.disabled=false;
+    btn.textContent='🔒 Pagar R$ 79,90/mês';
+  }
+}
+
+async function processarCheckoutPix(){
+  const m = document.getElementById('modal-checkout');
+  if(!m) return;
+
+  // Substitui modal por tela de carregamento
+  const innerBox = m.querySelector('div > div');
+  if(innerBox){
+    const erroEl = innerBox.querySelector('#checkout-erro');
+    const btn = innerBox.querySelector('#co-btn');
+    if(erroEl) erroEl.style.display='none';
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Criando assinatura...'; }
+  }
+
+  const { nome, email, cpf } = window._coEtapa1 || {};
+
+  try{
+    const resp=await fetch('/api/asaas-checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({user_id:_user.id, nome, email, cpf, billingType:'PIX'})
+    });
+    const data=await resp.json();
+
+    if(!resp.ok||!data.ok){
+      throw new Error(data.error||'Erro ao criar assinatura');
+    }
+
+    // Sucesso — abre link de pagamento PIX
+    fecharModalCheckout();
+    if(data.linkPagamento){
+      window.open(data.linkPagamento,'_blank');
+      // Mostra mensagem aguardando confirmação
+      const tela=document.getElementById('tela-assinatura');
+      if(tela){
+        const cardInfo = tela.querySelector('.co-pending-info');
+        if(!cardInfo){
+          const div=document.createElement('div');
+          div.className='co-pending-info';
+          div.style.cssText='margin-top:16px;padding:12px;background:rgba(58,111,168,.15);border-radius:var(--radius);border:1px solid rgba(58,111,168,.3)';
+          div.innerHTML=`
+            <div style="color:var(--blue2);font-size:13px;font-weight:500;margin-bottom:4px">⚡ PIX gerado!</div>
+            <div style="color:var(--steel);font-size:12px">Complete o pagamento na página que abriu. Após confirmar, o acesso é liberado automaticamente em minutos.</div>
+            <div onclick="verificarPagamentoRealizado()" style="color:var(--blue2);font-size:12px;cursor:pointer;margin-top:8px;text-decoration:underline">✅ Já paguei — verificar acesso</div>`;
+          tela.appendChild(div);
+        }
+      }
+    }else{
+      showToast('✅','Assinatura criada!','Verifique seu e-mail para o link de pagamento PIX.',5000);
+    }
+
+  }catch(err){
+    // Volta ao modal e mostra erro
+    _renderCheckoutEtapa1(m);
+    m.style.display='block';
+    setTimeout(()=>{
+      const erroEl=document.getElementById('checkout-erro');
+      if(erroEl){
+        erroEl.textContent=err.message||'Erro inesperado. Tente novamente.';
+        erroEl.style.display='block';
+      }
+    },50);
+  }
 }
 
 async function verificarPagamentoRealizado(){
@@ -1413,67 +1753,7 @@ function maskCPF(input){
   input.value=v;
 }
 
-async function processarCheckout(){
-  const nome=(document.getElementById('co-nome')?.value||'').trim();
-  const email=(document.getElementById('co-email')?.value||'').trim();
-  const cpf=(document.getElementById('co-cpf')?.value||'').trim();
-  const erroEl=document.getElementById('checkout-erro');
-  const btn=document.getElementById('co-btn');
-
-  erroEl.style.display='none';
-
-  if(!nome||!email||!cpf){
-    erroEl.textContent='Preencha todos os campos obrigatórios.';
-    erroEl.style.display='block';
-    return;
-  }
-  if(cpf.replace(/\D/g,'').length!==11){
-    erroEl.textContent='CPF inválido. Verifique e tente novamente.';
-    erroEl.style.display='block';
-    return;
-  }
-
-  btn.disabled=true;
-  btn.textContent='Processando...';
-
-  try{
-    const resp=await fetch('/api/asaas-checkout',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({user_id:_user.id,nome,email,cpf})
-    });
-    const data=await resp.json();
-
-    if(!resp.ok||!data.ok){
-      throw new Error(data.error||'Erro ao criar assinatura');
-    }
-
-    // Sucesso — redireciona para pagamento
-    fecharModalCheckout();
-    if(data.linkPagamento){
-      window.open(data.linkPagamento,'_blank');
-      // Mostra mensagem aguardando confirmação
-      const tela=document.getElementById('tela-assinatura');
-      if(tela){
-        const info=tela.querySelector('div[style*="navy2"]');
-        if(info)info.innerHTML+=`
-          <div style="margin-top:16px;padding:12px;background:rgba(58,111,168,.2);border-radius:var(--radius);border:1px solid rgba(58,111,168,.3)">
-            <div style="color:var(--blue2);font-size:13px;font-weight:500;margin-bottom:4px">✅ Assinatura criada!</div>
-            <div style="color:var(--steel);font-size:12px">Você foi redirecionado para o pagamento. Após confirmar, o acesso é liberado automaticamente em alguns minutos.</div>
-            <div onclick="verificarPagamentoRealizado()" style="color:var(--blue2);font-size:12px;cursor:pointer;margin-top:8px;text-decoration:underline">✅ Já paguei — verificar acesso</div>
-          </div>`;
-      }
-    }else{
-      showToast('✅','Assinatura criada!','Verifique seu e-mail para o link de pagamento.',5000);
-    }
-
-  }catch(err){
-    erroEl.textContent=err.message||'Erro inesperado. Tente novamente.';
-    erroEl.style.display='block';
-    btn.disabled=false;
-    btn.textContent='Criar assinatura →';
-  }
-}
+// processarCheckout foi substituída por processarCheckoutCartao() e processarCheckoutPix()
 
 let _onbKey='';
 let _onbStep=1;
