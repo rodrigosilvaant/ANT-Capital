@@ -1,8 +1,37 @@
+// Confere o login (token do Supabase) e se o usuário tem papel de consultor.
+async function validarConsultor(req) {
+  const SUPA_URL = process.env.SUPABASE_URL;
+  const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) return { ok: false, status: 401, erro: 'Login necessário' };
+  if (!SUPA_URL || !SUPA_KEY) return { ok: false, status: 500, erro: 'Supabase não configurado no Vercel' };
+
+  try {
+    const userRes = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}` }
+    });
+    if (!userRes.ok) return { ok: false, status: 401, erro: 'Sessão inválida. Entre novamente.' };
+    const user = await userRes.json();
+
+    const perfilRes = await fetch(
+      `${SUPA_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=role`,
+      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
+    );
+    const perfil = perfilRes.ok ? await perfilRes.json() : [];
+    if (perfil[0]?.role !== 'consultor') {
+      return { ok: false, status: 403, erro: 'Apenas o consultor pode gerar diagnósticos' };
+    }
+    return { ok: true, userId: user.id };
+  } catch (e) {
+    return { ok: false, status: 500, erro: 'Falha ao validar acesso' };
+  }
+}
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
@@ -12,6 +41,12 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'ANTHROPIC_API_KEY não configurada no Vercel' });
+  }
+
+  // ── Só o consultor logado pode usar esta API ─────────────────────────
+  const consultor = await validarConsultor(req);
+  if (!consultor.ok) {
+    return res.status(consultor.status).json({ error: consultor.erro });
   }
 
   try {
