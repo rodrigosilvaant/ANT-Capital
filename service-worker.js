@@ -1,4 +1,4 @@
-const CACHE_NAME = 'antcapital-v8';
+const CACHE_NAME = 'antcapital-v9';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -6,7 +6,6 @@ const STATIC_ASSETS = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'
 ];
 
-// Instalação — cacheia apenas assets estáticos (não o index.html)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -16,7 +15,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Ativação — remove caches antigos e assume controle imediato
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -28,14 +26,12 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Mensagem do app
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// Fetch — estratégia diferente para HTML vs assets
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET') return;
@@ -46,23 +42,18 @@ self.addEventListener('fetch', event => {
     url.pathname.endsWith('.html');
 
   if (isHTML) {
-    // NETWORK-FIRST para HTML: sempre busca versão mais recente
-    // Só usa cache se estiver offline
     event.respondWith(
-      fetch(event.request).then(response => {
-        // Guarda cópia fresquinha para uso offline
+      fetch(event.request, { cache: 'no-store' }).then(response => {
         const toCache = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, toCache));
         return response;
       }).catch(() => {
-        // Offline: usa cache
         return caches.match(event.request).then(cached =>
           cached || caches.match('/index.html')
         );
       })
     );
   } else {
-    // CACHE-FIRST para assets estáticos (ícones, Chart.js etc.)
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
