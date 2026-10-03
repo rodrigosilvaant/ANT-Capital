@@ -1,4 +1,4 @@
-const CACHE_NAME = 'antcapital-v13';
+const CACHE_NAME = 'antcapital-v14';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
