@@ -579,6 +579,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue)}
 
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* ===== RESPONSIVE SIDEBAR LAYOUT ===== */
 *{box-sizing:border-box}
@@ -1121,8 +1122,15 @@ function renderLogin(){
         <input id="l-email-cad" type="email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')document.getElementById('l-senha-cad').focus()"/>
       </div>
       <div class="login-field">
-        <label>Senha (mín. 8 caracteres, com maiúscula, minúscula, número e símbolo)</label>
-        <input id="l-senha-cad" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerCadastro()"/>
+        <label>Senha</label>
+        <input id="l-senha-cad" type="password" placeholder="••••••••" oninput="atualizarReqSenha(this.value)" onkeydown="if(event.key==='Enter')fazerCadastro()"/>
+      </div>
+      <div id="req-senha" style="display:none;font-size:11px;color:var(--steel);margin:-4px 0 10px;line-height:2.2;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:6px">
+        <span id="r-len">⬜ 8 caracteres</span> &nbsp;
+        <span id="r-mai">⬜ Maiúscula</span> &nbsp;
+        <span id="r-min">⬜ Minúscula</span> &nbsp;
+        <span id="r-num">⬜ Número</span> &nbsp;
+        <span id="r-sim">⬜ Símbolo (!@#$)</span>
       </div>
       <button class="login-btn" onclick="fazerCadastro()">Criar conta</button>
       <div class="login-error" id="login-error"></div>`;
@@ -1151,27 +1159,53 @@ function irParaEsqueci(){_loginState="esqueci";renderLogin()}
 
 function setLoginError(msg){const e=document.getElementById("login-error");if(e)e.textContent=msg;}
 
+// Feedback em tempo real dos requisitos de senha
+function atualizarReqSenha(v){
+  const box=document.getElementById('req-senha');
+  if(box) box.style.display = v.length>0 ? 'block' : 'none';
+  const ok=(id,cond)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const label=el.textContent.slice(2);
+    el.textContent=(cond?'✅':'⬜')+' '+label;
+    el.style.color=cond?'#6febc4':'var(--steel)';
+  };
+  ok('r-len', v.length>=8);
+  ok('r-mai', /[A-Z]/.test(v));
+  ok('r-min', /[a-z]/.test(v));
+  ok('r-num', /[0-9]/.test(v));
+  ok('r-sim', /[^A-Za-z0-9]/.test(v));
+}
+
 async function fazerLogin(){
   const email=(document.getElementById("l-email").value||"").trim();
   const senha=(document.getElementById("l-senha").value||"").trim();
   if(!email||!senha){setLoginError("Preencha e-mail e senha.");return;}
   const btns=document.querySelectorAll(".login-btn");btns.forEach(b=>b.disabled=true);
   document.querySelector(".login-btn").textContent="Entrando...";
-  const {data,error}=await sb.auth.signInWithPassword({email,password:senha});
-  btns.forEach(b=>b.disabled=false);
-  document.querySelector(".login-btn").textContent="Entrar";
-  if(error){
-    if(error.message.includes("Email not confirmed"))
-      setLoginError("E-mail não confirmado. Verifique sua caixa de entrada ou peça ao administrador para desativar a confirmação de e-mail no Supabase.");
-    else if(error.message.includes("Invalid login credentials"))
-      setLoginError("E-mail ou senha incorretos.");
-    else
-      setLoginError("Erro: "+error.message);
-    return;
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:senha});
+    btns.forEach(b=>b.disabled=false);
+    document.querySelector(".login-btn").textContent="Entrar";
+    if(error){
+      if(error.message.includes("Email not confirmed"))
+        setLoginError("E-mail não confirmado. Acesse sua caixa de entrada e clique no link de confirmação.");
+      else if(error.message.includes("Invalid login credentials"))
+        setLoginError("E-mail ou senha incorretos. Verifique e tente novamente.");
+      else if(error.message.includes("rate limit") || error.message.includes("too many"))
+        setLoginError("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+      else
+        setLoginError("Erro ao entrar: "+error.message);
+      return;
+    }
+    _user=data.user;
+    const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
+    await carregarApp(prof?.nome||email.split("@")[0]);
+  }catch(e){
+    btns.forEach(b=>b.disabled=false);
+    document.querySelector(".login-btn").textContent="Entrar";
+    setLoginError("Sem conexão. Verifique sua internet e tente novamente.");
   }
-  _user=data.user;
-  const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
-  await carregarApp(prof?.nome||email.split("@")[0]);
 }
 
 async function fazerCadastro(){
@@ -1186,11 +1220,21 @@ async function fazerCadastro(){
   if(!/[0-9]/.test(senha)){setLoginError("A senha deve conter pelo menos um número.");return;}
   if(!/[^A-Za-z0-9]/.test(senha)){setLoginError("A senha deve conter pelo menos um símbolo (ex: ! @ # $ %).");return;}
   const btns=document.querySelectorAll(".login-btn");btns.forEach(b=>b.disabled=true);
-  const {data,error}=await sb.auth.signUp({email,password:senha,options:{data:{nome}}});
+  let data, error;
+  try{
+    const res=await sb.auth.signUp({email,password:senha,options:{data:{nome}}});
+    data=res.data; error=res.error;
+  }catch(e){
+    btns.forEach(b=>b.disabled=false);
+    setLoginError("Sem conexão. Verifique sua internet e tente novamente.");
+    return;
+  }
   btns.forEach(b=>b.disabled=false);
   if(error){
-    if(error.message.includes("already registered"))
-      setLoginError("Este e-mail já está cadastrado. Tente fazer login.");
+    if(error.message.includes("already registered") || error.message.includes("already been registered"))
+      setLoginError("Este e-mail já está cadastrado. Clique em 'Entrar' para fazer login.");
+    else if(error.message.includes("rate limit") || error.message.includes("too many"))
+      setLoginError("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
     else
       setLoginError("Erro ao criar conta: "+error.message);
     return;
@@ -1201,8 +1245,12 @@ async function fazerCadastro(){
     await sb.from("profiles").upsert({id:_user.id,nome});
     await carregarApp(nome);
   } else if(data.user && !data.session){
-    // Confirmação de e-mail ainda ativa
-    setLoginError("⚠️ Conta criada! Mas o Supabase está pedindo confirmação de e-mail. Desative 'Confirm email' em Authentication → Settings no Supabase, depois tente novamente.");
+    // Confirmação de e-mail ativa — orienta o usuário de forma clara
+    const erroEl=document.getElementById("login-error");
+    if(erroEl){
+      erroEl.style.color='var(--success)';
+      erroEl.textContent='✅ Conta criada! Acesse seu e-mail e clique no link de confirmação para entrar.';
+    }
     btns.forEach(b=>b.disabled=false);
   }
 }
@@ -1330,6 +1378,32 @@ function fecharModalCheckout(){
   if(m)m.style.display='none';
 }
 
+async function verificarPagamentoRealizado(){
+  // Limpa o cache para forçar nova verificação na API
+  window._asaasStatus = undefined;
+  if(!_user?.id) return;
+
+  showToast('🔄','Verificando pagamento...','Aguarde um momento.',3000);
+
+  try{
+    const sr = await fetch('/api/asaas-status?user_id='+_user.id);
+    window._asaasStatus = await sr.json();
+  }catch(e){
+    window._asaasStatus = {ativo:true};
+  }
+
+  if(window._asaasStatus?.ativo){
+    // Pagamento confirmado — remove tela de bloqueio e restaura o app
+    const tela = document.getElementById('tela-assinatura');
+    if(tela) tela.remove();
+    const app = document.querySelector('.app');
+    if(app) app.style.display='';
+    showToast('✅','Acesso liberado!','Bem-vindo ao Assistente ANT Capital.',4000);
+  } else {
+    showToast('⏳','Ainda não confirmado','O pagamento pode levar alguns minutos. Tente novamente em breve.',5000);
+  }
+}
+
 function maskCPF(input){
   let v=input.value.replace(/\D/g,'');
   if(v.length>11)v=v.slice(0,11);
@@ -1386,7 +1460,7 @@ async function processarCheckout(){
           <div style="margin-top:16px;padding:12px;background:rgba(58,111,168,.2);border-radius:var(--radius);border:1px solid rgba(58,111,168,.3)">
             <div style="color:var(--blue2);font-size:13px;font-weight:500;margin-bottom:4px">✅ Assinatura criada!</div>
             <div style="color:var(--steel);font-size:12px">Você foi redirecionado para o pagamento. Após confirmar, o acesso é liberado automaticamente em alguns minutos.</div>
-            <div onclick="location.reload()" style="color:var(--blue2);font-size:12px;cursor:pointer;margin-top:8px;text-decoration:underline">Já paguei — verificar acesso</div>
+            <div onclick="verificarPagamentoRealizado()" style="color:var(--blue2);font-size:12px;cursor:pointer;margin-top:8px;text-decoration:underline">✅ Já paguei — verificar acesso</div>
           </div>`;
       }
     }else{
@@ -5580,6 +5654,101 @@ function buildConquistas(mesRef){
       <div style="font-size:11px;color:var(--steel);margin-top:4px">Planejamento Financeiro Pessoal · ${dataHoje()}</div>
     </div>`;
 }
+// ===== RECUPERAÇÃO DE SENHA — detecta token na URL =====
+function verificarRecuperacaoSenha(){
+  // Supabase envia o token como fragment (#) ou query string
+  const hash = window.location.hash;
+  const params = new URLSearchParams(hash.replace('#',''));
+  const qparams = new URLSearchParams(window.location.search);
+  const tipo = params.get('type') || qparams.get('type');
+  const access_token = params.get('access_token') || qparams.get('access_token');
+  const refresh_token = params.get('refresh_token') || qparams.get('refresh_token');
+
+  if((tipo==='recovery' || access_token) && access_token){
+    // Seta sessão temporária para permitir troca de senha
+    sb.auth.setSession({access_token, refresh_token: refresh_token||''}).then(({data,error})=>{
+      if(error){
+        console.warn('[Recovery] setSession error:', error);
+      }
+    });
+    mostrarFormNovaSenha();
+    return true;
+  }
+  return false;
+}
+
+function mostrarFormNovaSenha(){
+  const ls = document.getElementById('login-screen');
+  const box = document.getElementById('login-content');
+  if(!ls || !box) return;
+  ls.style.display='flex';
+  box.innerHTML=`
+    <div style="color:#fff;font-size:17px;font-weight:600;text-align:center;margin-bottom:8px">Criar nova senha</div>
+    <p style="color:var(--steel);font-size:13px;text-align:center;margin-bottom:20px;line-height:1.6">Escolha uma senha nova e segura para a sua conta.</p>
+    <div class="login-field">
+      <label>Nova senha</label>
+      <input id="ns-senha" type="password" placeholder="Mínimo 8 caracteres" onkeydown="if(event.key==='Enter')salvarNovaSenha()"/>
+    </div>
+    <div id="ns-req" style="font-size:11px;color:var(--steel);margin:-4px 0 10px;line-height:2">
+      <span id="ns-r-len">⬜ 8 caracteres</span> &nbsp;
+      <span id="ns-r-mai">⬜ Maiúscula</span> &nbsp;
+      <span id="ns-r-num">⬜ Número</span> &nbsp;
+      <span id="ns-r-sim">⬜ Símbolo</span>
+    </div>
+    <div class="login-field">
+      <label>Confirmar nova senha</label>
+      <input id="ns-conf" type="password" placeholder="Repita a senha" onkeydown="if(event.key==='Enter')salvarNovaSenha()"/>
+    </div>
+    <button class="login-btn" onclick="salvarNovaSenha()">Salvar nova senha</button>
+    <div class="login-error" id="ns-erro"></div>`;
+  // Feedback em tempo real
+  document.getElementById('ns-senha').addEventListener('input', function(){
+    const v=this.value;
+    const check=(id,ok)=>{const el=document.getElementById(id);if(el)el.textContent=(ok?'✅':'⬜')+el.textContent.slice(1);};
+    check('ns-r-len', v.length>=8);
+    check('ns-r-mai', /[A-Z]/.test(v));
+    check('ns-r-num', /[0-9]/.test(v));
+    check('ns-r-sim', /[^A-Za-z0-9]/.test(v));
+  });
+}
+
+async function salvarNovaSenha(){
+  const senha=(document.getElementById('ns-senha')?.value||'').trim();
+  const conf=(document.getElementById('ns-conf')?.value||'').trim();
+  const erroEl=document.getElementById('ns-erro');
+  const btn=document.querySelector('.login-btn');
+
+  if(senha.length<8){erroEl.textContent='A senha deve ter pelo menos 8 caracteres.';return;}
+  if(!/[A-Z]/.test(senha)){erroEl.textContent='A senha precisa ter pelo menos uma letra maiúscula.';return;}
+  if(!/[0-9]/.test(senha)){erroEl.textContent='A senha precisa ter pelo menos um número.';return;}
+  if(!/[^A-Za-z0-9]/.test(senha)){erroEl.textContent='A senha precisa ter pelo menos um símbolo (ex: ! @ # $).';return;}
+  if(senha!==conf){erroEl.textContent='As senhas não coincidem.';return;}
+
+  if(btn){btn.disabled=true;btn.textContent='Salvando...';}
+  const {error}=await sb.auth.updateUser({password:senha});
+  if(btn){btn.disabled=false;btn.textContent='Salvar nova senha';}
+
+  if(error){
+    erroEl.textContent='Erro: '+error.message;
+    return;
+  }
+  // Limpa o hash da URL para não re-triggar no reload
+  history.replaceState(null,'',window.location.pathname);
+  erroEl.style.color='var(--success)';
+  erroEl.textContent='✅ Senha atualizada! Fazendo login...';
+  // Aguarda 1.5s e carrega o app normalmente
+  setTimeout(async()=>{
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      _user=session.user;
+      const {data:prof}=await sb.from("profiles").select("nome").eq("id",_user.id).maybeSingle();
+      await carregarApp(prof?.nome||session.user.email.split("@")[0]);
+    } else {
+      irParaEntrar();
+    }
+  },1500);
+}
+
 // ===== INIT =====
 (async()=>{
   // Set logos
@@ -5594,6 +5763,9 @@ function buildConquistas(mesRef){
     renderLogin();
     return;
   }
+
+  // Verifica se é um link de recuperação de senha antes de qualquer coisa
+  if(verificarRecuperacaoSenha()) return;
 
   try{
     const {data:{session}}=await sb.auth.getSession();
@@ -5630,6 +5802,31 @@ window.addEventListener('beforeinstallprompt', e=>{
       document.getElementById('pwa-banner').style.display='flex';
   }, 3000);
 });
+
+// Instrução de instalação específica para iOS/Safari
+(function mostrarInstrucoesIOS(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
+  const jaDismissed = localStorage.getItem('ant_ios_hint_done');
+  const emStandaloneMode = window.navigator.standalone === true;
+  if(!isIOS || !isSafari || jaDismissed || emStandaloneMode) return;
+
+  setTimeout(()=>{
+    let banner = document.getElementById('pwa-ios-banner');
+    if(!banner){
+      banner = document.createElement('div');
+      banner.id = 'pwa-ios-banner';
+      banner.style.cssText='position:fixed;bottom:0;left:0;right:0;background:var(--navy2);border-top:1px solid rgba(255,255,255,.15);padding:14px 16px;z-index:900;display:flex;align-items:center;gap:12px;animation:slideUp .3s ease';
+      banner.innerHTML=`
+        <div style="flex:1">
+          <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:2px">📲 Instalar ANT Capital</div>
+          <div style="color:var(--steel);font-size:12px;line-height:1.5">Toque em <strong style="color:var(--blue2)">compartilhar</strong> <span style="font-size:14px">⬆</span> e depois em <strong style="color:var(--blue2)">"Adicionar à Tela de Início"</strong></div>
+        </div>
+        <button onclick="localStorage.setItem('ant_ios_hint_done','1');this.parentElement.remove()" style="background:none;border:none;color:var(--steel);font-size:20px;cursor:pointer;padding:4px;line-height:1">×</button>`;
+      document.body.appendChild(banner);
+    }
+  }, 4000);
+})();
 
 window.addEventListener('appinstalled', ()=>{
   _deferredPrompt=null;
