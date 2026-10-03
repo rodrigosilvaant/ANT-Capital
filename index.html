@@ -1299,7 +1299,7 @@ function mostrarTelaAssinatura(statusAtual){
     document.body.appendChild(tela);
   }
   tela.innerHTML=`
-    <div style="position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:1.5rem;z-index:500">
+    <div style="position:fixed;inset:0;z-index:100;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:1.5rem;z-index:500">
       <div style="background:var(--navy2);border-radius:var(--radius-xl);width:100%;max-width:400px;padding:2rem;border:1px solid rgba(255,255,255,.08);text-align:center">
         <div style="font-size:48px;margin-bottom:16px">🐜</div>
         <div style="color:#fff;font-size:20px;font-weight:600;margin-bottom:8px">ANT Capital</div>
@@ -1345,7 +1345,7 @@ function abrirModalCheckout(){
 
 function _renderCheckoutEtapa1(m){
   m.innerHTML=`
-    <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
+    <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
       <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:420px;overflow:hidden;box-shadow:0 20px 60px rgba(21,35,54,.3)">
         <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.5rem;text-align:center;color:#fff">
           <div style="font-size:32px;margin-bottom:8px">🐜</div>
@@ -1445,7 +1445,7 @@ function _renderCheckoutEtapa2Cartao(){
   const m = document.getElementById('modal-checkout');
   if(!m) return;
   m.innerHTML=`
-    <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
+    <div style="position:fixed;inset:0;background:rgba(21,35,54,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)" onclick="if(event.target===this)fecharModalCheckout()">
       <div style="background:#fff;border-radius:var(--radius-xl);width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(21,35,54,.3)">
         <div style="background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);padding:1.2rem 1.5rem;display:flex;align-items:center;gap:12px;color:#fff">
           <button onclick="abrirModalCheckout()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">←</button>
