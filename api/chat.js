@@ -1,6 +1,7 @@
 // api/chat.js — Vercel Serverless Function
 // GET  /api/chat  → { assinatura_ativa, modo: 'personalizado' | 'inicial' }
-// POST /api/chat  → { resposta, tokens, modo }
+// POST /api/chat  → { resposta, tokens, modo, creditos }
+//   402 SEM_ASSINATURA | 402 SEM_CREDITOS
 //   Recebe: { mensagem, historico[], dadosFinanceiros }
 //
 // Modelo híbrido:
@@ -60,6 +61,13 @@ async function verificarAcesso(userId) {
   return { ativa, consultor };
 }
 
+// Créditos: 1 crédito = 1 pergunta. O consultor não consome créditos.
+async function resumoCreditos(userId) {
+  await sb.rpc('_garantir_saldo', { p_user_id: userId });
+  const { data } = await sb.rpc('_resumo_creditos', { p_user_id: userId });
+  return data || null;
+}
+
 async function buscarAgente(userId) {
   const [diag, prompt] = await Promise.all([
     sb.from('diagnostico_essencial').select('ativo').eq('client_id', userId).maybeSingle(),
@@ -92,7 +100,8 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       if (!acesso.ativa) return res.status(200).json({ assinatura_ativa: false, modo: null });
       const { modo } = await buscarAgente(user.id);
-      return res.status(200).json({ assinatura_ativa: true, modo, consultor: acesso.consultor });
+      const creditos = acesso.consultor ? { ilimitado: true } : await resumoCreditos(user.id);
+      return res.status(200).json({ assinatura_ativa: true, modo, consultor: acesso.consultor, creditos });
     }
 
     // ── POST: conversa
@@ -103,6 +112,21 @@ module.exports = async function handler(req, res) {
     const { mensagem, historico = [], dadosFinanceiros = '' } = req.body || {};
     if (!mensagem || typeof mensagem !== 'string') {
       return res.status(400).json({ erro: 'Mensagem obrigatória' });
+    }
+
+    // Desconta 1 crédito ANTES de chamar a IA (operação atômica no banco)
+    let consumo = null;
+    if (!acesso.consultor) {
+      const { data: c, error: ec } = await sb.rpc('_consumir_credito', { p_user_id: user.id });
+      if (ec) {
+        console.error('[chat] Erro ao consumir crédito:', ec);
+        return res.status(500).json({ erro: 'Não foi possível verificar seus créditos' });
+      }
+      if (!c?.ok) {
+        const { ok, origem, ...creditos } = c || {};
+        return res.status(402).json({ erro: 'Seus créditos acabaram', codigo: 'SEM_CREDITOS', creditos });
+      }
+      consumo = c;
     }
 
     const { modo, prompt } = await buscarAgente(user.id);
@@ -128,17 +152,27 @@ module.exports = async function handler(req, res) {
       else messages.push({ ...m });
     }
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages
-    });
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages
+      });
+    } catch (errIA) {
+      // A IA falhou: devolve o crédito, o cliente não paga por erro
+      if (consumo) await sb.rpc('_estornar_credito', { p_user_id: user.id, p_origem: consumo.origem });
+      throw errIA;
+    }
 
     const resposta = response.content[0]?.text || 'Não consegui processar sua mensagem.';
     const tokensUsados = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
 
-    return res.status(200).json({ resposta, tokens: tokensUsados, modo });
+    let creditos = { ilimitado: true };
+    if (consumo) { const { ok, origem, ...resto } = consumo; creditos = resto; }
+
+    return res.status(200).json({ resposta, tokens: tokensUsados, modo, creditos });
 
   } catch (err) {
     console.error('Erro no chat:', err);
