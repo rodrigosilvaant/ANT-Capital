@@ -27,6 +27,20 @@ const MAPA_STATUS = {
   'PAYMENT_CHARGEBACK_DISPUTE':   'OVERDUE',
 };
 
+const EVENTOS_PAGO = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function supaRpc(nome, args) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${nome}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` },
+    body: JSON.stringify(args)
+  });
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`[supabase] ${nome}: ${txt}`);
+  return txt ? JSON.parse(txt) : null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
@@ -45,6 +59,21 @@ export default async function handler(req, res) {
   const tipoEvento = evento?.event;
 
   console.log('[webhook] Evento recebido:', tipoEvento, JSON.stringify(evento).slice(0, 300));
+
+  // ── Compra de pacote de créditos (cobrança avulsa) ─────────────────────
+  const refPagamento = evento?.payment?.externalReference || '';
+  if (refPagamento.startsWith('creditos:')) {
+    if (EVENTOS_PAGO.includes(tipoEvento) && evento.payment?.id) {
+      try {
+        const r = await supaRpc('_confirmar_compra_creditos', { p_payment_id: evento.payment.id });
+        console.log('[webhook] Créditos:', JSON.stringify(r));
+      } catch (e) {
+        console.error('[webhook] Erro ao confirmar créditos:', e.message);
+        return res.status(500).json({ error: 'Erro ao confirmar créditos' });
+      }
+    }
+    return res.status(200).json({ ok: true, tipo: 'creditos' });
+  }
 
   // Ignora eventos que não gerenciam status de assinatura
   const novoStatus = MAPA_STATUS[tipoEvento];
@@ -116,6 +145,27 @@ export default async function handler(req, res) {
     }
 
     console.log(`[webhook] Status atualizado → ${novoStatus} (filtro: ${filtro})`);
+
+    // ── Mensalidade paga: renova os créditos do plano (uma vez por pagamento)
+    if (EVENTOS_PAGO.includes(tipoEvento) && payment.id) {
+      try {
+        let userId = UUID_RE.test(externalRef || '') ? externalRef : null;
+        if (!userId && asaas_subscription_id) {
+          const r = await fetch(`${SUPA_URL}/rest/v1/assinaturas?asaas_subscription_id=eq.${asaas_subscription_id}&select=user_id`, {
+            headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+          });
+          if (r.ok) userId = (await r.json())[0]?.user_id || null;
+        }
+        if (userId) {
+          const rc = await supaRpc('_renovar_creditos', { p_user_id: userId, p_referencia: payment.id });
+          console.log('[webhook] Renovação de créditos:', JSON.stringify(rc));
+        }
+      } catch (e) {
+        // Não derruba o webhook: o status da assinatura já foi atualizado
+        console.error('[webhook] Erro ao renovar créditos:', e.message);
+      }
+    }
+
     return res.status(200).json({ ok: true, status: novoStatus });
 
   } catch (err) {
