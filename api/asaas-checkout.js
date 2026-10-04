@@ -12,9 +12,156 @@ const ASAAS_KEY  = process.env.ASAAS_API_KEY;
 const SUPA_URL   = process.env.SUPABASE_URL;
 const SUPA_KEY   = process.env.SUPABASE_SERVICE_KEY;
 
+// ── Pacotes de créditos extras (preço e quantidade definidos SÓ aqui) ──
+const PACOTES = {
+  p50:  { quantidade: 50,  valor: 13.90, descricao: 'ANT Capital — Pacote +50 créditos do Assistente' },
+  p100: { quantidade: 100, valor: 27.90, descricao: 'ANT Capital — Pacote +100 créditos do Assistente' },
+};
+
+function hojeBrasil() {
+  // Data de hoje no fuso de São Paulo (YYYY-MM-DD), exigida pelo Asaas
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
+async function supaRpc(nome, args) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${nome}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` },
+    body: JSON.stringify(args)
+  });
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`[supabase] ${nome}: ${txt}`);
+  return txt ? JSON.parse(txt) : null;
+}
+
+async function usuarioDoToken(req) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const r = await fetch(`${SUPA_URL}/auth/v1/user`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}` } });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+// ── Compra avulsa de créditos ────────────────────────────────────────────
+async function comprarCreditos(req, res) {
+  const user = await usuarioDoToken(req);
+  if (!user?.id) return res.status(401).json({ error: 'Faça login novamente para comprar créditos.' });
+
+  const { pacote, nome, email, cpf, billingType = 'PIX', creditCard, creditCardHolderInfo, remoteIp } = req.body;
+  const p = PACOTES[pacote];
+  if (!p) return res.status(400).json({ error: 'Pacote inválido.' });
+  if (!nome || !email || !cpf) return res.status(400).json({ error: 'Campos obrigatórios: nome, email, cpf' });
+
+  const ehCartao = billingType === 'CREDIT_CARD';
+  if (ehCartao) {
+    if (!creditCard?.holderName || !creditCard?.number || !creditCard?.expiryMonth || !creditCard?.expiryYear || !creditCard?.ccv) {
+      return res.status(400).json({ error: 'Dados do cartão incompletos.' });
+    }
+    if (!creditCardHolderInfo?.name || !creditCardHolderInfo?.cpfCnpj || !creditCardHolderInfo?.postalCode || !creditCardHolderInfo?.addressNumber) {
+      return res.status(400).json({ error: 'Dados do titular do cartão incompletos.' });
+    }
+    if (!remoteIp) return res.status(400).json({ error: 'IP do cliente não informado.' });
+  }
+
+  const headers = { 'Content-Type': 'application/json', access_token: ASAAS_KEY, 'User-Agent': 'ANTCapital/1.0' };
+
+  try {
+    // 1. Só assinante ativo compra créditos (os créditos só funcionam com o plano)
+    const supaGet = async (q) => {
+      const r = await fetch(`${SUPA_URL}/rest/v1/${q}`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+      return r.ok ? r.json() : [];
+    };
+    const [assin, essencial] = await Promise.all([
+      supaGet(`assinaturas?user_id=eq.${user.id}&select=status,asaas_customer_id`),
+      supaGet(`assinaturas_essencial?client_id=eq.${user.id}&select=status`)
+    ]);
+    const ativo = assin[0]?.status === 'ACTIVE' || essencial[0]?.status === 'ativa';
+    if (!ativo) {
+      return res.status(403).json({ error: 'Os créditos extras são exclusivos para assinantes com o plano ativo.' });
+    }
+
+    // 2. Reaproveita o cliente do Asaas da assinatura; se não houver, cria
+    let customerId = assin[0]?.asaas_customer_id || null;
+    if (!customerId) {
+      const cr = await fetch(`${ASAAS_BASE}/customers`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ name: nome, email, cpfCnpj: String(cpf).replace(/\D/g, ''), notificationDisabled: false })
+      });
+      const cd = await cr.json();
+      if (!cr.ok || cd.errors) {
+        return res.status(500).json({ error: cd.errors?.[0]?.description || 'Erro ao criar cliente no Asaas' });
+      }
+      customerId = cd.id;
+    }
+
+    // 3. Cria a cobrança avulsa
+    const body = {
+      customer: customerId,
+      billingType: ehCartao ? 'CREDIT_CARD' : 'PIX',
+      value: p.valor,
+      dueDate: hojeBrasil(),
+      description: p.descricao,
+      externalReference: `creditos:${user.id}:${pacote}`
+    };
+    if (ehCartao) {
+      body.creditCard = {
+        holderName: creditCard.holderName,
+        number: String(creditCard.number).replace(/\D/g, ''),
+        expiryMonth: String(creditCard.expiryMonth).padStart(2, '0'),
+        expiryYear: String(creditCard.expiryYear),
+        ccv: creditCard.ccv
+      };
+      body.creditCardHolderInfo = {
+        name: creditCardHolderInfo.name,
+        email: creditCardHolderInfo.email || email,
+        cpfCnpj: String(creditCardHolderInfo.cpfCnpj).replace(/\D/g, ''),
+        postalCode: String(creditCardHolderInfo.postalCode).replace(/\D/g, ''),
+        addressNumber: creditCardHolderInfo.addressNumber,
+        phone: String(creditCardHolderInfo.phone || '').replace(/\D/g, '') || undefined
+      };
+      body.remoteIp = remoteIp;
+    }
+    const pr = await fetch(`${ASAAS_BASE}/payments`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const pd = await pr.json();
+    if (!pr.ok || pd.errors) {
+      console.error('[Asaas] Erro ao criar cobrança de créditos:', pd);
+      return res.status(500).json({ error: pd.errors?.[0]?.description || 'Erro ao processar pagamento.' });
+    }
+
+    // 4. Registra a compra; cartão aprovado já libera os créditos
+    await supaRpc('_registrar_compra_creditos', {
+      p_user_id: user.id, p_pacote: pacote, p_quantidade: p.quantidade, p_valor: p.valor, p_payment_id: pd.id
+    });
+    let creditos = null;
+    const aprovado = ['CONFIRMED', 'RECEIVED'].includes(pd.status);
+    if (aprovado) creditos = await supaRpc('_confirmar_compra_creditos', { p_payment_id: pd.id });
+
+    return res.status(200).json({
+      ok: true,
+      tipo: 'creditos',
+      pacote,
+      quantidade: p.quantidade,
+      pagamentoImediato: aprovado,
+      linkPagamento: aprovado ? null : (pd.invoiceUrl || null),
+      creditos,
+      mensagem: aprovado
+        ? `Pagamento aprovado! +${p.quantidade} créditos adicionados.`
+        : 'Cobrança gerada! Os créditos entram assim que o pagamento for confirmado.'
+    });
+  } catch (err) {
+    console.error('[asaas-checkout] Erro na compra de créditos:', err);
+    return res.status(500).json({ error: 'Erro interno ao comprar créditos' });
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
+  }
+
+  // Compra de pacote de créditos (cobrança avulsa)
+  if (req.body?.tipo === 'creditos') {
+    return comprarCreditos(req, res);
   }
 
   const {
