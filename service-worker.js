@@ -1,4 +1,4 @@
-const CACHE_NAME = 'antcapital-v15';
+const CACHE_NAME = 'antcapital-v16';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -66,4 +66,35 @@ self.addEventListener('fetch', event => {
       })
     );
   }
+});
+
+// ===== Notificações (lembretes de contas) =====
+self.addEventListener('push', event => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { title: 'ANT Capital', body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(d.title || 'ANT Capital', {
+    body: d.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: d.tag || 'ant-lembrete',
+    renotify: true,
+    data: { url: d.url || '/' }
+  }));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const destino = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(lista => {
+      for (const c of lista) {
+        if (c.url.startsWith(self.location.origin)) {
+          c.focus();
+          c.postMessage({ type: 'ABRIR_ABA', aba: 'pagar' });
+          return;
+        }
+      }
+      return self.clients.openWindow(destino);
+    })
+  );
 });
