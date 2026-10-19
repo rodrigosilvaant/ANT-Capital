@@ -1,4 +1,4 @@
-const CACHE_NAME = 'antcapital-v17';
+const CACHE_NAME = 'antcapital-v18';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -36,6 +36,10 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET') return;
   if (url.protocol === 'chrome-extension:') return;
+  // Dados nunca vão para o cache: respostas do servidor (/api) e do banco
+  // dependem de quem está logado. Só arquivos estáticos são guardados.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
+  if (url.origin !== self.location.origin && !STATIC_ASSETS.includes(url.href)) return;
 
   const isHTML = event.request.destination === 'document' ||
     url.pathname === '/' ||
