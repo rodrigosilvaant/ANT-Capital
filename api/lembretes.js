@@ -1,6 +1,7 @@
 // api/lembretes.js — Lembretes de contas a pagar (notificação no celular + e-mail)
 //
-// GET  /api/lembretes            → tarefa diária (Vercel Cron, 08h de Brasília)
+// GET  /api/lembretes            → tarefa diária (Vercel Cron, 08h de Brasília):
+//                                  1) lembretes de contas  2) correção de rota do planejador
 //                                  exige Authorization: Bearer CRON_SECRET
 // GET  /api/lembretes?vapid=1    → chave pública para o app ativar as notificações
 // POST /api/lembretes {acao:'teste'} (com login) → envia uma notificação de teste
@@ -10,6 +11,7 @@
 //   RESEND_API_KEY, EMAIL_REMETENTE                   (opcionais — e-mail)
 
 import webpush from 'web-push';
+import motor from './_motor.js';
 
 const SUPA_URL = process.env.SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -151,6 +153,40 @@ async function rodarDiario() {
   return resumo;
 }
 
+// ── Planejador: correção de rota proativa ───────────────────────────────
+// Para cada assinante com notificações ligadas: calcula o painel e envia no
+// máximo UMA notificação por dia — a mais importante que ainda não foi enviada.
+const LIMITE_TEMPO_MS = 40000;
+
+async function rodarPlanejador(hoje, inicio = Date.now()) {
+  const resumo = { analisados: 0, enviados: 0, interrompido: false };
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return resumo;
+  const ids = await supaRpc('_assinantes_ativos') || [];
+  const analisar = async userId => {
+    try {
+      const painel = motor.calcularPainel(await motor.carregarDados(userId), hoje);
+      resumo.analisados++;
+      for (const ins of motor.insightsDoDia(painel)) {
+        const novo = await supaRpc('_registrar_insight', {
+          p_user_id: userId, p_chave: ins.chave, p_tipo: ins.tipo,
+          p_titulo: ins.titulo, p_texto: ins.texto, p_dados: ins.dados || null
+        });
+        if (!novo) continue;                      // já avisado antes: tenta o próximo
+        const n = await enviarPush(userId, { title: ins.titulo, body: ins.texto, url: '/?aba=dashboard', tag: `planejador-${ins.tipo}` });
+        if (n > 0) resumo.enviados++;
+        break;                                     // uma por dia
+      }
+    } catch (e) {
+      console.error('[planejador] Falha ao analisar', userId, e.message);
+    }
+  };
+  for (let i = 0; i < ids.length; i += 5) {
+    if (Date.now() - inicio > LIMITE_TEMPO_MS) { resumo.interrompido = true; break; }
+    await Promise.all(ids.slice(i, i + 5).map(analisar));
+  }
+  return resumo;
+}
+
 // ── Handler ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   try {
@@ -179,7 +215,10 @@ export default async function handler(req, res) {
       if (!CRON_SECRET || req.headers.authorization !== `Bearer ${CRON_SECRET}`) {
         return res.status(401).json({ error: 'Não autorizado' });
       }
+      const inicio = Date.now();
       const resumo = await rodarDiario();
+      try { resumo.planejador = await rodarPlanejador(resumo.data, inicio); }
+      catch (e) { console.error('[planejador] Erro:', e); resumo.planejador = { erro: e.message }; }
       console.log('[lembretes] Resumo:', JSON.stringify(resumo));
       return res.status(200).json({ ok: true, ...resumo });
     }

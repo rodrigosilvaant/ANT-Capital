@@ -2,7 +2,11 @@
 // GET  /api/chat  → { assinatura_ativa, modo: 'personalizado' | 'inicial' }
 // POST /api/chat  → { resposta, tokens, modo, creditos }
 //   402 SEM_ASSINATURA | 402 SEM_CREDITOS
-//   Recebe: { mensagem, historico[], dadosFinanceiros }
+//   Recebe: { mensagem, historico[] }
+//
+// Planejador: o servidor monta o painel financeiro do cliente (_motor.js —
+// projeção do mês, tendências, orçamento, dívidas, metas, alertas) e a IA
+// usa ferramentas de simulação; nenhum cálculo é feito "de cabeça" pela IA.
 //
 // Modelo híbrido:
 //   - Quem tem assinatura ativa já usa o assistente no "modo inicial"
@@ -10,10 +14,11 @@
 //   - Depois do diagnóstico, o consultor ativa o agente e o assistente
 //     passa a usar o prompt personalizado do cliente ("modo personalizado").
 
-const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const motor = require('./_motor');
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const MODELO = 'claude-haiku-4-5-20251001';
+const MAX_RODADAS_FERRAMENTAS = 4;
 
 const sb = createClient(
   process.env.SUPABASE_URL,
@@ -36,6 +41,17 @@ Como agir:
 - Ajude com: organização do orçamento, controle de gastos, reserva de emergência, priorização e negociação de dívidas e criação de hábitos financeiros.
 - Não recomende produtos de investimento específicos (ações, fundos, títulos, corretoras ou bancos) e não dê orientação jurídica ou tributária.
 - Quando o assunto depender de conhecer os objetivos e o perfil do cliente (como investir, decisões grandes, plano de longo prazo), explique que o diagnóstico com o Rodrigo vai personalizar essa orientação e convide-o a agendar pelo botão "Agendar diagnóstico", no topo do chat. Faça esse convite só quando for relevante, não em toda resposta.`;
+
+// Instruções de planejador, somadas ao prompt (inicial ou personalizado)
+const PROMPT_PLANEJADOR = `
+
+COMO PLANEJADOR FINANCEIRO:
+- Abaixo está o PAINEL DO PLANEJADOR, calculado pelo sistema com os dados reais do cliente. Use esses números; não recalcule de cabeça.
+- Para qualquer conta nova (quitar dívida antes, quanto guardar para uma meta, impacto de cortar um gasto, projeção dos próximos meses, rendimento de investimento, evolução de uma categoria), USE AS FERRAMENTAS. Nunca faça cálculos financeiros mentalmente.
+- Seja proativo: se o painel mostrar projeção negativa, gasto acima do normal, orçamento estourando, reserva baixa ou meta fora do ritmo, mencione de forma breve quando tiver relação com a pergunta, e sugira uma correção de rota concreta (quanto, onde e o efeito).
+- Ao sugerir uma correção, mostre o número: "reduzindo R$ X em Delivery, o mês fecha em R$ Y".
+- Projeções são estimativas baseadas no histórico; diga isso de forma simples quando a confiança for baixa.
+- Valores sempre em reais, no formato R$ 1.234,56. Respostas curtas e organizadas.`;
 
 async function identificarUsuario(req) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
@@ -80,6 +96,66 @@ async function buscarAgente(userId) {
   };
 }
 
+// Painel do planejador (se falhar, o chat continua funcionando sem ele)
+async function montarPainel(userId) {
+  try {
+    const dados = await motor.carregarDados(userId);
+    const painel = motor.calcularPainel(dados);
+    return { dados, painel, texto: motor.textoParaIA(painel) };
+  } catch (e) {
+    console.error('[chat] Painel indisponível:', e.message);
+    return { dados: null, painel: null, texto: '\n\n(Painel financeiro indisponível no momento: responda de forma geral e não invente números.)' };
+  }
+}
+
+async function chamarIA(body) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j) throw new Error(`Anthropic ${r.status}: ${j?.error?.message || 'sem resposta'}`);
+  return j;
+}
+
+// Conversa com uso de ferramentas: a IA pede uma simulação, o motor calcula,
+// o resultado volta para a IA — no máximo MAX_RODADAS_FERRAMENTAS vezes.
+async function conversarComFerramentas(system, messages, painelInfo) {
+  const comFerramentas = !!painelInfo.painel?.tem_dados;
+  const conversa = messages.map(m => ({ ...m }));
+  let tokensUsados = 0;
+  const usadas = [];
+  for (let rodada = 0; rodada <= MAX_RODADAS_FERRAMENTAS; rodada++) {
+    const body = { model: MODELO, max_tokens: 1024, system, messages: conversa };
+    if (comFerramentas) {
+      body.tools = motor.FERRAMENTAS;
+      // Na última rodada, a IA precisa responder em texto
+      if (rodada === MAX_RODADAS_FERRAMENTAS) body.tool_choice = { type: 'none' };
+    }
+    const r = await chamarIA(body);
+    tokensUsados += (r.usage?.input_tokens || 0) + (r.usage?.output_tokens || 0);
+    const pedidos = (r.content || []).filter(b => b.type === 'tool_use');
+    if (r.stop_reason !== 'tool_use' || !pedidos.length) {
+      const texto = (r.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      return { resposta: texto || 'Não consegui processar sua mensagem.', tokensUsados, ferramentas: usadas };
+    }
+    conversa.push({ role: 'assistant', content: r.content });
+    conversa.push({ role: 'user', content: pedidos.map(b => {
+      let saida;
+      try { saida = motor.executarFerramenta(b.name, b.input, painelInfo.painel, painelInfo.dados); }
+      catch (e) { saida = { erro: 'Não foi possível calcular: ' + e.message }; }
+      usadas.push(b.name);
+      return { type: 'tool_result', tool_use_id: b.id, content: JSON.stringify(saida) };
+    }) });
+  }
+  return { resposta: 'Não consegui concluir a análise agora. Pode reformular a pergunta?', tokensUsados, ferramentas: usadas };
+}
+
 module.exports = async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -109,7 +185,7 @@ module.exports = async function handler(req, res) {
       return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA' });
     }
 
-    const { mensagem, historico = [], dadosFinanceiros = '' } = req.body || {};
+    const { mensagem, historico = [] } = req.body || {};
     if (!mensagem || typeof mensagem !== 'string') {
       return res.status(400).json({ erro: 'Mensagem obrigatória' });
     }
@@ -129,8 +205,11 @@ module.exports = async function handler(req, res) {
       consumo = c;
     }
 
-    const { modo, prompt } = await buscarAgente(user.id);
-    const systemPrompt = prompt + (typeof dadosFinanceiros === 'string' ? dadosFinanceiros : '');
+    const [{ modo, prompt }, painelInfo] = await Promise.all([
+      buscarAgente(user.id),
+      montarPainel(user.id),
+    ]);
+    const systemPrompt = prompt + PROMPT_PLANEJADOR + painelInfo.texto;
 
     // Histórico: só mensagens válidas de usuário/assistente, começando pelo usuário
     let anteriores = (Array.isArray(historico) ? historico : [])
@@ -152,27 +231,20 @@ module.exports = async function handler(req, res) {
       else messages.push({ ...m });
     }
 
-    let response;
+    let resultado;
     try {
-      response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages
-      });
+      resultado = await conversarComFerramentas(systemPrompt, messages, painelInfo);
     } catch (errIA) {
       // A IA falhou: devolve o crédito, o cliente não paga por erro
       if (consumo) await sb.rpc('_estornar_credito', { p_user_id: user.id, p_origem: consumo.origem });
       throw errIA;
     }
-
-    const resposta = response.content[0]?.text || 'Não consegui processar sua mensagem.';
-    const tokensUsados = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+    const { resposta, tokensUsados, ferramentas } = resultado;
 
     let creditos = { ilimitado: true };
     if (consumo) { const { ok, origem, ...resto } = consumo; creditos = resto; }
 
-    return res.status(200).json({ resposta, tokens: tokensUsados, modo, creditos });
+    return res.status(200).json({ resposta, tokens: tokensUsados, modo, creditos, ferramentas });
 
   } catch (err) {
     console.error('Erro no chat:', err);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'antcapital-v16';
+const CACHE_NAME = 'antcapital-v17';
 const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -90,7 +90,7 @@ self.addEventListener('notificationclick', event => {
       for (const c of lista) {
         if (c.url.startsWith(self.location.origin)) {
           c.focus();
-          c.postMessage({ type: 'ABRIR_ABA', aba: 'pagar' });
+          c.postMessage({ type: 'ABRIR_ABA', aba: new URL(destino).searchParams.get('aba') || 'pagar' });
           return;
         }
       }
