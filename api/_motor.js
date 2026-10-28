@@ -53,6 +53,7 @@ function normalizar(d) {
     categorias: d.categorias || [],
     contas_pagar: d.contas_pagar || [],
     patrimonio: d.patrimonio || [],
+    ajustes: (d.ajustes || []).map(a => ({ conta_id: a.conta_id, valor: num(a.valor) })),
   };
 }
 
@@ -147,7 +148,8 @@ function calcularPainel(dadosBrutos, hoje = hojeBrasil()) {
     const id = c.id; const tr = D.trans.filter(t => t.conta_id === id);
     return num(c.saldo_inicial) + soma(tr, 'receita') - soma(tr, 'despesa')
       + D.transferencias.filter(t => t.to_id === id).reduce((s, t) => s + t.valor, 0)
-      - D.transferencias.filter(t => t.from_id === id).reduce((s, t) => s + t.valor, 0);
+      - D.transferencias.filter(t => t.from_id === id).reduce((s, t) => s + t.valor, 0)
+      + D.ajustes.filter(a => a.conta_id === id).reduce((s, a) => s + a.valor, 0);   // conferência com o banco
   };
   const saldoContas = D.contas.reduce((s, c) => s + saldoConta(c), 0);
   const investimentos = D.patrimonio.filter(p => /invest|reserva|aplica|poupan|tesouro|cdb|renda/i.test(`${p.tipo} ${p.nome}`))
