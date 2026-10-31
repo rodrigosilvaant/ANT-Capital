@@ -1,7 +1,7 @@
 // api/planejador.js — Painel do planejador para o card "Seu planejador"
 //
 // GET /api/planejador  (com login) → { painel resumido, alertas, checkup }
-//   402 SEM_ASSINATURA quando o cliente não tem assinatura ativa.
+//   402 SEM_ASSINATURA (+ teaser: só a quantidade de pontos de atenção) sem assinatura.
 // Os cálculos são feitos no servidor (_motor.js), com os dados do próprio usuário.
 
 import motor from './_motor.js';
@@ -38,9 +38,16 @@ export default async function handler(req, res) {
   try {
     const user = await usuarioDoToken(req);
     if (!user?.id) return res.status(401).json({ erro: 'Usuário não autenticado' });
-    if (!(await temAcesso(user.id))) return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA' });
-
+    const assinante = await temAcesso(user.id);
     const p = motor.calcularPainel(await motor.carregarDados(user.id));
+    if (!assinante) {
+      // Sem assinatura: só uma "amostra" (quantos pontos de atenção existem),
+      // nunca os números — eles são o que a assinatura libera.
+      const relevantes = p.alertas.filter(a => a.severidade !== 'info');
+      return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA', teaser: {
+        tem_dados: p.tem_dados, nome_mes: p.nome_mes, pontos_atencao: relevantes.length,
+        tem_alerta_alto: relevantes.some(a => a.severidade === 'alta') } });
+    }
     return res.status(200).json({
       tem_dados: p.tem_dados,
       gerado_em: p.gerado_em, mes: p.mes, nome_mes: p.nome_mes, dia: p.dia, dias_no_mes: p.dias_no_mes,

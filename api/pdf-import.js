@@ -1,7 +1,36 @@
+// api/pdf-import.js — Lê a fatura do cartão (texto do PDF) com IA
+// POST (com login e assinatura ativa) { pdfText, mesReferencia } → { transacoes[] }
+//   401 sem login · 402 SEM_ASSINATURA (recurso do plano: cada leitura usa IA)
+
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_SERVICE_KEY;
+const USUARIOS_ISENTOS = ['c52e0d58-27f5-46f3-bbae-06fb9a47171f'];
+const LIMITE_TEXTO = 200000; // caracteres recebidos (só os 12.000 primeiros vão para a IA)
+
+async function usuarioDoToken(req) {
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  const r = await fetch(`${SUPA_URL}/auth/v1/user`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${token}` } });
+  return r.ok ? r.json() : null;
+}
+async function ler(tabela, filtro) {
+  const r = await fetch(`${SUPA_URL}/rest/v1/${tabela}?${filtro}`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+  return r.ok ? r.json() : [];
+}
+async function temAcesso(userId) {
+  if (USUARIOS_ISENTOS.includes(userId)) return true;
+  const [perfil, assin, ess] = await Promise.all([
+    ler('profiles', `select=role&id=eq.${userId}`),
+    ler('assinaturas', `select=status&user_id=eq.${userId}`),
+    ler('assinaturas_essencial', `select=status&client_id=eq.${userId}`),
+  ]);
+  return perfil[0]?.role === 'consultor' || assin[0]?.status === 'ACTIVE' || ess[0]?.status === 'ativa';
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://app.antcapital.com.br');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
@@ -9,6 +38,12 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY não configurada' });
 
   try {
+    const user = await usuarioDoToken(req);
+    if (!user?.id) return res.status(401).json({ error: 'Faça login novamente para importar a fatura.' });
+    if (!(await temAcesso(user.id))) {
+      return res.status(402).json({ error: 'A leitura de fatura em PDF faz parte do plano ANT Capital.', codigo: 'SEM_ASSINATURA' });
+    }
+
     let body = req.body;
     if (!body || typeof body === 'string') {
       try { body = JSON.parse(body || '{}'); } catch { body = {}; }
@@ -16,6 +51,7 @@ export default async function handler(req, res) {
 
     const { pdfText, mesReferencia } = body;
     if (!pdfText) return res.status(400).json({ error: 'Texto do PDF não fornecido' });
+    if (typeof pdfText !== 'string' || pdfText.length > LIMITE_TEXTO) return res.status(413).json({ error: 'Fatura grande demais. Envie um arquivo menor.' });
 
     const anoAtual = new Date().getFullYear();
     const mesAtual = String(new Date().getMonth() + 1).padStart(2, '0');

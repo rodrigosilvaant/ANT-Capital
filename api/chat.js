@@ -42,6 +42,16 @@ Como agir:
 - Não recomende produtos de investimento específicos (ações, fundos, títulos, corretoras ou bancos) e não dê orientação jurídica ou tributária.
 - Quando o assunto depender de conhecer os objetivos e o perfil do cliente (como investir, decisões grandes, plano de longo prazo), explique que o diagnóstico com o Rodrigo vai personalizar essa orientação e convide-o a agendar pelo botão "Agendar diagnóstico", no topo do chat. Faça esse convite só quando for relevante, não em toda resposta.`;
 
+// Quem ainda não assina experimenta com algumas perguntas grátis (Etapa 7)
+function promptCortesia(restante) {
+  return `
+
+EXPERIÊNCIA GRÁTIS: este cliente ainda não assina e está experimentando o assistente com perguntas grátis. Depois desta resposta, restam ${restante}.
+- Responda com a mesma qualidade e profundidade de sempre: é a primeira impressão do cliente sobre o assistente.
+- Não peça para ele assinar nas respostas.${restante === 0 ? `
+- Esta é a ÚLTIMA pergunta grátis: ao final da resposta, em uma frase curta e gentil, diga que as perguntas grátis terminaram e que a assinatura (R$ 79,90/mês) libera 300 perguntas por mês e a projeção do mês no painel do app.` : ''}`;
+}
+
 // Instruções de planejador, somadas ao prompt (inicial ou personalizado)
 const PROMPT_PLANEJADOR = `
 
@@ -174,25 +184,39 @@ module.exports = async function handler(req, res) {
 
     // ── GET: status do assistente (usado pelo app para mostrar o aviso certo)
     if (req.method === 'GET') {
-      if (!acesso.ativa) return res.status(200).json({ assinatura_ativa: false, modo: null });
+      if (!acesso.ativa) {
+        const { data: cortesia } = await sb.rpc('_resumo_cortesia', { p_user_id: user.id });
+        return res.status(200).json({ assinatura_ativa: false, modo: null, cortesia: cortesia || null });
+      }
       const { modo } = await buscarAgente(user.id);
       const creditos = acesso.consultor ? { ilimitado: true } : await resumoCreditos(user.id);
       return res.status(200).json({ assinatura_ativa: true, modo, consultor: acesso.consultor, creditos });
     }
 
     // ── POST: conversa
-    if (!acesso.ativa) {
-      return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA' });
-    }
-
     const { mensagem, historico = [] } = req.body || {};
     if (!mensagem || typeof mensagem !== 'string') {
       return res.status(400).json({ erro: 'Mensagem obrigatória' });
     }
 
+    // Sem assinatura: usa uma das perguntas grátis (se ainda houver)
+    let cortesia = null;
+    if (!acesso.ativa) {
+      const { data: c, error: ec } = await sb.rpc('_consumir_cortesia', { p_user_id: user.id });
+      if (ec) {
+        console.error('[chat] Erro nas perguntas grátis:', ec);
+        return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA' });
+      }
+      if (!c?.ok) {
+        return res.status(402).json({ erro: 'Assinatura necessária', codigo: 'SEM_ASSINATURA',
+          cortesia: { cortesia_total: c?.cortesia_total, cortesia_restante: 0 } });
+      }
+      cortesia = c;
+    }
+
     // Desconta 1 crédito ANTES de chamar a IA (operação atômica no banco)
     let consumo = null;
-    if (!acesso.consultor) {
+    if (acesso.ativa && !acesso.consultor) {
       const { data: c, error: ec } = await sb.rpc('_consumir_credito', { p_user_id: user.id });
       if (ec) {
         console.error('[chat] Erro ao consumir crédito:', ec);
@@ -209,7 +233,7 @@ module.exports = async function handler(req, res) {
       buscarAgente(user.id),
       montarPainel(user.id),
     ]);
-    const systemPrompt = prompt + PROMPT_PLANEJADOR + painelInfo.texto;
+    const systemPrompt = prompt + PROMPT_PLANEJADOR + (cortesia ? promptCortesia(cortesia.cortesia_restante) : '') + painelInfo.texto;
 
     // Histórico: só mensagens válidas de usuário/assistente, começando pelo usuário
     let anteriores = (Array.isArray(historico) ? historico : [])
@@ -237,12 +261,14 @@ module.exports = async function handler(req, res) {
     } catch (errIA) {
       // A IA falhou: devolve o crédito, o cliente não paga por erro
       if (consumo) await sb.rpc('_estornar_credito', { p_user_id: user.id, p_origem: consumo.origem });
+      if (cortesia) await sb.rpc('_estornar_cortesia', { p_user_id: user.id });
       throw errIA;
     }
     const { resposta, tokensUsados, ferramentas } = resultado;
 
     let creditos = { ilimitado: true };
     if (consumo) { const { ok, origem, ...resto } = consumo; creditos = resto; }
+    if (cortesia) creditos = { cortesia: true, cortesia_total: cortesia.cortesia_total, cortesia_restante: cortesia.cortesia_restante };
 
     return res.status(200).json({ resposta, tokens: tokensUsados, modo, creditos, ferramentas });
 
