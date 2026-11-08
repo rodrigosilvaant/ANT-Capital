@@ -97,22 +97,28 @@ function calcularPainel(dadosBrutos, hoje = hojeBrasil()) {
       .reduce((s, t) => s + t.valor, 0);
   };
   const histDespRestante = media(histMeses.map(m => parteHist(m, 'despesa', true)));
+  // O que costuma ENTRAR depois do dia de hoje nos meses anteriores
+  // (ex.: salário que cai no dia 5 → depois do dia 7 costuma entrar ~0)
+  const histRecRestante = media(histMeses.map(m => parteHist(m, 'receita', true)));
 
   // Contas a pagar ainda não pagas até o fim do mês (inclui atrasadas)
   const fimMes = `${mesAtual}-${String(N).padStart(2, '0')}`;
   const cpPendMes = D.contas_pagar.filter(c => String(c.vencimento) <= fimMes);
   const cpPendMesTotal = cpPendMes.reduce((s, c) => s + num(c.valor), 0);
 
-  let confianca, recProj, despProj;
+  let confianca, recProj, despProj, origemDesp = 'historico';
   if (histMeses.length === 0) {
     confianca = 'baixa';
     const ritmo = dia > 0 ? despAte / dia : 0;
     despProj = despAte + despFuturas + Math.max(ritmo * (N - dia) * 0.5, cpPendMesTotal);
     recProj = recAte + recFuturas;
+    origemDesp = cpPendMesTotal >= ritmo * (N - dia) * 0.5 ? 'contas' : 'ritmo';
   } else {
     confianca = histMeses.length >= 3 ? 'alta' : 'media';
     despProj = despAte + Math.max(histDespRestante, despFuturas + cpPendMesTotal);
-    recProj = Math.max(recAte + recFuturas, recMedia);
+    origemDesp = (despFuturas + cpPendMesTotal) >= histDespRestante ? 'contas' : 'historico';
+    // Receitas: o que já entrou + o maior entre (já lançado com data futura) e (o que costuma entrar até o fim do mês)
+    recProj = recAte + Math.max(recFuturas, histRecRestante);
   }
   const saldoProj = recProj - despProj;
 
@@ -211,7 +217,8 @@ function calcularPainel(dadosBrutos, hoje = hojeBrasil()) {
     gerado_em: hoje, mes: mesAtual, nome_mes: nomeMes(mesAtual), dia, dias_no_mes: N, nome: D.nome,
     tem_dados: D.trans.length > 0, meses_historico: histMeses.length,
     mes_atual: { receitas_ate_hoje: r2(recAte), despesas_ate_hoje: r2(despAte), receitas_projetadas: r2(recProj),
-      despesas_projetadas: r2(despProj), saldo_projetado: r2(saldoProj), contas_pendentes_mes: r2(cpPendMesTotal), confianca },
+      despesas_projetadas: r2(despProj), saldo_projetado: r2(saldoProj), contas_pendentes_mes: r2(cpPendMesTotal), confianca,
+      receitas_a_entrar: r2(recProj - recAte), despesas_a_sair: r2(despProj - despAte), origem_despesas_a_sair: origemDesp },
     historico, medias: { receitas: r2(recMedia), despesas: r2(despMedia), poupanca: r2(poupMedia), taxa_poupanca: taxaMedia },
     categorias, acima_do_normal: acimaDoNormal.slice(0, 5), orcamento,
     reserva: { saldo_contas: r2(saldoContas), investimentos: r2(investimentos), meses: mesesReserva === null ? null : Math.round(mesesReserva * 10) / 10 },
@@ -337,7 +344,7 @@ function textoParaIA(p) {
   const m = p.mes_atual;
   L.push(`PAINEL DO PLANEJADOR (calculado pelo sistema em ${p.gerado_em} — números exatos, use-os):`);
   L.push(`Mês atual (${p.nome_mes}, dia ${p.dia} de ${p.dias_no_mes}): receitas até hoje ${reais(m.receitas_ate_hoje)}, despesas até hoje ${reais(m.despesas_ate_hoje)}.`);
-  L.push(`Projeção de fechamento: receitas ${reais(m.receitas_projetadas)}, despesas ${reais(m.despesas_projetadas)}, saldo ${reais(m.saldo_projetado)} (confiança ${m.confianca}; base: ${p.meses_historico} meses de histórico + contas a pagar).`);
+  L.push(`Projeção de fechamento: receitas ${reais(m.receitas_projetadas)} (${reais(m.receitas_ate_hoje)} já entraram + ${reais(m.receitas_a_entrar)} previstos), despesas ${reais(m.despesas_projetadas)} (${reais(m.despesas_ate_hoje)} já saíram + ${reais(m.despesas_a_sair)} previstos), saldo ${reais(m.saldo_projetado)} (confiança ${m.confianca}; base: ${p.meses_historico} meses de histórico + contas a pagar).`);
   if (p.historico.length) L.push('Histórico: ' + p.historico.map(h => `${h.mes}: receitas ${reais(h.receitas)}, despesas ${reais(h.despesas)}, saldo ${reais(h.saldo)}${h.taxa_poupanca !== null ? ' (' + pct(h.taxa_poupanca) + ' poupado)' : ''}`).join(' | '));
   L.push(`Médias mensais: receitas ${reais(p.medias.receitas)}, despesas ${reais(p.medias.despesas)}, poupança ${reais(p.medias.poupanca)}${p.medias.taxa_poupanca !== null ? ' (' + pct(p.medias.taxa_poupanca) + ')' : ''}.`);
   if (p.categorias.length) L.push('Gastos por categoria no mês (até hoje → projeção; média mensal): ' + p.categorias.slice(0, 8).map(c => `${c.categoria} ${reais(c.gasto_ate_hoje)} → ${reais(c.projecao_mes)}${c.media_mensal !== null ? '; média ' + reais(c.media_mensal) : ''}${c.classificacao ? ' [' + c.classificacao + ']' : ''}`).join(' | '));
