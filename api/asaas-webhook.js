@@ -112,10 +112,17 @@ export default async function handler(req, res) {
     // Monta payload de atualização
     const update = { status: novoStatus, updated_at: new Date().toISOString() };
 
-    // Se pagamento confirmado, atualiza próximo vencimento
+    // Se pagamento confirmado, atualiza próximo vencimento (1 mês ou 1 ano, conforme o plano)
     if (novoStatus === 'ACTIVE' && payment.dueDate) {
+      let anual = false;
+      try {
+        const rc = await fetch(`${SUPA_URL}/rest/v1/assinaturas?${filtro}&select=ciclo`, {
+          headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+        });
+        if (rc.ok) anual = (await rc.json())[0]?.ciclo === 'YEARLY';
+      } catch (e) { /* mantém mensal */ }
       const proxDt = new Date(payment.dueDate);
-      proxDt.setMonth(proxDt.getMonth() + 1);
+      if (anual) proxDt.setFullYear(proxDt.getFullYear() + 1); else proxDt.setMonth(proxDt.getMonth() + 1);
       update.proximo_vencimento = proxDt.toISOString().split('T')[0];
     }
 
