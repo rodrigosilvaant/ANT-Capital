@@ -154,6 +154,12 @@ async function comprarCreditos(req, res) {
   }
 }
 
+// Planos: o valor é definido AQUI no servidor (nunca pelo navegador)
+const PLANOS = {
+  mensal: { valor: 39.90,  ciclo: 'MONTHLY', descricao: 'ANT Capital — Plano Mensal (app completo + Ben, assistente com IA)' },
+  anual:  { valor: 399.00, ciclo: 'YEARLY',  descricao: 'ANT Capital — Plano Anual (app completo + Ben, assistente com IA)' },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
@@ -166,7 +172,7 @@ export default async function handler(req, res) {
 
   const {
     user_id, nome, email, cpf,
-    valor = 79.90, ciclo = 'MONTHLY',
+    plano: planoPedido = 'mensal',
     billingType = 'UNDEFINED',
     creditCard,
     creditCardHolderInfo,
@@ -176,6 +182,8 @@ export default async function handler(req, res) {
   if (!user_id || !nome || !email || !cpf) {
     return res.status(400).json({ error: 'Campos obrigatórios: user_id, nome, email, cpf' });
   }
+  const plano = PLANOS[planoPedido] || PLANOS.mensal;
+  const { valor, ciclo } = plano;
 
   // Validação extra para cartão
   if (billingType === 'CREDIT_CARD') {
@@ -236,7 +244,7 @@ export default async function handler(req, res) {
       value: valor,
       nextDueDate: proxVenc,
       cycle: ciclo,
-      description: 'ANT Capital — Plano Mensal de Planejamento Financeiro',
+      description: plano.descricao,
       externalReference: user_id  // liga ao user_id do Supabase
     };
 
